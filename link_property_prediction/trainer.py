@@ -58,11 +58,13 @@ class TrainerConfig:
     t2nv_q: float = 0.25   # node2vec in-out param
 
     # One constant lr for every parameter. E steps under SparseAdam; the pooler
-    # and the score temperature step under Adam; all of them read `lr`.
-    lr: float = 1e-4
-    # Weight decay on the score temperature, a free scalar that grows while the model beats
-    # chance. The pooler and E are left undecayed.
-    wd_temp: float = 1e-4
+    # and the score temperature step under AdamW; all of them read `lr`.
+    lr: float = 1e-3
+    # Decoupled weight decay on the score temperature, a free scalar that grows while the model
+    # beats chance. Under AdamW the pull is lr * wd_temp * temp, independent of the gradient
+    # history, so it holds at a finite margin instead of being outrun. The pooler and E are
+    # left undecayed.
+    wd_temp: float = 1e-2
 
     # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
     # a cell that prints 200 epochs is a floor, not a result.
@@ -106,13 +108,14 @@ class Trainer:
 
         # Two optimisers. E's gradient is sparse (only looked-up rows), so SparseAdam updates the
         # moments of those rows alone: an absent row's state stays frozen instead of decaying.
-        # The pooler and the temperature get a gradient every step, so they take plain Adam. Two
+        # The pooler and the temperature get a gradient every step, so they take AdamW. Two
         # optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
-        # temp sits in its own Adam group so `wd_temp` decays it alone; the pooler's group takes
-        # Adam's default of no decay, and SparseAdam has no weight_decay argument at all.
+        # temp sits in its own group so `wd_temp` decays it alone. AdamW's own default decay is
+        # 0.01, so the pooler's group states weight_decay=0.0 explicitly; SparseAdam has no
+        # weight_decay argument at all, so E is undecayed either way.
         named = [(n, p) for n, p in self.model.named_parameters() if n != "E.weight"]
-        self.opt = torch.optim.Adam(
-            [{"params": [p for n, p in named if n != "temp"]},
+        self.opt = torch.optim.AdamW(
+            [{"params": [p for n, p in named if n != "temp"], "weight_decay": 0.0},
              {"params": [p for n, p in named if n == "temp"], "weight_decay": float(config.wd_temp)}],
             lr=float(config.lr),
         )
