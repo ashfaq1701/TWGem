@@ -65,6 +65,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lr", default=1e-4, type=float,
                    help="Learning rate of every parameter: the embedding table E (SparseAdam) "
                         "and the score temperature and NN pooler (Adam).")
+    p.add_argument("--wd-net", default=1e-4, type=float,
+                   help="Weight decay on the Adam group: the NN pooler and the score "
+                        "temperature. The embedding table E is never decayed.")
     p.add_argument("--batch-size", default=1000, type=int,
                    help="Train batch size.")
     p.add_argument("--eval-batch-size", default=1000, type=int,
@@ -176,6 +179,7 @@ def main() -> Dict[str, Any]:
         t2nv_p=args.t2nv_p,
         t2nv_q=args.t2nv_q,
         lr=args.lr,
+        wd_net=args.wd_net,
         num_epochs=args.num_epochs,
         early_stop_patience=args.early_stop_patience,
 
