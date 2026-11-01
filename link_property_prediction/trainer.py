@@ -60,8 +60,9 @@ class TrainerConfig:
     # One constant lr for every parameter. E steps under SparseAdam; the pooler
     # and the score temperature step under Adam; all of them read `lr`.
     lr: float = 1e-4
-    # Weight decay on the Adam group only: the pooler and the temperature. E is left undecayed.
-    wd_net: float = 1e-4
+    # Weight decay on the score temperature, a free scalar that grows while the model beats
+    # chance. The pooler and E are left undecayed.
+    wd_temp: float = 1e-4
 
     # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
     # a cell that prints 200 epochs is a floor, not a result.
@@ -107,11 +108,14 @@ class Trainer:
         # moments of those rows alone: an absent row's state stays frozen instead of decaying.
         # The pooler and the temperature get a gradient every step, so they take plain Adam. Two
         # optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
-        # That Adam group is exactly the pooler and the temperature, so `wd_net` decays those and
-        # nothing else; SparseAdam takes no weight decay, so E would need a separate mechanism.
-        head_params = [p for name, p in self.model.named_parameters() if name != "E.weight"]
-        self.opt = torch.optim.Adam(head_params, lr=float(config.lr),
-                                    weight_decay=float(config.wd_net))
+        # temp sits in its own Adam group so `wd_temp` decays it alone; the pooler's group takes
+        # Adam's default of no decay, and SparseAdam has no weight_decay argument at all.
+        named = [(n, p) for n, p in self.model.named_parameters() if n != "E.weight"]
+        self.opt = torch.optim.Adam(
+            [{"params": [p for n, p in named if n != "temp"]},
+             {"params": [p for n, p in named if n == "temp"], "weight_decay": float(config.wd_temp)}],
+            lr=float(config.lr),
+        )
         self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
 
     # Full-graph ingestion (once, up front)
