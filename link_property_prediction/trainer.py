@@ -286,7 +286,7 @@ class Trainer:
         best_snap: Optional[Dict[str, Any]] = None
         no_improve = 0
         per_epoch_val: List[float] = []
-        per_epoch_test: List[float] = []
+        new_best_test: List[float] = []
 
         for ep in range(1, n_epochs + 1):
             self.model.train()
@@ -314,7 +314,6 @@ class Trainer:
             if val_evaluator is not None and val_batches_factory is not None:
                 t1 = time.time()
                 val_metric = self._eval(val_evaluator, val_batches_factory())
-                eval_dt = time.time() - t1
                 per_epoch_val.append(val_metric)
 
                 if val_metric > best_val:
@@ -323,14 +322,16 @@ class Trainer:
                     no_improve = 0
                     if test_evaluator is not None and test_batches_factory is not None:
                         best_test = self._eval(test_evaluator, test_batches_factory())
-                        per_epoch_test.append(best_test)
+                        new_best_test.append(best_test)
                         line += f"  val {val_metric:.4f}  test {best_test:.4f} (new best)"
                     else:
                         line += f"  val {val_metric:.4f} (new best)"
                 else:
                     no_improve += 1
                     line += f"  val {val_metric:.4f}  patience {no_improve}/{patience}"
-                line += f"  eval {eval_dt:.1f}s"
+                # Timed around BOTH passes. A new-best epoch also evaluates the test split,
+                # and timing only the val pass printed those epochs as cheap as the rest.
+                line += f"  eval {time.time() - t1:.1f}s"
             print(line)
 
             if patience > 0 and no_improve >= patience:
@@ -343,9 +344,16 @@ class Trainer:
                 f"(val {best_val:.4f}, test {best_test:.4f})")
 
         return {
-            "stopped_at_epoch": best_epoch if best_snap is not None else n_epochs,
+            # `best_epoch` is where the restored checkpoint came from, -1 if there was no
+            # validation to select one; `epochs_run` is how far the loop actually got. The
+            # single old `stopped_at_epoch` field was the first but named like the second,
+            # and its caller renamed it back to `best_epoch` to use it.
+            "best_epoch": best_epoch,
+            "epochs_run": len(per_epoch_val) if per_epoch_val else n_epochs,
             "best_val_mrr": best_val,
             "best_test_mrr": best_test,
             "per_epoch_val_mrr": per_epoch_val,
-            "per_epoch_test_mrr": per_epoch_test,
+            # Only new-best-val epochs evaluate test, so this is NOT per-epoch and is not
+            # index-aligned with `per_epoch_val_mrr`.
+            "new_best_test_mrr": new_best_test,
         }

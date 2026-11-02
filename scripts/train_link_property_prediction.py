@@ -220,7 +220,8 @@ def main() -> Dict[str, Any]:
     print("\n=== Final results ===")
     print(f"  dataset:           {args.dataset}")
     print(f"  seed:              {args.seed}")
-    print(f"  stopped_at_epoch:  {result['stopped_at_epoch']}")
+    print(f"  best_epoch:        {result['best_epoch']}")
+    print(f"  epochs_run:        {result['epochs_run']}")
     print(f"  best_val_mrr:      {result['best_val_mrr']:.4f}")
     print(f"  best_test_mrr:     {result['best_test_mrr']:.4f}")
 
@@ -230,7 +231,7 @@ def main() -> Dict[str, Any]:
         emb_dir.mkdir(parents=True, exist_ok=True)
         emb_path = emb_dir / (
             f"{args.dataset}_seed{args.seed}_demb{args.d_emb}"
-            f"_ep{result['stopped_at_epoch']}.npy"
+            f"_ep{result['best_epoch']}.npy"
         )
         np.save(
             emb_path,
@@ -248,7 +249,7 @@ def main() -> Dict[str, Any]:
             "state_dict": trainer.model.state_dict(),
             "args": vars(args),
             "T_train": loaded.T_train,
-            "best_epoch": result["stopped_at_epoch"],
+            "best_epoch": result["best_epoch"],
             "best_val_mrr": result["best_val_mrr"],
             "r_mean": float(radius.mean()),
             "r_max": float(radius.max()),
