@@ -189,10 +189,7 @@ def main() -> Dict[str, Any]:
 
     print("\n=== Config ===")
     for k, v in vars(config).items():
-        if isinstance(v, np.ndarray):
-            print(f"  {k}: <ndarray shape={v.shape} dtype={v.dtype}>")
-        else:
-            print(f"  {k}: {v}")
+        print(f"  {k}: {v}")
 
     # ─── Instantiate Trainer ───────────────────────────────────────
     trainer = Trainer(config=config, device=device)
