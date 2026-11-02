@@ -162,7 +162,8 @@ class Trainer:
 
     # Per-batch training step
 
-    def _train_step(self, batch: Batch) -> Dict[str, float]:
+    def _train_step(self, batch: Batch) -> float:
+        """One optimiser step; returns the batch's link CE for the epoch average."""
         device = self.device
         B = len(batch.src)
 
@@ -186,10 +187,7 @@ class Trainer:
         self.opt.step()
         self.opt_embedding.step()
 
-        return {
-            "link": float(link_loss.detach()),
-            "lr": float(self.opt.param_groups[0]["lr"]),
-        }
+        return float(link_loss.detach())
 
     # Geometry probe
 
@@ -294,8 +292,7 @@ class Trainer:
             t0 = time.time()
             link_sum, n_batches = 0.0, 0
             for batch in train_batches_factory():
-                m = self._train_step(batch)
-                link_sum += m["link"]
+                link_sum += self._train_step(batch)
                 n_batches += 1
             train_dt = time.time() - t0
 
