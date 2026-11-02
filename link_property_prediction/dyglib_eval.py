@@ -156,15 +156,13 @@ class DyGLibSuite(DataSuite):
     def _load(self) -> Loaded:
         return load_dyglib(self.name, self.root)
 
-    def make_evaluator(self, split_mode: str) -> Evaluator:
-        loaded = self.load()
-        if split_mode == "val":
-            split, seed = loaded.val, self.seed
-        elif split_mode == "test":
-            split, seed = loaded.test, self.seed + 1
-        else:
-            raise ValueError(f"split_mode must be 'val' or 'test', got {split_mode!r}")
-        neg = self.eval_negatives(split, seed, tag=f"[dyglib] {split_mode}")
+    def _val_evaluator(self) -> Evaluator:
+        neg = self.eval_negatives(self.load().val, self.seed, tag="[dyglib] val")
+        return TGBSeqEvaluator(neg_dst=neg)
+
+    def _test_evaluator(self) -> Evaluator:
+        # One seed apart from val, so the two splits never draw the same negative rows.
+        neg = self.eval_negatives(self.load().test, self.seed + 1, tag="[dyglib] test")
         return TGBSeqEvaluator(neg_dst=neg)
 
     def negative_sampler(self, pool: np.ndarray, k: int, seed: int,

@@ -93,23 +93,22 @@ class TGBSeqSuite(DataSuite):
     def _load(self) -> Loaded:
         return load_tgb_seq(self.name, self.root)
 
-    def make_evaluator(self, split_mode: str) -> Evaluator:
+    def _val_evaluator(self) -> Evaluator:
+        neg = self.eval_negatives(self.load().val, self.seed, tag="[tgb-seq] val")
+        return TGBSeqEvaluator(neg_dst=neg)
+
+    def _test_evaluator(self) -> Evaluator:
         loaded = self.load()
-        if split_mode == "val":
-            neg = self.eval_negatives(loaded.val, self.seed, tag="[tgb-seq] val")
-            return TGBSeqEvaluator(neg_dst=neg)
-        if split_mode == "test":
-            neg = loaded.dataset.negative_samples          # shipped test_ns.npy [N_test, K]
-            if neg is None:
-                raise FileNotFoundError(
-                    f"TGB-Seq test negatives (test_ns) not found for {self.name!r}; "
-                    "they normally download with the dataset — re-run the loader to fetch them.")
-            neg = np.asarray(neg, dtype=np.int32)
-            n_test = len(loaded.test.sources)
-            if neg.shape[0] != n_test:
-                raise ValueError(
-                    f"test_ns rows ({neg.shape[0]}) != test positives ({n_test}); "
-                    "the shipped negatives are not row-aligned to the test split.")
-            print(f"  [tgb-seq] test negatives: shipped test_ns ({neg.shape[1]} per positive)")
-            return TGBSeqEvaluator(neg_dst=neg)
-        raise ValueError(f"split_mode must be 'val' or 'test', got {split_mode!r}")
+        neg = loaded.dataset.negative_samples              # shipped test_ns.npy [N_test, K]
+        if neg is None:
+            raise FileNotFoundError(
+                f"TGB-Seq test negatives (test_ns) not found for {self.name!r}; "
+                "they normally download with the dataset — re-run the loader to fetch them.")
+        neg = np.asarray(neg, dtype=np.int32)
+        n_test = len(loaded.test.sources)
+        if neg.shape[0] != n_test:
+            raise ValueError(
+                f"test_ns rows ({neg.shape[0]}) != test positives ({n_test}); "
+                "the shipped negatives are not row-aligned to the test split.")
+        print(f"  [tgb-seq] test negatives: shipped test_ns ({neg.shape[1]} per positive)")
+        return TGBSeqEvaluator(neg_dst=neg)

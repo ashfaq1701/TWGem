@@ -60,9 +60,24 @@ class DataSuite(abc.ABC):
     def _load(self) -> Loaded:
         """Do the suite's native load and return a `Loaded`."""
 
-    @abc.abstractmethod
     def make_evaluator(self, split_mode: str) -> Evaluator:
-        """Native evaluator for `split_mode` in {'val', 'test'}."""
+        """Native evaluator for `split_mode` in {'val', 'test'}. The split name is
+        validated here and dispatched to the two hooks below, so no suite repeats either
+        the check or the dispatch -- a suite says only how each split's negatives are
+        made."""
+        if split_mode == "val":
+            return self._val_evaluator()
+        if split_mode == "test":
+            return self._test_evaluator()
+        raise ValueError(f"split_mode must be 'val' or 'test', got {split_mode!r}")
+
+    @abc.abstractmethod
+    def _val_evaluator(self) -> Evaluator:
+        """Native evaluator over the val split's negatives."""
+
+    @abc.abstractmethod
+    def _test_evaluator(self) -> Evaluator:
+        """Native evaluator over the test split's negatives."""
 
     @property
     def candidate_kind(self) -> str:

@@ -135,8 +135,8 @@ class TGBEvaluator(Evaluator):
                  tgb_dataset_name: str, eval_metric: str):
         from tgb.linkproppred.evaluate import Evaluator as TGBOfficialEvaluator
 
-        if split_mode not in ("val", "test"):
-            raise ValueError(f"split_mode must be 'val' or 'test', got {split_mode!r}")
+        # `split_mode` is validated by `DataSuite.make_evaluator` and only ever arrives
+        # from `TGBSuite`'s two named hooks, so it is not re-checked here.
         self._split_mode = split_mode
         self._sampler = dataset.negative_sampler
         self.eval_metric = eval_metric
@@ -167,16 +167,21 @@ class TGBSuite(DataSuite):
     def _load(self) -> Loaded:
         return load_tgb(self.name, self.root)
 
-    def make_evaluator(self, split_mode: str) -> Evaluator:
+    # TGB requires the split's negative-sampler file loaded before querying; each is
+    # cached on disk after the first call.
+
+    def _val_evaluator(self) -> Evaluator:
+        self.load().dataset.load_val_ns()
+        return self._evaluator("val")
+
+    def _test_evaluator(self) -> Evaluator:
+        self.load().dataset.load_test_ns()
+        return self._evaluator("test")
+
+    def _evaluator(self, split_mode: str) -> Evaluator:
+        """Both splits read TGB's own negatives through the same evaluator, so they share
+        everything after the sampler file is loaded."""
         loaded = self.load()
-        # TGB requires the split's negative-sampler file loaded before querying;
-        # cached on disk after the first call.
-        if split_mode == "val":
-            loaded.dataset.load_val_ns()
-        elif split_mode == "test":
-            loaded.dataset.load_test_ns()
-        else:
-            raise ValueError(f"split_mode must be 'val' or 'test', got {split_mode!r}")
         print(f"  [tgb] {split_mode} negatives: TGB's pre-generated set "
               f"(--k-eval={self.k_eval} ignored)")
         return TGBEvaluator(
