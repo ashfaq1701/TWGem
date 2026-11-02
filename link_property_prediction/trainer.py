@@ -61,8 +61,11 @@ class TrainerConfig:
     # and the score temperature step under Adam; all of them read `lr`.
     lr: float = 1e-3
     # Weight decay on the score temperature, a free scalar that grows while the model beats
-    # chance. The pooler and E are left undecayed.
-    wd_temp: float = 1e-4
+    # chance. The pooler and E are left undecayed. Adam's L2 enters the gradient before the
+    # m/sqrt(v) normalisation, so the balance sits in gradient units at temp* = |grad|/wd_temp,
+    # which is per-dataset for free because the margin is: measured 13.1 on YouTube and 9.0 on
+    # Yelp from this one value, against 22.0 and 17.2 undecayed.
+    wd_temp: float = 1e-3
 
     # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
     # a cell that prints 200 epochs is a floor, not a result.
