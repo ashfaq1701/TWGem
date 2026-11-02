@@ -5,7 +5,7 @@ per query by the walk cutoff, not by ingestion order. A walk for (u, t) uses cut
 EXCLUSIVE: it traverses only edges with t_edge < t, so the target edge at t and any
 simultaneous/future edge are never seen. TGB-Seq splits are chronological (train < val < test).
 
-Training per batch: sample K_train negatives by the suite's rule, form candidates [pos | negs],
+Training per batch: sample K negatives by the suite's rule, form candidates [pos | negs],
 score them TWO-SIDED (walks for the source u and for every candidate v, each cut off at the query
 time t_i), then cross-entropy with target 0 and a single optimizer step. E and the head train
 together under the link CE with no detach.
@@ -22,7 +22,7 @@ from .data import Batch, SplitData
 from .evaluator import Evaluator
 from .model import LinkPredHead
 from .negatives import NegativeSampler
-from .walk_tokens import build_query_walk_tokens
+from .walk_tokens import WalkTokens, build_query_walk_tokens
 from .walks import WalkGenerator
 
 
@@ -45,9 +45,6 @@ class TrainerConfig:
     # Linear(hidden, hidden) -> GELU. Depth and width are separate knobs so a capacity
     # change can be attributed to one of them. 1 reproduces the pre-c2a7c95 shape.
     n_layers_pooler: int = 2
-
-    # Per-query training negatives ([B, 1+K_train]).
-    K_train: int = 5
 
     # Walks: BACKWARD only, undirected; two-sided (source and every candidate).
     num_walks_per_node: int = 10
@@ -123,65 +120,55 @@ class Trainer:
 
     # Full-graph ingestion (once, up front)
 
-    def ingest_full_graph(self, src: np.ndarray, tgt: np.ndarray, ts: np.ndarray,
-                          edge_feat: Optional[np.ndarray] = None) -> None:
+    def ingest_full_graph(self, graph: SplitData) -> None:
         """Ingest the entire graph (all splits) into Tempest in one add_edges call, once before
         train()/eval. The per-query cutoff (t_edge < t_query, EXCLUSIVE) enforces causality.
         Capacity is unbounded."""
-        self.walk_gen.add_edges(src, tgt, ts, edge_feat)
-        print(f"  Ingested full graph into Tempest: {len(src):,} edges "
+        self.walk_gen.add_edges(graph.sources, graph.destinations, graph.timestamps, graph.edge_feat)
+        print(f"  Ingested full graph into Tempest: {len(graph.sources):,} edges "
               f"(once; per-query cutoff enforces causality)")
 
     # Scoring — shared by train + eval
 
-    def _score(self, src_t: torch.Tensor, cand_t: torch.Tensor,
-               t_query_t: torch.Tensor):
-        """src_t [B], cand_t [B, C], t_query_t [B] (all long) -> logits [B, C]. Two-sided per-query
-        walks: K backward walks for the source and for every candidate, each cut off at t_i. Both
-        bags go to the head; only the logits are returned."""
-        device = self.device
+    def _long(self, array: np.ndarray) -> torch.Tensor:
+        """A numpy id/time array as an int64 tensor on the model's device."""
+        return torch.from_numpy(np.ascontiguousarray(array, dtype=np.int64)).to(self.device)
 
-        # Source side: K backward walks for each query (u_i, t_i), cutoff = t_i.
-        src_tokens = build_query_walk_tokens(
-            self.walk_gen, device, src_t, t_query_t,
+    def _walk_tokens(self, seeds: torch.Tensor, cutoffs: torch.Tensor) -> WalkTokens:
+        """K backward walks per seed, each cut off (EXCLUSIVELY) at its own cutoff."""
+        return build_query_walk_tokens(
+            self.walk_gen, self.device, seeds, cutoffs,
             max_walk_len=self.config.max_walk_len,
             num_walks_per_node=self.config.num_walks_per_node,
             start_bias=self.config.start_bias,
             walk_bias=self.config.walk_bias)
 
-        # Candidate side: walk every candidate v with its query's cutoff t_i. Flatten [B,C] → [B*C]
-        # query-major; each candidate inherits its query's cutoff.
-        b, c = cand_t.shape
-        cand_seeds = cand_t.reshape(-1)                                  # [B*C]
-        cand_cutoffs = t_query_t.unsqueeze(1).expand(b, c).reshape(-1)   # [B*C]
-        cand_tokens = build_query_walk_tokens(
-            self.walk_gen, device, cand_seeds, cand_cutoffs,
-            max_walk_len=self.config.max_walk_len,
-            num_walks_per_node=self.config.num_walks_per_node,
-            start_bias=self.config.start_bias,
-            walk_bias=self.config.walk_bias)
+    def _score(self, batch: Batch, candidates: np.ndarray) -> torch.Tensor:
+        """Logits [B, C] for `candidates` [B, C] of `batch`'s queries. Two-sided per-query walks:
+        K backward walks for the source and for every candidate, each cut off at its query's t_i."""
+        src = self._long(batch.src)                                          # [B]
+        t_query = self._long(batch.ts)                                       # [B]
+        cand = self._long(candidates)                                        # [B, C]
 
+        # Flatten candidates [B, C] -> [B*C] query-major; each inherits its query's cutoff.
+        b, c = cand.shape
+        cand_cutoffs = t_query.unsqueeze(1).expand(b, c).reshape(-1)         # [B*C]
+
+        src_tokens = self._walk_tokens(src, t_query)
+        cand_tokens = self._walk_tokens(cand.reshape(-1), cand_cutoffs)
         return self.model(src_tokens, cand_tokens)
 
     # Per-batch training step
 
     def _train_step(self, batch: Batch) -> float:
         """One optimiser step; returns the batch's link CE for the epoch average."""
-        device = self.device
-        B = len(batch.src)
+        neg_tgt = self.neg_sampler_train.sample(batch)                       # [B, K]
+        candidates = np.concatenate(
+            [batch.tgt.astype(np.int64)[:, None], neg_tgt.astype(np.int64)], axis=1)  # [B, 1+K]
 
-        # Full graph already ingested; each query walks with cutoff = t (EXCLUSIVE).
-        neg_tgt = self.neg_sampler_train.sample(batch)                 # [B, K_train]
-        src_t = torch.from_numpy(batch.src.astype(np.int64)).to(device)
-        cand_np = np.concatenate(
-            [batch.tgt.astype(np.int64)[:, None],
-             np.ascontiguousarray(neg_tgt, dtype=np.int64)], axis=1)   # [B, 1+K]
-        cand_t = torch.from_numpy(cand_np).to(device)
-        t_query_t = torch.from_numpy(batch.ts.astype(np.int64)).to(device)
-
-        logits = self._score(src_t, cand_t, t_query_t)                            # [B, 1+K]
-        target = torch.zeros(B, dtype=torch.long, device=device)
-        # link CE only; E trains end-to-end through the monotone head (no detach).
+        logits = self._score(batch, candidates)                              # [B, 1+K]
+        target = torch.zeros(len(batch.src), dtype=torch.long, device=self.device)  # positive first
+        # link CE only; E trains end-to-end through the head (no detach).
         link_loss = F.cross_entropy(logits, target)
 
         self.opt.zero_grad(set_to_none=True)
@@ -192,77 +179,54 @@ class Trainer:
 
         return float(link_loss.detach())
 
-    # Geometry probe
+    # Epoch-line probe
 
     @torch.no_grad()
-    def _geometry_probe(self) -> Dict[str, float]:
-        """Spread watch: mean and max Euclidean norm of E (its distance from the origin), logged
-        as r_mean/r_max."""
-        r = self.model.E.weight.detach().norm(dim=-1)
-        return {"max_norm": float(r.max()), "mean_norm": float(r.mean())}
-
-    @torch.no_grad()
-    def _head_probe(self) -> str:
-        """The head's scalar parameters, for the epoch line. Read via hasattr so a head with a different
-        set of knobs degrades to a shorter line rather than raising. temp scales the score."""
-        parts = []
-        if hasattr(self.model, "temp"):
-            parts.append(f"temp={float(self.model.temp):+.4f}")
-        if hasattr(self.model, "beta"):
-            parts.append(f"beta={float(self.model.beta):+.4f}")
-        return ("  " + "  ".join(parts)) if parts else ""
+    def _probe(self) -> str:
+        """The epoch line's state watch: mean and max norm of E (its distance from the origin)
+        and the score temperature."""
+        r = self.model.E.weight.norm(dim=-1)
+        return (f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+                f"  temp={float(self.model.temp):+.4f}")
 
     # Eval — strict-causal, no_grad
 
+    @staticmethod
+    def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:
+        """[B, 1+max_K] candidates, the positive first. A positive with fewer than max_K
+        negatives is right-padded with copies of itself; only its own count is ever scored."""
+        max_k = max((len(neg) for neg in neg_tgt_list), default=0)
+        candidates = np.tile(batch.tgt.astype(np.int64)[:, None], (1, 1 + max_k))
+        for i, neg in enumerate(neg_tgt_list):
+            candidates[i, 1:1 + len(neg)] = neg
+        return candidates
+
+    @torch.no_grad()
     def _eval(self, evaluator: Evaluator, batches: Iterable[Batch]) -> float:
+        """Mean of the suite's per-positive metric over `batches`."""
         self.model.eval()
         # Rewind the fixed-negative cursor so every eval pass sees the same negatives.
         # Must precede the first sample_negatives call.
         evaluator.reset()
         total, n = 0.0, 0
-        with torch.no_grad():
-            for batch in batches:
-                B = len(batch.src)
-                # Full graph already in Tempest; per-query cutoff keeps every walk causal.
-                if B == 0:
-                    continue
-
-                neg_tgt_list = evaluator.sample_negatives(batch)
-                counts = [int(arr.shape[0]) for arr in neg_tgt_list]
-                max_K = max(counts) if counts else 0
-
-                pos_v_np = batch.tgt.astype(np.int64)
-                cand_v_np = np.tile(pos_v_np[:, None], (1, 1 + max_K))
-                for i in range(B):
-                    if counts[i] > 0:
-                        cand_v_np[i, 1:1 + counts[i]] = neg_tgt_list[i].astype(np.int64)
-
-                src_t = torch.from_numpy(batch.src.astype(np.int64)).to(self.device)
-                cand_t = torch.from_numpy(cand_v_np).to(self.device)
-                t_query_t = torch.from_numpy(batch.ts.astype(np.int64)).to(self.device)
-                logits = self._score(src_t, cand_t, t_query_t)
-                logits = logits.cpu().numpy()
-
-                for i in range(B):
-                    rr = evaluator.score_to_metric(
-                        float(logits[i, 0]), logits[i, 1:1 + counts[i]])
-                    total += rr
-                n += B
+        for batch in batches:
+            if len(batch.src) == 0:
+                continue
+            neg_tgt_list = evaluator.sample_negatives(batch)
+            logits = self._score(batch, self._eval_candidates(batch, neg_tgt_list)).cpu().numpy()
+            for i, neg in enumerate(neg_tgt_list):
+                total += evaluator.score_to_metric(float(logits[i, 0]), logits[i, 1:1 + len(neg)])
+            n += len(batch.src)
         return total / max(n, 1)
 
     # Snapshot / restore (early-stop)
 
-    @staticmethod
-    def _cpu_state_dict(module: torch.nn.Module) -> Dict[str, torch.Tensor]:
-        return {k: v.detach().to("cpu", copy=True) for k, v in module.state_dict().items()}
+    def _snapshot(self) -> Dict[str, torch.Tensor]:
+        """A CPU copy of the model's state, for restoring the best-val epoch."""
+        return {k: v.detach().to("cpu", copy=True) for k, v in self.model.state_dict().items()}
 
-    def _snapshot(self) -> Dict[str, Any]:
-        return {
-            "model": self._cpu_state_dict(self.model),
-        }
-
-    def _restore(self, snap: Dict[str, Any]) -> None:
-        self.model.load_state_dict(snap["model"])
+    def _restore(self, snap: Dict[str, torch.Tensor]) -> None:
+        self.model.load_state_dict(snap)
 
     # Train loop
 
@@ -276,15 +240,13 @@ class Trainer:
         test_batches_factory=None,
     ) -> Dict[str, Any]:
         # Ingest the full graph (train + val + test) into Tempest once, up front.
-        self.ingest_full_graph(
-            full_graph.sources, full_graph.destinations,
-            full_graph.timestamps, full_graph.edge_feat)
+        self.ingest_full_graph(full_graph)
 
         n_epochs = self.config.num_epochs
         patience = self.config.early_stop_patience
 
         best_val, best_test, best_epoch = -1.0, -1.0, -1
-        best_snap: Optional[Dict[str, Any]] = None
+        best_snap: Optional[Dict[str, torch.Tensor]] = None
         no_improve = 0
         per_epoch_val: List[float] = []
         new_best_test: List[float] = []
@@ -306,10 +268,7 @@ class Trainer:
                 f"train {train_dt:.1f}s"
             )
 
-            # Geometry watch: boundary radius (|E|mean vs |E|max).
-            g = self._geometry_probe()
-            line += f"  r_mean={g['mean_norm']:.3f}  r_max={g['max_norm']:.3f}"
-            line += self._head_probe()
+            line += self._probe()
 
             if val_evaluator is not None and val_batches_factory is not None:
                 t1 = time.time()
