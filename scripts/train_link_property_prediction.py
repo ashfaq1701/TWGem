@@ -59,7 +59,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--k-train", default=5, type=int,
                    help="Per-query training negatives.")
     p.add_argument("--k-eval", default=100, type=int,
-                   help="Eval negatives per positive (tgb-seq val only).")
+                   help="Eval negatives per positive for every split whose negatives we "
+                        "generate: tgb-seq val, tgb val, dyglib val and test. Splits that "
+                        "use shipped negatives ignore it.")
 
     # ── Optimisation / training ─────────────────────────────────────
     p.add_argument("--lr", default=1e-3, type=float,

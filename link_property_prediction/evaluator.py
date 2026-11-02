@@ -1,11 +1,15 @@
-"""Benchmark-agnostic evaluation interfaces (Evaluator, DataSuite) and the
-`make_suite` factory.
+"""Benchmark-agnostic evaluation interfaces (Evaluator, DataSuite,
+FixedNegativeEvaluator) and the `make_suite` factory.
 
 Three suites: TGB-Seq in `tgb_seq_eval.py`, TGB in `tgb_eval.py` and DyGLib in
-`dyglib_eval.py`. Everything suite-specific lives behind these two ABCs --
+`dyglib_eval.py`. Everything suite-specific lives behind the two ABCs --
 `trainer.py`, `negatives.py` and `data.py` never branch on the suite, and
 `make_suite` is the single place a name maps to a class. A new suite is therefore
 additive: one module, one branch here, one `--data-suite` choice.
+
+`FixedNegativeEvaluator` is the one concrete evaluator here, because it is the reader
+for what `DataSuite.eval_negatives` writes and every suite uses it: TGB-Seq and DyGLib
+for both splits, TGB for val.
 
 The suites agree on the vocabulary (`Loaded`, `SplitData`, `Batch`) and on the
 `Evaluator` contract; they differ only inside, which is what makes them
@@ -36,6 +40,46 @@ class Evaluator(abc.ABC):
         """Called at the start of every eval pass; rewinds per-positive cursors for
         fixed-negative evaluators. Stateless evaluators no-op."""
         return None
+
+
+class FixedNegativeEvaluator(Evaluator):
+    """Evaluation against a fixed `[N_pos, K]` negative array -- row i for positive i --
+    scored by the optimistic/pessimistic-rank MRR. A cursor walks the array in lockstep
+    with the contiguous chronological batches `create_batches` yields, and `reset()`
+    rewinds it at the start of each pass.
+
+    It lives here, not in a suite, because it reads exactly what `DataSuite.eval_negatives`
+    produces and all three suites use it: TGB-Seq for val and test, DyGLib for both, TGB
+    for val.
+
+    The metric is TGB-Seq's official implementation. TGB's own `_eval_hits_and_mrr` numpy
+    branch computes the identical `0.5 * (optimistic + pessimistic) + 1` rank and its
+    float32 reciprocal, so a TGB val number from here is the number TGB's evaluator would
+    return; TGB's *test* numbers still go through TGB's evaluator (`tgb_eval.py`), which
+    is what keeps them leaderboard-comparable. The import is deferred so a suite whose
+    optional dependency is absent only fails when that suite is actually used.
+    """
+
+    def __init__(self, neg_dst: np.ndarray):
+        from tgb_seq.LinkPred.evaluator import Evaluator as OfficialMRREvaluator
+
+        self._neg_dst = np.asarray(neg_dst, dtype=np.int32)   # [N_pos, K]
+        self._cursor = 0
+        self._eval = OfficialMRREvaluator()
+
+    def reset(self) -> None:
+        self._cursor = 0
+
+    def sample_negatives(self, batch: Batch) -> List[np.ndarray]:
+        b = len(batch.src)
+        rows = self._neg_dst[self._cursor:self._cursor + b]
+        self._cursor += b
+        return [rows[i] for i in range(b)]
+
+    def score_to_metric(self, pos_score: float, neg_scores: np.ndarray) -> float:
+        pos = np.asarray([pos_score], dtype=np.float64)
+        neg = np.asarray(neg_scores, dtype=np.float64).reshape(1, -1)
+        return float(self._eval.eval(pos, neg)[0])            # mrr_list[0]
 
 
 class DataSuite(abc.ABC):

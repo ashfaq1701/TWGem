@@ -27,9 +27,8 @@ from typing import Dict, NamedTuple
 import numpy as np
 
 from .data import Loaded, SplitData
-from .evaluator import DataSuite, Evaluator
+from .evaluator import DataSuite, Evaluator, FixedNegativeEvaluator
 from .negatives import CollisionFreeNegativeSampler, NegativeSampler
-from .tgb_seq_eval import TGBSeqEvaluator
 
 ZENODO_RECORD = "https://zenodo.org/api/records/7213796"
 VAL_QUANTILE, TEST_QUANTILE = 0.70, 0.85
@@ -165,7 +164,7 @@ class DyGLibSuite(DataSuite):
         else:
             raise ValueError(f"split_mode must be 'val' or 'test', got {split_mode!r}")
         neg = self.eval_negatives(split, seed, tag=f"[dyglib] {split_mode}")
-        return TGBSeqEvaluator(neg_dst=neg)
+        return FixedNegativeEvaluator(neg_dst=neg)
 
     def negative_sampler(self, pool: np.ndarray, k: int, seed: int,
                          edges: SplitData) -> NegativeSampler:
