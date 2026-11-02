@@ -921,3 +921,75 @@ flight holds `w * r_mean` at ~29 across ep1-4 while `r_mean` triples. So on TGB 
 largely gets what it is going to get in a single pass, and the epochs after are patience
 bookkeeping. Read a TGB A/B off its first two epochs; a change that only moves epochs 5+ on
 this suite is probably moving nothing.
+
+## The learning rate is per-suite, not global (measured, 2026-11-01/02)
+
+**lr 1e-3 wins every TGB-Seq cell and loses every TGB cell.** One variable against the
+1e-4 lineage: `--lr` is a single rate for both optimisers (Adam over pooler+temp, SparseAdam
+over E). Code is master `1a0f55c`/`215cca4`, seed 5, d128 K5 keval100 wpn10 mwl5, `wd_temp`
+1e-4 on the temperature's own group, per-dataset flags from `default_conf_variations.txt`.
+
+| cell | lr 1e-3 | at ep | lr 1e-4 | at ep | delta |
+|---|---|---|---|---|---|
+| YouTube | **0.6085** / 0.6153 ᴬ | 15 / 28 | 0.6061 (ldf), 0.6027 (rn5) | 98 | **+0.002 to +0.009** |
+| Yelp | **0.6308** / 0.6311 ᴬ | 2 / 9 | 0.6169 ◊ (wdt), 0.6098 (rn5) | 18 / 26 | **+0.014 to +0.021** |
+| Taobao | **0.5370** / 0.5651 ᴬ | 1 / 2 | — (no 1e-4 twin at this config) | — | prev best ever 0.5313 |
+| tgbl-review | 0.2351 ◊ | 4 | **0.2429** / max 0.2466 | 27 of 37 | **−0.012** |
+| tgbl-coin | 0.7398 ◊ | **1** | 0.7398 ◊ | — | tie, both floors |
+| tgbl-comment | 0.6908 ◊ | **1** | **0.7173** / max 0.7177 | 28 of 38 | **−0.027** |
+
+ᴬ the AdamW arm (`feature/adamw` `73e0e65`, `wd_temp` 1e-2). ◊ hand-killed, so a FLOOR.
+**The optimiser is not the effect:** on the three fair Adam-vs-AdamW comparisons AdamW is
+−0.0006 (review, both closed), −0.0006 (coin, matched ep1) and −0.0012 (Yelp), and its
+`temp` ends *higher* than Adam's on two of them. The learning rate is the whole of it.
+
+**On TGB, 1e-3 is a one-epoch phenomenon.** tgbl-coin and tgbl-comment peak at **ep1** and
+fall; tgbl-review peaks at ep4 and then falls for ten straight epochs. An earlier TGB sweep
+(2026-10-end) shows the ep1 peak on **every** TGB dataset including tgbl-flight, which rules
+out the suite/pooler-depth confound — review/coin/comment run `nl 1` from
+`default_conf_variations.txt` while flight and wiki run `nl 2`.
+
+### Two explanations ruled out by measurement
+
+**Not steps per epoch.** Same batch size everywhere, so steps ∝ train edges. tgbl-review is
+3.41M edges and dies at ep4; **YouTube is 2.73M and runs past ep28**; Yelp is 17.03M and is
+the most robust cell of all. In cumulative-step units it is worse, not better: the two
+survivors have 3-4x more steps than the two casualties. A global step-based schedule (inverse
+sqrt, knee at a fixed step count) therefore cannot unify these curves, and that plot is done.
+
+**Not the val-negative protocol.** `feature/tgb-generated-val-negatives` (`92c3f75`) replaces
+TGB's shipped `hist_rnd` val negatives with our uniform draws at `--k-eval 20`, leaving test
+on TGB's shipped `test_ns` under TGB's official metric. tgbl-review closed at
+**test 0.2341 against 0.2351** — a 0.0010 difference — while its best val moved 0.2113 ->
+0.5156, peak epoch ep4 -> ep3, and the decline kept the same shape. tgbl-coin's ep1 test was
+**0.7398, identical to 4 d.p.**, and its ep2 `r_max` 5.770 -> 7.275 matched the other arms to
+three decimals. Training trajectories agree to 4 d.p. (review link 0.5232/0.4253/0.3535 vs
+0.5232/0.4253/0.3537; temp +20.167 vs +20.165). So the collapse is training behaviour, not an
+artefact of how val is scored, and no val-side change will fix it.
+
+### The open hypothesis, and what would test it
+
+TGB's shipped negatives are `hist_rnd` — partly the source's own past destinations, so hard —
+while our TRAINING negatives are uniform. At 1e-3 the model reaches the uniform-negative
+solution within one epoch, and the cheapest route there is the popularity/recency shortcut,
+which is exactly what fails against historical negatives. tgbl-review is the evidence that the
+shortcut exists and pays: in-degree-before-t **alone** scores 0.2660 there, above our best
+0.2466. **This is unconfirmed** — swapping the VAL negatives tested the measurement, not the
+training. The test is `feature/train-negatives-hist-rnd` (`cd5a267`): train on `hist_rnd` so
+train, val and test agree, and see whether TGB then tolerates 1e-3 like TGB-Seq.
+
+### Standing recipe until that lands
+
+**Two learning rates, one per suite: 1e-3 for TGB-Seq, 1e-4 for TGB.** This is not
+per-dataset tuning — the suites appear in separate tables with different negative protocols,
+and the protocol difference is the justification to print. It captures essentially all of the
+measured gain at the cost of one extra number.
+
+The planned unification is **rewind-on-regress with halving** (bold driver / Newbob /
+Denkowski & Neubig 2017): start at 1e-3, and on a non-improving val epoch reload the best
+checkpoint, halve `lr` and rebuild both optimisers so Adam's moments reset, stopping after k
+halvings. It is safe exactly where it is needed — TGB regresses at ep1-4, unambiguously — and
+would essentially never fire on TGB-Seq. **Do not point it at TGB-Seq**: that suite's gains
+come after droughts (YouTube val 0.583 -> 0.685 over ep25-50; a 14-epoch val drought ep82 ->
+ep97 means patience 15 was the minimum that reached the winning checkpoint), and a rule that
+halves on the first regression would cut every one of them.
