@@ -1,4 +1,5 @@
 import math
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -37,20 +38,22 @@ class BagWeights(nn.Module):
         layers.append(nn.Linear(self.hidden, 1))
         self.net = nn.Sequential(*layers)
 
-    def forward(self, tokens: WalkTokens) -> torch.Tensor:
-        """The bag's pooled point: the weighted midpoint of its tokens [Q, d]."""
+    @staticmethod
+    def _bag_nodes(tokens: WalkTokens) -> Tuple[torch.Tensor, torch.Tensor]:
+        """The bag's token ids and validity [Q, T]. A cold query (no valid token) gets its own
+        seed in slot 0, so every bag pools at least one point."""
         nodes = tokens.nodes.flatten(1).clamp_min(0).clone()                 # [Q, T]
         valid = tokens.mask.flatten(1).clone()                               # [Q, T]
         cold = ~valid.any(dim=-1)                                            # [Q]
         if bool(cold.any()):
             nodes[cold, 0] = tokens.seeds[cold]
             valid[cold, 0] = True
+        return nodes, valid
 
-        points = self.E(nodes)                                               # [Q, T, d]
-        # Features see positions only; E's gradient flows through `points`.
-        fixed = points.detach()                                              # [Q, T, d]
-
-        valid_f = valid.to(fixed.dtype)                                      # [Q, T]
+    def _token_features(self, tokens: WalkTokens, fixed: torch.Tensor,
+                        valid_f: torch.Tensor) -> torch.Tensor:
+        """Per-token features [Q, T, 4]: age, hop, log distance to the bag's centre, log radius.
+        `fixed` is the detached token points, so the features see positions only."""
         mid = weighted_midpoint(fixed, valid_f / valid_f.sum(-1, keepdim=True))  # [Q, d]
 
         age = tokens.ages.flatten(1).clamp_min(0).to(fixed.dtype)            # [Q, T]
@@ -64,7 +67,17 @@ class BagWeights(nn.Module):
         r_tok = fixed.norm(dim=-1).clamp_min(_SQ_DIST_FLOOR ** 0.5)          # [Q, T]
         d0 = torch.log(r_tok) * valid_f                                      # [Q, T]
 
-        feats = torch.stack([age, pos, d_mid, d0], dim=-1)                   # [Q, T, 4]
+        return torch.stack([age, pos, d_mid, d0], dim=-1)                    # [Q, T, 4]
+
+    def forward(self, tokens: WalkTokens) -> torch.Tensor:
+        """The bag's pooled point: the weighted midpoint of its tokens [Q, d]."""
+        nodes, valid = self._bag_nodes(tokens)                               # [Q, T]
+        points = self.E(nodes)                                               # [Q, T, d]
+        # Features see positions only; E's gradient flows through `points`.
+        fixed = points.detach()                                              # [Q, T, d]
+        valid_f = valid.to(fixed.dtype)                                      # [Q, T]
+
+        feats = self._token_features(tokens, fixed, valid_f)                 # [Q, T, 4]
         logits = self.net(feats).squeeze(-1)                                 # [Q, T]
         log_weights = torch.log_softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
         return weighted_midpoint(points, log_weights.exp())                  # [Q, d]
