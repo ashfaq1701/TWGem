@@ -14,10 +14,11 @@ class SplitData(NamedTuple):
 
 
 class Batch(NamedTuple):
-    src: np.ndarray
-    tgt: np.ndarray
-    ts: np.ndarray
-    edge_feat: Optional[np.ndarray]
+    """One contiguous chunk of a `SplitData`, under the query vocabulary the scorer uses."""
+    src: np.ndarray             # [B] int64
+    tgt: np.ndarray             # [B] int64 — the positive destination
+    ts: np.ndarray              # [B] int64 — each query's cutoff
+    edge_feat: Optional[np.ndarray]   # [B, d_edge] float32 or None
 
 
 class Loaded(NamedTuple):
@@ -33,6 +34,13 @@ class Loaded(NamedTuple):
         """Length of the training period: latest minus earliest train-edge timestamp."""
         ts = self.train.timestamps
         return int(ts.max() - ts.min())
+
+
+def node_count(*id_arrays: np.ndarray) -> int:
+    """Embedding-table size for ids that index it directly: one row per id from 0, so the
+    largest id plus one. Loaders pass their raw source and destination arrays -- before the
+    split masks, so an id held out of training still gets its row."""
+    return int(max(a.max() for a in id_arrays)) + 1
 
 
 def concat_splits(*splits: SplitData) -> SplitData:

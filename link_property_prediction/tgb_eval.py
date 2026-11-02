@@ -28,7 +28,7 @@ from typing import List
 
 import numpy as np
 
-from .data import Batch, Loaded, SplitData
+from .data import Batch, Loaded, SplitData, node_count
 from .evaluator import DataSuite, Evaluator
 
 
@@ -118,7 +118,7 @@ def load_tgb(name: str, root: str = "datasets") -> Loaded:
         dataset=dataset,
         # TGB-canonical (suffix-stripped) name — the Evaluator passes it back to TGB.
         name=tgb_name,
-        max_node_count=int(max(sources.max(), destinations.max())) + 1,
+        max_node_count=node_count(sources, destinations),
     )
 
 

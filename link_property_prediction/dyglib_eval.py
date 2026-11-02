@@ -26,7 +26,7 @@ from typing import Dict, NamedTuple
 
 import numpy as np
 
-from .data import Loaded, SplitData
+from .data import Loaded, SplitData, node_count
 from .evaluator import DataSuite, Evaluator
 from .negatives import CollisionFreeNegativeSampler, NegativeSampler
 from .tgb_seq_eval import TGBSeqEvaluator
@@ -145,7 +145,7 @@ def load_dyglib(name: str, root: str = "datasets") -> Loaded:
         dataset=DyGLibDataset(labels={k: labels[m] for k, m in masks.items()},
                               time_scale=time_scale),
         name=name,
-        max_node_count=int(max(src.max(), dst.max())) + 1,
+        max_node_count=node_count(src, dst),
     )
 
 

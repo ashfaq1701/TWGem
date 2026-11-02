@@ -8,7 +8,7 @@ from typing import List
 
 import numpy as np
 
-from .data import Batch, Loaded, SplitData
+from .data import Batch, Loaded, SplitData, node_count
 from .evaluator import DataSuite, Evaluator
 
 
@@ -54,7 +54,7 @@ def load_tgb_seq(name: str, root: str = "datasets") -> Loaded:
         test=_split(ds.test_mask),
         dataset=ds,
         name=name,
-        max_node_count=int(max(src.max(), dst.max())) + 1,
+        max_node_count=node_count(src, dst),
     )
 
 
