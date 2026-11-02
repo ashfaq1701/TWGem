@@ -65,6 +65,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lr", default=1e-3, type=float,
                    help="Learning rate of every parameter: the embedding table E (SparseAdam) "
                         "and the score temperature and NN pooler (Adam).")
+    p.add_argument("--lr-min", default=1e-5, type=float,
+                   help="Floor for the rewind-on-regress schedule. A halving that would land "
+                        "below it does not happen, so the rate rests on the last rung at or "
+                        "above the floor (1e-3 -> 1.5625e-5 in six steps).")
+    p.add_argument("--lr-step-horizon", default=2, type=int,
+                   help="Consecutive epochs without a new best val required before each "
+                        "halving. 1 lets a single flicker spend a rung; 2 does not.")
     p.add_argument("--wd-temp", default=1e-4, type=float,
                    help="Weight decay on the score temperature alone. The NN pooler and the "
                         "embedding table E are never decayed.")
@@ -179,6 +186,8 @@ def main() -> Dict[str, Any]:
         t2nv_p=args.t2nv_p,
         t2nv_q=args.t2nv_q,
         lr=args.lr,
+        lr_min=args.lr_min,
+        lr_step_horizon=args.lr_step_horizon,
         wd_temp=args.wd_temp,
         num_epochs=args.num_epochs,
         early_stop_patience=args.early_stop_patience,

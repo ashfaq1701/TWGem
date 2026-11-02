@@ -64,15 +64,37 @@ class TrainerConfig:
     # chance. The pooler and E are left undecayed.
     wd_temp: float = 1e-4
 
+    # Rewind-on-regress. `lr` above is the STARTING rate: after `lr_step_horizon` consecutive
+    # epochs without a new best val, training rewinds to the best-val weights and halves the
+    # rate. A halving that would land below `lr_min` does not happen, so the schedule rests on
+    # the last rung at or above the floor -- from 1e-3 that is six steps down to 1.5625e-5.
+    # The horizon is what keeps an isolated flicker from spending a rung: there are only six,
+    # and measured on YouTube half of all epochs are non-improving-but-recovering.
+    lr_min: float = 1e-5
+    lr_step_horizon: int = 2
+
     # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
     # a cell that prints 200 epochs is a floor, not a result.
     num_epochs: int = 200
+    # Cumulative, NOT per rung: the count of non-improving epochs resets only on a new best
+    # val, never on a downstep, so the whole descent shares one budget and the run ends once
+    # the budget is spent with the rate already at the floor.
     early_stop_patience: int = 10
 
     # System.
     seed: int = 42
     use_gpu: bool = False
     use_gpu_tempest: bool = False
+
+    def __post_init__(self) -> None:
+        if self.lr_step_horizon < 1:
+            raise ValueError(f"lr_step_horizon must be >= 1, got {self.lr_step_horizon}")
+        # A floor at or above lr/2 would refuse the first halving and silently turn the
+        # schedule off, which on this branch is never what the caller meant.
+        if self.lr / 2.0 < self.lr_min:
+            raise ValueError(
+                f"lr_min {self.lr_min:g} leaves no room to halve lr {self.lr:g}; "
+                f"it must be at most lr/2 = {self.lr / 2.0:g}")
 
 
 class Trainer:
@@ -104,19 +126,7 @@ class Trainer:
         )
         self.neg_sampler_train = config.train_negative_sampler
 
-        # Two optimisers. E's gradient is sparse (only looked-up rows), so SparseAdam updates the
-        # moments of those rows alone: an absent row's state stays frozen instead of decaying.
-        # The pooler and the temperature get a gradient every step, so they take plain Adam. Two
-        # optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
-        # temp sits in its own Adam group so `wd_temp` decays it alone; the pooler's group takes
-        # Adam's default of no decay, and SparseAdam has no weight_decay argument at all.
-        named = [(n, p) for n, p in self.model.named_parameters() if n != "E.weight"]
-        self.opt = torch.optim.Adam(
-            [{"params": [p for n, p in named if n != "temp"]},
-             {"params": [p for n, p in named if n == "temp"], "weight_decay": float(config.wd_temp)}],
-            lr=float(config.lr),
-        )
-        self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
+        self._build_optimisers(float(config.lr))
 
     # Full-graph ingestion (once, up front)
 
@@ -247,6 +257,38 @@ class Trainer:
                 n += B
         return total / max(n, 1)
 
+    # Optimisers — built here rather than inline, because a downstep rebuilds them
+
+    def _build_optimisers(self, lr: float) -> None:
+        """Create both optimisers at `lr`, replacing any existing pair.
+
+        Two optimisers. E's gradient is sparse (only looked-up rows), so SparseAdam updates the
+        moments of those rows alone: an absent row's state stays frozen instead of decaying.
+        The pooler and the temperature get a gradient every step, so they take plain Adam. Two
+        optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
+        temp sits in its own Adam group so `wd_temp` decays it alone; the pooler's group takes
+        Adam's default of no decay, and SparseAdam has no weight_decay argument at all.
+
+        Rebuilding rather than writing `param_groups[*]["lr"]` is the point on a downstep: the
+        moment estimates were accumulated at a rate that has just been halved, and the
+        anneal-with-restarts recipe this follows (Denkowski & Neubig 2017) credits part of its
+        gain to exactly that forgetting.
+        """
+        named = [(n, p) for n, p in self.model.named_parameters() if n != "E.weight"]
+        self.opt = torch.optim.Adam(
+            [{"params": [p for n, p in named if n != "temp"]},
+             {"params": [p for n, p in named if n == "temp"],
+              "weight_decay": float(self.config.wd_temp)}],
+            lr=lr,
+        )
+        self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=lr)
+
+    @property
+    def lr(self) -> float:
+        """The live rate. Held in the optimiser rather than shadowed on the Trainer, so the
+        epoch line and the schedule cannot disagree about it."""
+        return float(self.opt.param_groups[0]["lr"])
+
     # Snapshot / restore (early-stop)
 
     @staticmethod
@@ -282,7 +324,11 @@ class Trainer:
 
         best_val, best_test, best_epoch = -1.0, -1.0, -1
         best_snap: Optional[Dict[str, Any]] = None
+        # `no_improve` is the cumulative patience budget and resets only on a new best val;
+        # `since_step` is the consecutive run that earns the next downstep and resets on a new
+        # best OR on a downstep, so every halving is paid for separately.
         no_improve = 0
+        since_step = 0
         per_epoch_val: List[float] = []
         new_best_test: List[float] = []
 
@@ -299,7 +345,9 @@ class Trainer:
             line = (
                 f"epoch {ep}/{n_epochs}  "
                 f"link={link_sum / max(n_batches, 1):.4f}  "
-                f"lr={self.opt.param_groups[0]['lr']:.0e}  "
+                # .2e, not .0e: the schedule's rungs are 1.25e-04 / 6.25e-05 / 3.13e-05 /
+                # 1.56e-05, which one significant figure cannot tell apart.
+                f"lr={self.lr:.2e}  "
                 f"train {train_dt:.1f}s"
             )
 
@@ -316,7 +364,7 @@ class Trainer:
                 if val_metric > best_val:
                     best_val, best_epoch = val_metric, ep
                     best_snap = self._snapshot()
-                    no_improve = 0
+                    no_improve, since_step = 0, 0
                     if test_evaluator is not None and test_batches_factory is not None:
                         best_test = self._eval(test_evaluator, test_batches_factory())
                         new_best_test.append(best_test)
@@ -325,7 +373,21 @@ class Trainer:
                         line += f"  val {val_metric:.4f} (new best)"
                 else:
                     no_improve += 1
+                    since_step += 1
                     line += f"  val {val_metric:.4f}  patience {no_improve}/{patience}"
+                    # Rewind-on-regress. Inside the horizon the model keeps training from where
+                    # it is -- that is what lets a drought resolve into a new best -- and at the
+                    # floor the halving is simply refused, leaving the rate where it is while the
+                    # patience budget runs out. `best_snap` is set by the first epoch unless its
+                    # val was non-finite, in which case there is nothing to rewind to.
+                    halved = self.lr / 2.0
+                    if (best_snap is not None
+                            and since_step >= self.config.lr_step_horizon
+                            and halved >= self.config.lr_min):
+                        self._restore(best_snap)
+                        self._build_optimisers(halved)
+                        since_step = 0
+                        line += f"  rewind ep{best_epoch} lr->{halved:.2e}"
                 # Timed around BOTH passes. A new-best epoch also evaluates the test split,
                 # and timing only the val pass printed those epochs as cheap as the rest.
                 line += f"  eval {time.time() - t1:.1f}s"
