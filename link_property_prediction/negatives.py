@@ -5,9 +5,11 @@
                               to build TGB-Seq's and DyGLib's fixed eval negatives.
   - CollisionFreeNegativeSampler : CRAFT's DyGLib rule (see the class).
 
-Eval-time negatives are suite-native and live behind `Evaluator.sample_negatives`
-(`tgb_seq_eval.py`, `tgb_eval.py`), not here: that interface allows a variable K
-per positive, which `sample() -> [B, K]` below cannot express.
+Fixed eval negatives are built here wherever we generate them -- TGB-Seq's val and
+DyGLib's val and test, through `DataSuite.eval_negatives`. TGB's are not: it ships its own
+for both splits with a variable K per positive, which `sample() -> [B, K]` below cannot
+express, so those are served straight from `TGBEvaluator.sample_negatives`
+(`tgb_eval.py`).
 """
 
 import abc
@@ -19,11 +21,18 @@ from .data import Batch, SplitData
 
 
 class NegativeSampler(abc.ABC):
-    """All samplers expose `sample(batch) -> neg_tgt`, the [B, K] negative destinations."""
+    """All samplers expose `sample(batch) -> neg_tgt`, the [B, K] negative destinations,
+    and `rule`, which names the draw."""
+
+    #: Short phrase naming the sampling rule, e.g. "uniform". Part of the contract, not
+    #: decoration: `DataSuite.eval_negatives` prints it in the negatives notice, so a
+    #: sampler without it raises AttributeError there rather than at construction.
+    rule: str
 
     @abc.abstractmethod
     def sample(self, batch: Batch) -> np.ndarray:
-        ...
+        """[B, K] negative destinations for `batch`. The positive's source is implicit:
+        every caller pairs the negatives with `batch.src` itself."""
 
 
 class UniformNegativeSampler(NegativeSampler):
@@ -45,8 +54,7 @@ class UniformNegativeSampler(NegativeSampler):
         return f"{type(self).__name__}(k={self.num_neg_per_pos}, pool={len(self.dst_pool):,})"
 
     def sample(self, batch: Batch) -> np.ndarray:
-        """[B, K] negative destinations. The positive's source is implicit -- every caller
-        pairs the negatives with batch.src itself, so no source array is materialised."""
+        """Draws with replacement from `dst_pool`; no source array is materialised."""
         B = len(batch.src)
         idx = self.rng.integers(0, len(self.dst_pool), (B, self.num_neg_per_pos))
         return self.dst_pool[idx]
