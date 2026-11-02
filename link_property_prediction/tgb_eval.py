@@ -14,7 +14,7 @@ stands today. Two deliberate differences from the 2026-08 version:
     whose `sample` is typed `-> np.ndarray` of shape [B, K]; TGB's negatives are
     variable-K lists and never satisfied that. `Evaluator.sample_negatives` is
     already the variable-K interface, so the query folds directly into the
-    evaluator -- the same shape as `TGBSeqEvaluator`.
+    evaluator -- the same shape as `FixedNegativesEvaluator`.
 
 The two suites differ in exactly the axis MRR is sensitive to, so never pool their
 numbers: TGB serves pre-generated per-positive negatives via `query_batch`, keyed on

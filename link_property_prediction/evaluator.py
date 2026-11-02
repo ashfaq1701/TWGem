@@ -38,6 +38,34 @@ class Evaluator(abc.ABC):
         return None
 
 
+class FixedNegativesEvaluator(Evaluator):
+    """Fixed per-positive negatives (`[N_pos, K]`, row-aligned to the split's chronological
+    order) scored by TGB-Seq's official MRR. Shared by the two suites that hold such an
+    array: TGB-Seq (our val negatives, its shipped test_ns) and DyGLib (our val and test). A
+    cursor walks the array in lockstep with contiguous eval batches; `reset()` rewinds it."""
+
+    def __init__(self, neg_dst: np.ndarray):
+        from tgb_seq.LinkPred.evaluator import Evaluator as TGBSeqOfficialEvaluator
+
+        self._neg_dst = np.asarray(neg_dst, dtype=np.int32)   # [N_pos, K]
+        self._cursor = 0
+        self._eval = TGBSeqOfficialEvaluator()
+
+    def reset(self) -> None:
+        self._cursor = 0
+
+    def sample_negatives(self, batch: Batch) -> List[np.ndarray]:
+        b = len(batch.src)
+        rows = self._neg_dst[self._cursor:self._cursor + b]
+        self._cursor += b
+        return [rows[i] for i in range(b)]
+
+    def score_to_metric(self, pos_score: float, neg_scores: np.ndarray) -> float:
+        pos = np.asarray([pos_score], dtype=np.float64)
+        neg = np.asarray(neg_scores, dtype=np.float64).reshape(1, -1)
+        return float(self._eval.eval(pos, neg)[0])            # mrr_list[0]
+
+
 class DataSuite(abc.ABC):
     """Benchmark adapter: native load + native evaluator construction. One instance
     per run."""

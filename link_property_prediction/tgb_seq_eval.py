@@ -4,12 +4,10 @@ VAL negatives are built once by `DataSuite.eval_negatives` (uniform) at `k_eval`
 full dataset's candidates (fixed & seeded); TEST uses the shipped `test_ns`
 verbatim. Timestamps are cast to monotone int64 for Tempest's per-query cutoff.
 """
-from typing import List
-
 import numpy as np
 
-from .data import Batch, Loaded, SplitData, node_count
-from .evaluator import DataSuite, Evaluator
+from .data import Loaded, SplitData, node_count
+from .evaluator import DataSuite, Evaluator, FixedNegativesEvaluator
 
 
 def _to_int64_time(time: np.ndarray) -> np.ndarray:
@@ -55,34 +53,6 @@ def load_tgb_seq(name: str, root: str = "datasets") -> Loaded:
     )
 
 
-class TGBSeqEvaluator(Evaluator):
-    """Fixed per-positive negatives (`[N_pos, K]`, row-aligned to the split's
-    chronological order) + TGB-Seq's native batched-MRR `Evaluator`. A cursor
-    walks the negative array in lockstep with contiguous eval batches; `reset()`
-    rewinds it at the start of each eval pass."""
-
-    def __init__(self, neg_dst: np.ndarray):
-        from tgb_seq.LinkPred.evaluator import Evaluator as TGBSeqOfficialEvaluator
-
-        self._neg_dst = np.asarray(neg_dst, dtype=np.int32)   # [N_pos, K]
-        self._cursor = 0
-        self._eval = TGBSeqOfficialEvaluator()
-
-    def reset(self) -> None:
-        self._cursor = 0
-
-    def sample_negatives(self, batch: Batch) -> List[np.ndarray]:
-        b = len(batch.src)
-        rows = self._neg_dst[self._cursor:self._cursor + b]
-        self._cursor += b
-        return [rows[i] for i in range(b)]
-
-    def score_to_metric(self, pos_score: float, neg_scores: np.ndarray) -> float:
-        pos = np.asarray([pos_score], dtype=np.float64)
-        neg = np.asarray(neg_scores, dtype=np.float64).reshape(1, -1)
-        return float(self._eval.eval(pos, neg)[0])            # mrr_list[0]
-
-
 class TGBSeqSuite(DataSuite):
     """TGB-Seq adapter. VAL negatives are built once from our sampler at
     `k_eval`; TEST uses TGB-Seq's shipped `test_ns` verbatim."""
@@ -92,7 +62,7 @@ class TGBSeqSuite(DataSuite):
 
     def _val_evaluator(self) -> Evaluator:
         neg = self.eval_negatives(self.load().val, self.seed, tag="[tgb-seq] val")
-        return TGBSeqEvaluator(neg_dst=neg)
+        return FixedNegativesEvaluator(neg_dst=neg)
 
     def _test_evaluator(self) -> Evaluator:
         loaded = self.load()
@@ -108,4 +78,4 @@ class TGBSeqSuite(DataSuite):
                 f"test_ns rows ({neg.shape[0]}) != test positives ({n_test}); "
                 "the shipped negatives are not row-aligned to the test split.")
         print(f"  [tgb-seq] test negatives: shipped test_ns ({neg.shape[1]} per positive)")
-        return TGBSeqEvaluator(neg_dst=neg)
+        return FixedNegativesEvaluator(neg_dst=neg)
