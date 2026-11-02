@@ -43,15 +43,12 @@ def load_tgb_seq(name: str, root: str = "datasets") -> Loaded:
     edge_feat = ds.edge_features
     edge_feat = np.asarray(edge_feat, dtype=np.float32) if edge_feat is not None else None
 
-    def _split(mask: np.ndarray) -> SplitData:
-        m = np.asarray(mask, dtype=bool)
-        ef = edge_feat[m] if edge_feat is not None else None
-        return SplitData(sources=src[m], destinations=dst[m], timestamps=ts[m], edge_feat=ef)
+    full = SplitData(sources=src, destinations=dst, timestamps=ts, edge_feat=edge_feat)
 
     return Loaded(
-        train=_split(ds.train_mask),
-        val=_split(ds.val_mask),
-        test=_split(ds.test_mask),
+        train=full.mask(ds.train_mask),
+        val=full.mask(ds.val_mask),
+        test=full.mask(ds.test_mask),
         dataset=ds,
         name=name,
         max_node_count=node_count(src, dst),

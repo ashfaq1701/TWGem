@@ -12,6 +12,19 @@ class SplitData(NamedTuple):
     timestamps: np.ndarray      # [E] int64
     edge_feat: Optional[np.ndarray]   # [E, d_edge] float32 or None
 
+    def mask(self, keep: np.ndarray) -> "SplitData":
+        """The sub-split `keep` selects, as every loader needs: build one `SplitData` over
+        all of a dataset's edges, then carve the three splits out of it. `keep` is cast to
+        bool, since a suite's shipped masks need not already be, and `edge_feat` stays None
+        when the dataset has none -- the branch each loader used to carry itself."""
+        m = np.asarray(keep, dtype=bool)
+        return SplitData(
+            sources=self.sources[m],
+            destinations=self.destinations[m],
+            timestamps=self.timestamps[m],
+            edge_feat=self.edge_feat[m] if self.edge_feat is not None else None,
+        )
+
 
 class Batch(NamedTuple):
     """One contiguous chunk of a `SplitData`, under the query vocabulary the scorer uses."""

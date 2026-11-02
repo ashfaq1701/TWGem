@@ -22,7 +22,7 @@ import os
 import shutil
 import subprocess
 import zipfile
-from typing import Dict, NamedTuple
+from typing import Dict, NamedTuple, Tuple
 
 import numpy as np
 
@@ -35,7 +35,8 @@ ZENODO_RECORD = "https://zenodo.org/api/records/7213796"
 VAL_QUANTILE, TEST_QUANTILE = 0.70, 0.85
 
 
-def _paths(name: str, root: str):
+def _paths(name: str, root: str) -> Tuple[str, str, str]:
+    """(data_dir, ml_<name>.csv, ml_<name>.npy) under `root`."""
     data_dir = os.path.join(root, name)
     return data_dir, os.path.join(data_dir, f"ml_{name}.csv"), os.path.join(data_dir, f"ml_{name}.npy")
 
@@ -134,14 +135,12 @@ def load_dyglib(name: str, root: str = "datasets") -> Loaded:
         "test": ts_float > test_time,
     }
 
-    def _split(mask: np.ndarray) -> SplitData:
-        return SplitData(sources=src[mask], destinations=dst[mask],
-                         timestamps=ts[mask], edge_feat=edge_feat[mask])
+    full = SplitData(sources=src, destinations=dst, timestamps=ts, edge_feat=edge_feat)
 
     return Loaded(
-        train=_split(masks["train"]),
-        val=_split(masks["val"]),
-        test=_split(masks["test"]),
+        train=full.mask(masks["train"]),
+        val=full.mask(masks["val"]),
+        test=full.mask(masks["test"]),
         dataset=DyGLibDataset(labels={k: labels[m] for k, m in masks.items()},
                               time_scale=time_scale),
         name=name,

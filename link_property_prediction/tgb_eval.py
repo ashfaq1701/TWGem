@@ -98,23 +98,13 @@ def load_tgb(name: str, root: str = "datasets") -> Loaded:
     if edge_feat is not None:
         edge_feat = np.asarray(edge_feat, dtype=np.float32)
 
-    train_mask = np.asarray(dataset.train_mask, dtype=bool)
-    val_mask = np.asarray(dataset.val_mask, dtype=bool)
-    test_mask = np.asarray(dataset.test_mask, dtype=bool)
-
-    def _apply(mask: np.ndarray) -> SplitData:
-        ef = edge_feat[mask] if edge_feat is not None else None
-        return SplitData(
-            sources=sources[mask],
-            destinations=destinations[mask],
-            timestamps=timestamps[mask],
-            edge_feat=ef,
-        )
+    full = SplitData(sources=sources, destinations=destinations, timestamps=timestamps,
+                     edge_feat=edge_feat)
 
     return Loaded(
-        train=_apply(train_mask),
-        val=_apply(val_mask),
-        test=_apply(test_mask),
+        train=full.mask(dataset.train_mask),
+        val=full.mask(dataset.val_mask),
+        test=full.mask(dataset.test_mask),
         dataset=dataset,
         # TGB-canonical (suffix-stripped) name — the Evaluator passes it back to TGB.
         name=tgb_name,
