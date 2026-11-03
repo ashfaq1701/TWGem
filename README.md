@@ -1,10 +1,11 @@
-# tempest-embedding
+# TWGem
 
-Walk-supervised temporal graph learning. A backward temporal random walk from a query node is
+**Temporal Walk Geometric Embedding.** A backward temporal random walk from a query node is
 treated as a sample of that node's causal multi-hop neighbourhood; the walk's tokens are pooled
-into one point and scored geometrically against candidate destinations. Two arms share one
-encoder: **link prediction** (TGB-Seq, TGB, DyGLib; MRR) trains a Euclidean embedding table and
-the walk-bag pooler, and **dynamic node classification** (DyGLib Wikipedia / Reddit; ROC-AUC)
+to a single point and scored by a metric distance against candidate destinations. Geometric in
+the sense TransE is: the score is a distance in the embedding space, here Euclidean. Two arms
+share one encoder: **link prediction** (TGB-Seq, TGB, DyGLib; MRR) trains the embedding table
+and the walk-bag pooler, and **dynamic node classification** (DyGLib Wikipedia / Reddit; ROC-AUC)
 freezes a link-prediction checkpoint and trains a small classifier on features of its walks.
 
 ## Features
