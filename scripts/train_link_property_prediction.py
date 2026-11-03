@@ -56,19 +56,15 @@ def parse_args() -> argparse.Namespace:
                    help="node2vec in-out param q (TemporalNode2Vec bias only).")
 
     # ── Negatives ───────────────────────────────────────────────────
-    p.add_argument("--k-train", default=5, type=int,
-                   help="Per-query training negatives.")
+    p.add_argument("--k-train", default=1, type=int,
+                   help="Training negatives per positive, each its own BCE pair (label 0).")
     p.add_argument("--k-eval", default=100, type=int,
                    help="Eval negatives per positive (tgb-seq val only).")
 
     # ── Optimisation / training ─────────────────────────────────────
     p.add_argument("--lr", default=1e-3, type=float,
-                   help="Learning rate of every parameter: the embedding table E (SparseAdam) "
-                        "and the score temperature and NN pooler (Adam).")
-    p.add_argument("--wd-temp", default=1e-3, type=float,
-                   help="Weight decay on the score temperature alone, through Adam's coupled L2 so "
-                        "the equilibrium is temp* = |grad|/wd_temp. The NN pooler and the embedding "
-                        "table E are never decayed.")
+                   help="Learning rate of every parameter, no weight decay: the embedding table E "
+                        "(SparseAdam) and the NN pooler and the score's temperature and bias (Adam).")
     p.add_argument("--batch-size", default=1000, type=int,
                    help="Train batch size.")
     p.add_argument("--eval-batch-size", default=1000, type=int,
@@ -101,7 +97,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--export-best-embedding-table", action="store_true",
                    help="After training, dump the best-val embedding table to disk.")
     p.add_argument("--save-checkpoint", default="", type=str,
-                   help="After training, save the best-val model (E, pooler, score temperature) and "
+                   help="After training, save the best-val model (E, pooler, score temp and bias) and "
                         "these args to this path -- the frozen encoder for node classification.")
 
     return p.parse_args()
@@ -178,7 +174,6 @@ def main() -> Dict[str, Any]:
         t2nv_p=args.t2nv_p,
         t2nv_q=args.t2nv_q,
         lr=args.lr,
-        wd_temp=args.wd_temp,
         num_epochs=args.num_epochs,
         early_stop_patience=args.early_stop_patience,
 

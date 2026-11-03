@@ -102,6 +102,7 @@ class LinkPredHead(nn.Module):
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
 
         self.temp = nn.Parameter(torch.tensor([1.0]))                       # score temperature
+        self.bias = nn.Parameter(torch.zeros(1))                            # logit at d = 1
 
     def mean_radius(self) -> torch.Tensor:
         """Mean norm of the table (its distance from the origin), detached. The pooler no longer
@@ -110,10 +111,10 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Score candidates by the negated log distance between the two pooled points, scaled by the
-        learned `temp`: a candidate's probability ~ d^-temp, so the table's overall scale cancels
-        within each query."""
+        """Per-pair BCE logit of "u links to v": bias - temp * log d(p_u, p_v), so
+        P(link) = sigmoid(-temp * log(d / d0)) with d0 = exp(bias / temp) the 50% distance.
+        Rescaling the table shifts every log d by a constant, which `bias` absorbs."""
         pooled_u = self.bag_weights(src_tokens)                              # [b, d]
         pooled_v = self.bag_weights(cand_tokens)                             # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
-        return self.temp * -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))  # [b, c]
+        return self.bias - self.temp * torch.log(dist(pooled_u.unsqueeze(1), pooled_v))  # [b, c]

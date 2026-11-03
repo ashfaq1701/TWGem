@@ -7,8 +7,9 @@ simultaneous/future edge are never seen. TGB-Seq splits are chronological (train
 
 Training per batch: sample K negatives by the suite's rule, form candidates [pos | negs],
 score them TWO-SIDED (walks for the source u and for every candidate v, each cut off at the query
-time t_i), then cross-entropy with target 0 and a single optimizer step. E and the head train
-together under the link CE with no detach.
+time t_i), then per-pair binary cross-entropy (label 1 for the positive, 0 for each negative) and a
+single optimizer step. E and the head train together under the link BCE with no detach.
+Eval ranks the same per-pair logits against the suite's negatives (MRR).
 """
 import time
 from dataclasses import dataclass
@@ -54,15 +55,9 @@ class TrainerConfig:
     t2nv_p: float = 4.0    # node2vec return param (used only when a bias is TemporalNode2Vec)
     t2nv_q: float = 0.25   # node2vec in-out param
 
-    # One constant lr for every parameter. E steps under SparseAdam; the pooler
-    # and the score temperature step under Adam; all of them read `lr`.
+    # One constant lr for every parameter, no weight decay. E steps under SparseAdam; the
+    # pooler and the score's temp and bias step under Adam; all of them read `lr`.
     lr: float = 1e-3
-    # Weight decay on the score temperature, a free scalar that grows while the model beats
-    # chance. The pooler and E are left undecayed. Adam's L2 enters the gradient before the
-    # m/sqrt(v) normalisation, so the balance sits in gradient units at temp* = |grad|/wd_temp,
-    # which is per-dataset for free because the margin is: measured 13.1 on YouTube and 9.0 on
-    # Yelp from this one value, against 22.0 and 17.2 undecayed.
-    wd_temp: float = 1e-3
 
     # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
     # a cell that prints 200 epochs is a floor, not a result.
@@ -106,16 +101,10 @@ class Trainer:
 
         # Two optimisers. E's gradient is sparse (only looked-up rows), so SparseAdam updates the
         # moments of those rows alone: an absent row's state stays frozen instead of decaying.
-        # The pooler and the temperature get a gradient every step, so they take plain Adam. Two
-        # optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
-        # temp sits in its own Adam group so `wd_temp` decays it alone; the pooler's group takes
-        # Adam's default of no decay, and SparseAdam has no weight_decay argument at all.
-        named = [(n, p) for n, p in self.model.named_parameters() if n != "E.weight"]
-        self.opt = torch.optim.Adam(
-            [{"params": [p for n, p in named if n != "temp"]},
-             {"params": [p for n, p in named if n == "temp"], "weight_decay": float(config.wd_temp)}],
-            lr=float(config.lr),
-        )
+        # The pooler and the score's temp and bias get a gradient every step, so they take plain
+        # Adam. Two optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
+        head_params = [p for n, p in self.model.named_parameters() if n != "E.weight"]
+        self.opt = torch.optim.Adam(head_params, lr=float(config.lr))
         self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
 
     # Full-graph ingestion (once, up front)
@@ -144,8 +133,9 @@ class Trainer:
             walk_bias=self.config.walk_bias)
 
     def _score(self, batch: Batch, candidates: np.ndarray) -> torch.Tensor:
-        """Logits [B, C] for `candidates` [B, C] of `batch`'s queries. Two-sided per-query walks:
-        K backward walks for the source and for every candidate, each cut off at its query's t_i."""
+        """Per-pair BCE logits [B, C] for `candidates` [B, C] of `batch`'s queries. Two-sided
+        per-query walks: K backward walks for the source and for every candidate, each cut off at
+        its query's t_i. Eval ranks these raw logits; a sigmoid first would saturate to ties."""
         src = self._long(batch.src)                                          # [B]
         t_query = self._long(batch.ts)                                       # [B]
         cand = self._long(candidates)                                        # [B, C]
@@ -161,15 +151,16 @@ class Trainer:
     # Per-batch training step
 
     def _train_step(self, batch: Batch) -> float:
-        """One optimiser step; returns the batch's link CE for the epoch average."""
+        """One optimiser step; returns the batch's link BCE for the epoch average."""
         neg_tgt = self.neg_sampler_train.sample(batch)                       # [B, K]
         candidates = np.concatenate(
             [batch.tgt.astype(np.int64)[:, None], neg_tgt.astype(np.int64)], axis=1)  # [B, 1+K]
 
         logits = self._score(batch, candidates)                              # [B, 1+K]
-        target = torch.zeros(len(batch.src), dtype=torch.long, device=self.device)  # positive first
-        # link CE only; E trains end-to-end through the head (no detach).
-        link_loss = F.cross_entropy(logits, target)
+        labels = torch.zeros_like(logits)                                    # [B, 1+K]
+        labels[:, 0] = 1.0                                                   # positive first
+        # Mean over every pair; E trains end-to-end through the head (no detach).
+        link_loss = F.binary_cross_entropy_with_logits(logits, labels)
 
         self.opt.zero_grad(set_to_none=True)
         self.opt_embedding.zero_grad(set_to_none=True)
@@ -184,10 +175,10 @@ class Trainer:
     @torch.no_grad()
     def _probe(self) -> str:
         """The epoch line's state watch: mean and max norm of E (its distance from the origin)
-        and the score temperature."""
+        and the score's temperature and bias."""
         r = self.model.E.weight.norm(dim=-1)
         return (f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
-                f"  temp={float(self.model.temp):+.4f}")
+                f"  temp={float(self.model.temp):+.4f}  bias={float(self.model.bias):+.4f}")
 
     # Eval — strict-causal, no_grad
 
