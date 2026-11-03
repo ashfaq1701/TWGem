@@ -1,42 +1,35 @@
 # tempest-embedding
 
-Walk-supervised temporal graph learning with Tempest. Two arms share one encoder:
+Walk-supervised temporal graph learning. A backward temporal random walk from a query node is
+treated as a sample of that node's causal multi-hop neighbourhood; the walk's tokens are pooled
+into one point and scored geometrically against candidate destinations. Two arms share one
+encoder: **link prediction** (TGB-Seq, TGB, DyGLib; MRR) trains a Euclidean embedding table and
+the walk-bag pooler, and **dynamic node classification** (DyGLib Wikipedia / Reddit; ROC-AUC)
+freezes a link-prediction checkpoint and trains a small classifier on features of its walks.
 
-- **Link prediction** trains a Euclidean embedding table and a walk-bag pooler on TGB-Seq, TGB and
-  DyGLib, scored by MRR.
-- **Dynamic node classification** freezes a link-prediction checkpoint and trains a small
-  classifier on features of its walks (DyGLib Wikipedia / Reddit, ROC-AUC).
+## Features
 
-Dataset, protocol and result notes are in `CLAUDE.md`; the node-classification write-up is
-`reports/node_classification_2026-10-08.md`.
-
-## Layout
-
-```
-link_property_prediction/      encoder + link-prediction arm
-  data.py           SplitData / Loaded / Batch + chronological batcher
-  evaluator.py      Evaluator + DataSuite ABCs, make_suite
-  tgb_seq_eval.py   TGB-Seq suite: loader, fixed eval negatives, MRR evaluator
-  tgb_eval.py       TGB suite: loader (auto-download), TGB's negatives and evaluator
-  dyglib_eval.py    DyGLib suite: Zenodo auto-download, split, per-interaction labels
-  negatives.py      uniform negative sampler
-  walks.py          Tempest wrapper: walks + per-node history (recency, popularity)
-  walk_tokens.py    per-query walk token bags
-  model.py          Euclidean dist / midpoint, embedding table, walk-bag pooler, link-pred head
-  trainer.py        strict-causal train + eval loop
-  utils.py          seeding
-node_classification/           node-classification arm, on a frozen checkpoint
-  encoder.py        FrozenEncoder: rebuild + freeze a checkpoint, per-interaction features
-  model.py          NodeClassifier (small MLP)
-  trainer.py        classifier train + eval loop (ROC-AUC, early stopping)
-scripts/
-  train_link_property_prediction.py   link-prediction entry point (--save-checkpoint)
-  train_node_classification.py        node-classification entry point (--checkpoint)
-tests/
-  test_create_batches.py   batch-iterator contract
-  test_walk_edge_feats.py  walk edge-feature pairing
-experiment_logs/            versioned run logs for the paper
-```
+- **Temporal random walks as supervision, not as sequences.** The temporal-walk family is
+  dominated by skip-gram: CTDNE and its descendants (T-EDGE, STWalk) read a walk as a window of
+  co-occurring nodes and optimise a word2vec-style objective. Here a walk is a *neighbourhood
+  sample* instead — pooled to a single representation and trained end to end on the ranking loss
+  the benchmark actually scores.
+- **Node identity is kept.** Causal-anonymous-walk methods (CAW-N) deliberately erase it,
+  encoding only how often a node recurs across positions. This model keeps per-node parameters,
+  which is what makes the geometry — and the second arm — possible.
+- **A stored, stateful, trained embedding table.** Node state persists in parameters rather than
+  being recomputed per query, so node-centric predictive tasks and dynamic-state methods can read
+  it directly. The node-classification arm is exactly that: a frozen checkpoint plus a ~2.4k-param
+  head beats every published number on DyGLib Wikipedia and Reddit.
+- **Powered by a GPU-accelerated streaming walk engine.** Walks come from
+  [Tempest](https://pypi.org/project/tempest-rw/) (Salehin, Parisis & Berthouze, ICPP '26):
+  forward or backward walks under uniform, linear, exponential or temporal-node2vec bias, with a
+  sliding window that evicts old edges as new ones arrive.
+- **Strictly causal by construction.** Causality is enforced per query, not per split: a walk for
+  `(u, t)` may only use edges strictly older than `t`, so no evaluation query can see its own
+  future.
+- **Evaluated on the modern benchmarks, on their own terms.** TGB-Seq (ICLR 2025), TGB and DyGLib,
+  each with its shipped negative-sampling protocol and metric rather than a re-rolled one.
 
 ## Running
 
@@ -50,3 +43,6 @@ scripts/train_link_property_prediction.py --data-suite dyglib --dataset wikipedi
 scripts/train_node_classification.py --dataset wikipedia --checkpoint <ckpt.pt> \
   --seed 42 --use-gpu --use-gpu-tempest
 ```
+
+Per-dataset config is `default_conf_variations.txt`. Dataset, protocol and result notes are in
+`CLAUDE.md`; the node-classification write-up is `reports/node_classification_2026-10-08.md`.
