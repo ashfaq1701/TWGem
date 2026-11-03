@@ -32,9 +32,9 @@ class BagWeights(nn.Module):
         if self.n_layers < 1:
             raise ValueError(f"n_layers must be >= 1, got {n_layers}")
         self.n_feat = 4
-        layers = [nn.Linear(self.n_feat, self.hidden), nn.GELU()]
+        layers = [nn.Linear(self.n_feat, self.hidden), nn.LayerNorm(self.hidden), nn.GELU()]
         for _ in range(self.n_layers - 1):
-            layers += [nn.Linear(self.hidden, self.hidden), nn.GELU()]
+            layers += [nn.Linear(self.hidden, self.hidden), nn.LayerNorm(self.hidden), nn.GELU()]
         layers.append(nn.Linear(self.hidden, 1))
         self.net = nn.Sequential(*layers)
 
