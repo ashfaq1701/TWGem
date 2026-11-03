@@ -1,7 +1,7 @@
 TGB-Seq (--data-suite tgb-seq):
 
 GoogleLocal:   --is-bipartite
-YouTube:       --early-stop-patience 20
+YouTube:       -
 Flickr:        -
 Patent:        -
 ML-20M:        --is-bipartite
