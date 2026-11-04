@@ -7,7 +7,7 @@ Patent:        -
 ML-20M:        --is-bipartite
 Taobao:        --is-bipartite
 Yelp:          --is-bipartite
-WikiLink:      --n-layers-pooler 1
+WikiLink:      -
 
 TGB (--data-suite tgb):
 
