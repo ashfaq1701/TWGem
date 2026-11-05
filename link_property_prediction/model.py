@@ -3,6 +3,7 @@ from typing import Tuple
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .walk_tokens import WalkTokens
 
@@ -121,11 +122,18 @@ class LinkPredHead(nn.Module):
         far negatives: one distant candidate takes the whole spread and compresses the near
         cluster, where the ranking decision actually is. The log compresses the far tail instead
         and spends the range near the query. Monotone decreasing in d, so within a row the order
-        -- and so eval MRR for a fixed model -- is unchanged; and standardisation pins mean and
-        spread either way, so the loss floor log(1 + K exp(-sqrt(K + 1))) is identical."""
+        -- and so eval MRR for a fixed model -- is unchanged.
+
+        The standardisation is `F.layer_norm` over the candidate axis, which IS this operation:
+        centre, divide by the spread. Functional and sized from the input, because the candidate
+        count changes -- 1 + k_train while training, 1 + k_eval at eval, and TGB serves a
+        different count per dataset. `nn.LayerNorm(c)` would both fail on that shape change and,
+        with its default affine, LEAK THE LABEL: its gamma/beta are per candidate POSITION and
+        the positive is always index 0 (see the target in _train_step), so it can rank by
+        position alone. Verified: nn.LayerNorm(6) trained on pure noise against that target
+        reaches loss 0.0176 against log 6 = 1.7918, by learning beta = [+2.8, -2.8, ...]."""
         pooled_u = self.bag_weights(src_tokens)                              # [b, d]
         pooled_v = self.bag_weights(cand_tokens)                             # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        s = s - s.mean(-1, keepdim=True)                                     # [b, c]
-        return s / s.std(-1, keepdim=True).clamp_min(1e-6)                   # [b, c]
+        return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
