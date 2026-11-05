@@ -21,7 +21,7 @@ def load_tgb_seq(name: str, root: str = "datasets") -> Loaded:
     from tgb_seq.LinkPred.dataloader import TGBSeqLoader
 
     ds = TGBSeqLoader(name=name, root=root)
-    # Self-heal a half-downloaded dataset: if either the edgelist CSV or test_ns is missing, re-download.
+    # Re-download if the edgelist or test_ns is missing.
     if not (os.path.exists(ds._edgelist_path) and os.path.exists(ds._test_ns_path)):
         ds._download()
         ds._load_file()

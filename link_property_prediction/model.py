@@ -60,7 +60,6 @@ class BagWeights(nn.Module):
         age = torch.log1p(age) / self.log_T_train                            # [Q, T]
         pos = pos / self.max_walk_len                                        # [Q, T]
 
-        # Mask after the log so padding never produces -inf.
         d_mid = torch.log(dist(fixed, mid.unsqueeze(-2))) * valid_f          # [Q, T]
         r_tok = fixed.norm(dim=-1).clamp_min(_SQ_DIST_FLOOR ** 0.5)          # [Q, T]
         d0 = torch.log(r_tok) * valid_f                                      # [Q, T]
@@ -91,7 +90,7 @@ class LinkPredHead(nn.Module):
         self.d_emb = int(d_emb)
         torch.manual_seed(seed)
 
-        self.E = nn.Embedding(self.num_nodes, self.d_emb, sparse=True)      # sparse grad: SparseAdam
+        self.E = nn.Embedding(self.num_nodes, self.d_emb, sparse=True)
         nn.init.normal_(self.E.weight, std=self.d_emb ** -0.5)              # row norm ~1
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
@@ -103,8 +102,7 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row.
-        Functional layer_norm: the candidate count varies, and a learned affine would leak the label."""
+        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
         pooled_u = self.bag_weights(src_tokens)                              # [b, d]
         pooled_v = self.bag_weights(cand_tokens)                             # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]

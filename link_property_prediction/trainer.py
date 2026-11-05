@@ -22,7 +22,7 @@ class TrainerConfig:
     train_negative_sampler: NegativeSampler
 
     d_emb: int = 128
-    hidden_dim: int = 32         # pooler width, fixed independently of the feature count
+    hidden_dim: int = 32
     n_layers_pooler: int = 2
 
     # Backward, undirected walks for the source and every candidate.
@@ -70,13 +70,12 @@ class Trainer:
         )
         self.neg_sampler_train = config.train_negative_sampler
 
-        # E's gradient is sparse, so it needs SparseAdam; the pooler takes Adam.
         pooler = [p for n, p in self.model.named_parameters() if n != "E.weight"]
         self.opt = torch.optim.Adam(pooler, lr=float(config.lr))
         self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
 
     def ingest_full_graph(self, graph: SplitData) -> None:
-        """Ingest every split into Tempest once; per-query cutoffs keep walks causal."""
+        """Ingest every split into Tempest once."""
         self.walk_gen.add_edges(graph.sources, graph.destinations, graph.timestamps, graph.edge_feat)
         print(f"  Ingested full graph into Tempest: {len(graph.sources):,} edges "
               f"(once; per-query cutoff enforces causality)")

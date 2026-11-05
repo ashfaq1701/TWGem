@@ -41,12 +41,11 @@ def fit_classifier(classifier: NodeClassifier, features: Dict[str, torch.Tensor]
     for epoch in range(1, num_epochs + 1):
         classifier.train()
         t0 = time.time()
-        # Features are causal, so shuffling leaks nothing.
         perm = torch.randperm(len(x_train), generator=order).to(device)
         loss_sum, n_batches = 0.0, 0
         for start in range(0, len(perm), batch_size):
             rows = perm[start:start + batch_size]
-            if len(rows) < 2:           # BatchNorm cannot train on a single row
+            if len(rows) < 2:
                 continue
             loss = F.binary_cross_entropy_with_logits(classifier(x_train[rows]), y_train[rows])
             optimizer.zero_grad()

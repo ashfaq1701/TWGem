@@ -34,15 +34,14 @@ def load_tgb(name: str, root: str = "datasets") -> Loaded:
     from tgb.utils.info import PROJ_DIR
 
     tgb_name = _strip_version_suffix(name)
-    tgb_root = os.path.relpath(root, PROJ_DIR) if os.path.isabs(root) else root  # TGB prefixes PROJ_DIR
-    # TGB's own path resolution, for the error message.
+    tgb_root = os.path.relpath(root, PROJ_DIR) if os.path.isabs(root) else root
     data_dir = os.path.normpath(os.path.join(PROJ_DIR + tgb_root, tgb_name.replace("-", "_")))
     try:
         dataset = LinkPropPredDataset(name=tgb_name, root=tgb_root, preprocess=True)
     except zipfile.BadZipFile as err:
         stub = os.path.join(data_dir, tgb_name + ".zip")
         if os.path.exists(stub):
-            os.remove(stub)                       # else the next run trips on it too
+            os.remove(stub)
         raise _missing_dataset_error(tgb_name, data_dir, "download was not a zip") from err
     missing = [dataset.meta_dict[k] for k in ("val_ns", "test_ns")
                if not os.path.exists(dataset.meta_dict[k])]
@@ -103,7 +102,6 @@ class TGBSuite(DataSuite):
     def _load(self) -> Loaded:
         return load_tgb(self.name, self.root)
 
-    # TGB needs the split's negative file loaded before querying.
 
     def _val_evaluator(self) -> Evaluator:
         self.load().dataset.load_val_ns()

@@ -43,7 +43,6 @@ class FrozenEncoder:
         return cls(model, walk_args, graph, device, use_gpu_tempest, seed)
 
     def _fresh_walker(self) -> WalkGenerator:
-        # Only a fresh walker with the same seed replays the same walks.
         a = self.walk_args
         walker = WalkGenerator(
             use_gpu=self.use_gpu_tempest,
