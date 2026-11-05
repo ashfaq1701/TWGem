@@ -101,8 +101,6 @@ class LinkPredHead(nn.Module):
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
 
-        self.temp = nn.Parameter(torch.tensor([1.0]))                       # score temperature
-
     def mean_radius(self) -> torch.Tensor:
         """Mean norm of the table (its distance from the origin), detached. The pooler no longer
         reads it; the node-classification encoder does."""
@@ -110,10 +108,15 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Score candidates by the negated log distance between the two pooled points, scaled by the
-        learned `temp`: a candidate's probability ~ d^-temp, so the table's overall scale cancels
-        within each query."""
+        """Score candidates by the negated distance between the two pooled points, divided by the
+        spread of that query's own scores. Standardising over the candidate axis -- the softmax's
+        own axis -- leaves the score invariant to any affine change of the row's distances, so the
+        table's scale cannot buy sharpness and no temperature is needed. Being a positive affine
+        map within one softmax, it cannot reorder a row. Centring is inert in the loss but bounds
+        every logit by sqrt(c - 1), which dividing by the spread alone does not."""
         pooled_u = self.bag_weights(src_tokens)                              # [b, d]
         pooled_v = self.bag_weights(cand_tokens)                             # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
-        return self.temp * -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))  # [b, c]
+        s = -dist(pooled_u.unsqueeze(1), pooled_v)                           # [b, c]
+        s = s - s.mean(-1, keepdim=True)                                     # [b, c]
+        return s / s.std(-1, keepdim=True).clamp_min(1e-6)                   # [b, c]
