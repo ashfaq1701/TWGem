@@ -54,15 +54,9 @@ class TrainerConfig:
     t2nv_p: float = 4.0    # node2vec return param (used only when a bias is TemporalNode2Vec)
     t2nv_q: float = 0.25   # node2vec in-out param
 
-    # One constant lr for every parameter. E steps under SparseAdam; the pooler
-    # and the score temperature step under Adam; all of them read `lr`.
+    # One constant lr for every parameter. E steps under SparseAdam, the pooler under Adam;
+    # both read `lr`. Nothing is decayed: the score carries no free scale to hold down.
     lr: float = 1e-3
-    # Weight decay on the score temperature, a free scalar that grows while the model beats
-    # chance. The pooler and E are left undecayed. Adam's L2 enters the gradient before the
-    # m/sqrt(v) normalisation, so the balance sits in gradient units at temp* = |grad|/wd_temp,
-    # which is per-dataset for free because the margin is: measured 13.1 on YouTube and 9.0 on
-    # Yelp from this one value, against 22.0 and 17.2 undecayed.
-    wd_temp: float = 1e-3
 
     # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
     # a cell that prints 200 epochs is a floor, not a result.
@@ -106,16 +100,10 @@ class Trainer:
 
         # Two optimisers. E's gradient is sparse (only looked-up rows), so SparseAdam updates the
         # moments of those rows alone: an absent row's state stays frozen instead of decaying.
-        # The pooler and the temperature get a gradient every step, so they take plain Adam. Two
-        # optimisers, one lr: the split is forced, since SparseAdam rejects dense gradients.
-        # temp sits in its own Adam group so `wd_temp` decays it alone; the pooler's group takes
-        # Adam's default of no decay, and SparseAdam has no weight_decay argument at all.
-        named = [(n, p) for n, p in self.model.named_parameters() if n != "E.weight"]
-        self.opt = torch.optim.Adam(
-            [{"params": [p for n, p in named if n != "temp"]},
-             {"params": [p for n, p in named if n == "temp"], "weight_decay": float(config.wd_temp)}],
-            lr=float(config.lr),
-        )
+        # The pooler gets a gradient every step, so it takes plain Adam. Two optimisers, one lr:
+        # the split is forced, since SparseAdam rejects dense gradients.
+        pooler = [p for n, p in self.model.named_parameters() if n != "E.weight"]
+        self.opt = torch.optim.Adam(pooler, lr=float(config.lr))
         self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
 
     # Full-graph ingestion (once, up front)
@@ -183,11 +171,9 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """The epoch line's state watch: mean and max norm of E (its distance from the origin)
-        and the score temperature."""
+        """The epoch line's state watch: mean and max norm of E (its distance from the origin)."""
         r = self.model.E.weight.norm(dim=-1)
-        return (f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
-                f"  temp={float(self.model.temp):+.4f}")
+        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
 
     # Eval — strict-causal, no_grad
 
