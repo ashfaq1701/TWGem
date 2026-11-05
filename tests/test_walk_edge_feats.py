@@ -1,15 +1,4 @@
-"""Edge-feature plumbing + pairing tests for WalkData.
-
-Confirms that walk-step edge features come back out of Tempest correctly PAIRED
-with their edges under the backward-walk contract (CLAUDE.md "Tempest walk
-contract"): for p in [0, lens-2], edge_feats[i,p] must be the feature of the SAME
-edge (nodes[i,p], nodes[i,p+1]) whose time is timestamps[i,p] — not a neighbouring
-edge — and the seed slot + padding must be zero so the context mask lines up.
-
-The synthetic graph encodes each edge's own identity into its feature vector
-[src, tgt, ts, edge_id], so a mis-pairing (off-by-one, wrong row, transpose) is
-caught exactly rather than statistically.
-"""
+"""Walk edge features are paired with their own edge; seed slot and padding are zero."""
 import numpy as np
 import torch
 
@@ -61,8 +50,7 @@ def test_edge_feats_present_and_aligned():
 
 
 def test_edge_feats_seed_and_padding_are_zero():
-    """Seed slot (p=lens-1) and padding (p>=lens) carry ZERO edge feature, so the
-    context mask (positions < lens-1) selects exactly the real edge rows."""
+    """Seed slot (p = lens-1) and padding carry zero edge features."""
     src, tgt, ts, ef = _synthetic_graph()
     wg = WalkGenerator(use_gpu=False, num_walks_per_node=4, max_walk_len=8)
     wg.add_edges(src, tgt, ts, ef)

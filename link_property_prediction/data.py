@@ -1,5 +1,4 @@
-"""Suite-agnostic data containers (`SplitData`, `Batch`, `Loaded`) and the fixed-size
-chronological batch iterator. Suite modules do the loading."""
+"""Suite-agnostic containers (SplitData, Batch, Loaded) and the chronological batch iterator."""
 
 from typing import Iterator, NamedTuple, Optional
 
@@ -13,10 +12,7 @@ class SplitData(NamedTuple):
     edge_feat: Optional[np.ndarray]   # [E, d_edge] float32 or None
 
     def mask(self, keep: np.ndarray) -> "SplitData":
-        """The sub-split `keep` selects, as every loader needs: build one `SplitData` over
-        all of a dataset's edges, then carve the three splits out of it. `keep` is cast to
-        bool, since a suite's shipped masks need not already be, and `edge_feat` stays None
-        when the dataset has none -- the branch each loader used to carry itself."""
+        """The sub-split selected by `keep` (cast to bool)."""
         m = np.asarray(keep, dtype=bool)
         return SplitData(
             sources=self.sources[m],
@@ -50,15 +46,12 @@ class Loaded(NamedTuple):
 
 
 def node_count(*id_arrays: np.ndarray) -> int:
-    """Embedding-table size for ids that index it directly: one row per id from 0, so the
-    largest id plus one. Loaders pass their raw source and destination arrays -- before the
-    split masks, so an id held out of training still gets its row."""
+    """Embedding-table size: largest raw id plus one."""
     return int(max(a.max() for a in id_arrays)) + 1
 
 
 def concat_splits(*splits: SplitData) -> SplitData:
-    """Concatenate splits into ONE SplitData for a one-shot ingest. edge_feat is
-    concatenated only when every split has it (else None)."""
+    """Concatenate splits for a one-shot ingest; edge_feat only if every split has it."""
     src = np.concatenate([s.sources for s in splits])
     dst = np.concatenate([s.destinations for s in splits])
     ts = np.concatenate([s.timestamps for s in splits])
@@ -68,12 +61,7 @@ def concat_splits(*splits: SplitData) -> SplitData:
 
 
 def create_batches(split: SplitData, batch_size: int) -> Iterator[Batch]:
-    """Fixed-size chronological batches (train and eval): consecutive
-    `batch_size` chunks over the time-sorted stream. The final partial batch is kept
-    (drop_last=False). Batch boundaries carry no causal meaning: both the link-prediction
-    trainer and the node-classification encoder ingest the full graph once and give every
-    query its own EXCLUSIVE cutoff (t_edge < t), so same-timestamp edges never see each
-    other wherever the boundary falls."""
+    """Consecutive fixed-size chronological batches; the last partial batch is kept."""
     n = int(split.sources.shape[0])
     for start in range(0, n, batch_size):
         yield _slice(split, start, min(start + batch_size, n))

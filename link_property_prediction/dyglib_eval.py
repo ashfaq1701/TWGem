@@ -1,22 +1,4 @@
-"""DyGLib datasets (Wikipedia, Reddit, MOOC, ...) — download, native load, negatives.
-
-The data is the Zenodo record DyGLib's README points to (Poursafaei et al., "Towards Better
-Evaluation for Dynamic Link Prediction"), one zip per dataset. Each zip already carries the
-processed `ml_<name>.csv` / `ml_<name>.npy` that DyGLib's own `preprocess_data.py --check`
-compares against, so they are used as shipped: only those two files are extracted.
-
-Conventions taken from DyGLib (`utils/DataLoader.py`), verified against its source:
-  - ids are 1-indexed; on bipartite sets items are offset after users. Row 0 of the edge
-    feature array is a zero pad, so edge `idx` reads `ml_<name>.npy[idx]`.
-  - the split is by timestamp quantile: train `ts <= q(0.70)`, val `(q(0.70), q(0.85)]`,
-    test `> q(0.85)`. This is DyGLib's node-classification split; its link-prediction split
-    additionally holds out 10% of nodes, which we do NOT do -- one split serves both runs.
-  - `label` is per interaction, about the source user (e.g. banned after this edit).
-
-Negatives follow CRAFT's DyGLib protocol, not DyGLib's 1:1 random AP/AUC: training, val and
-test negatives are collision-free (`CollisionFreeNegativeSampler`); val and test each get fixed
-`[N, k_eval]` negatives over the full dataset's candidates, scored by MRR.
-"""
+"""DyGLib datasets: Zenodo download, quantile split, CRAFT's collision-free negatives."""
 import hashlib
 import os
 import shutil
@@ -41,8 +23,7 @@ def _paths(name: str, root: str) -> Tuple[str, str, str]:
 
 
 def _fetch(name: str, root: str) -> None:
-    """Download `<name>.zip` from the Zenodo record if its processed files are missing,
-    verify the record's md5, and extract only `ml_<name>.csv` and `ml_<name>.npy`."""
+    """Download and md5-check `<name>.zip`, extracting only ml_<name>.csv/.npy."""
     import requests
 
     data_dir, csv_path, npy_path = _paths(name, root)
@@ -82,7 +63,7 @@ def _fetch(name: str, root: str) -> None:
                 with zf.open(member) as packed, open(dest, "wb") as out:
                     shutil.copyfileobj(packed, out)
     except NotImplementedError:
-        # reddit.zip is Deflate64, which Python's zipfile cannot decompress; Info-ZIP can.
+        # Deflate64 (reddit.zip) needs Info-ZIP.
         subprocess.run(["unzip", "-o", "-j", zip_path, *wanted, "-d", data_dir], check=True,
                        stdout=subprocess.DEVNULL)
     os.remove(zip_path)
@@ -90,8 +71,7 @@ def _fetch(name: str, root: str) -> None:
 
 
 def _integral_time_scale(name: str, ts: np.ndarray) -> int:
-    """Smallest power of ten that makes every timestamp integral, so the int64 cast keeps every
-    gap exact (Wikipedia ships whole seconds -> 1; Reddit ships milliseconds -> 1000)."""
+    """Smallest power of ten making every timestamp integral."""
     for k in range(7):
         scaled = ts * 10 ** k
         if np.abs(scaled - np.round(scaled)).max() < 1e-3:
@@ -106,8 +86,7 @@ class DyGLibDataset(NamedTuple):
 
 
 def load_dyglib(name: str, root: str = "datasets") -> Loaded:
-    """Native DyGLib load -> suite-agnostic `Loaded`, downloading on first use. The
-    per-interaction labels ride on `Loaded.dataset` (a `DyGLibDataset`)."""
+    """Native DyGLib load -> Loaded; labels ride on Loaded.dataset."""
     import pandas as pd
 
     _fetch(name, root)
@@ -126,7 +105,7 @@ def load_dyglib(name: str, root: str = "datasets") -> Loaded:
     edge_feat = edge_feat_table[df.idx.to_numpy()].astype(np.float32)
     labels = df.label.to_numpy(dtype=np.float32)
 
-    # DyGLib cuts on quantiles of the float timestamps; same arithmetic, same boundaries.
+    # DyGLib's split: quantiles of the float timestamps.
     val_time, test_time = np.quantile(ts_float, [VAL_QUANTILE, TEST_QUANTILE])
     masks = {
         "train": ts_float <= val_time,
@@ -148,8 +127,7 @@ def load_dyglib(name: str, root: str = "datasets") -> Loaded:
 
 
 class DyGLibSuite(DataSuite):
-    """DyGLib adapter for link prediction. Val and test both use fixed collision-free
-    negatives at `k_eval` (seeded, test one seed apart from val), scored by MRR."""
+    """DyGLib adapter: fixed collision-free val/test negatives, scored by MRR."""
 
     def _load(self) -> Loaded:
         return load_dyglib(self.name, self.root)
@@ -159,7 +137,7 @@ class DyGLibSuite(DataSuite):
         return FixedNegativesEvaluator(neg_dst=neg)
 
     def _test_evaluator(self) -> Evaluator:
-        # One seed apart from val, so the two splits never draw the same negative rows.
+        # One seed apart from val.
         neg = self.eval_negatives(self.load().test, self.seed + 1, tag="[dyglib] test")
         return FixedNegativesEvaluator(neg_dst=neg)
 

@@ -1,16 +1,4 @@
-"""Benchmark-agnostic evaluation interfaces (Evaluator, DataSuite) and the
-`make_suite` factory.
-
-Three suites: TGB-Seq in `tgb_seq_eval.py`, TGB in `tgb_eval.py` and DyGLib in
-`dyglib_eval.py`. Everything suite-specific lives behind these two ABCs --
-`trainer.py`, `negatives.py` and `data.py` never branch on the suite, and
-`make_suite` is the single place a name maps to a class. A new suite is therefore
-additive: one module, one branch here, one `--data-suite` choice.
-
-The suites agree on the vocabulary (`Loaded`, `SplitData`, `Batch`) and on the
-`Evaluator` contract; they differ only inside, which is what makes them
-interchangeable. They do NOT agree on the negative-sampling protocol, so their
-MRRs are not comparable with each other -- see `tgb_eval.py`."""
+"""Evaluator and DataSuite interfaces, and `make_suite`, the only suite dispatch."""
 import abc
 from functools import cached_property
 from typing import List, Optional
@@ -33,16 +21,12 @@ class Evaluator(abc.ABC):
         """The suite's native metric for one positive scored against its negatives."""
 
     def reset(self) -> None:
-        """Called at the start of every eval pass; rewinds per-positive cursors for
-        fixed-negative evaluators. Stateless evaluators no-op."""
+        """Called before every eval pass; rewinds fixed-negative cursors."""
         return None
 
 
 class FixedNegativesEvaluator(Evaluator):
-    """Fixed per-positive negatives (`[N_pos, K]`, row-aligned to the split's chronological
-    order) scored by TGB-Seq's official MRR. Shared by the two suites that hold such an
-    array: TGB-Seq (our val negatives, its shipped test_ns) and DyGLib (our val and test). A
-    cursor walks the array in lockstep with contiguous eval batches; `reset()` rewinds it."""
+    """Fixed [N_pos, K] negatives walked by a cursor, scored by TGB-Seq's MRR."""
 
     def __init__(self, neg_dst: np.ndarray):
         from tgb_seq.LinkPred.evaluator import Evaluator as TGBSeqOfficialEvaluator
@@ -67,8 +51,7 @@ class FixedNegativesEvaluator(Evaluator):
 
 
 class DataSuite(abc.ABC):
-    """Benchmark adapter: native load + native evaluator construction. One instance
-    per run."""
+    """Benchmark adapter: native load and native evaluators."""
 
     def __init__(self, name: str, root: str, is_bipartite: bool, k_eval: int, seed: int):
         self.name = name
@@ -89,10 +72,7 @@ class DataSuite(abc.ABC):
         """Do the suite's native load and return a `Loaded`."""
 
     def make_evaluator(self, split_mode: str) -> Evaluator:
-        """Native evaluator for `split_mode` in {'val', 'test'}. The split name is
-        validated here and dispatched to the two hooks below, so no suite repeats either
-        the check or the dispatch -- a suite says only how each split's negatives are
-        made."""
+        """Evaluator for split_mode 'val' or 'test'."""
         if split_mode == "val":
             return self._val_evaluator()
         if split_mode == "test":
@@ -113,8 +93,7 @@ class DataSuite(abc.ABC):
         return "destinations" if self.is_bipartite else "nodes"
 
     def _candidates(self, *splits) -> np.ndarray:
-        """Unique negative candidates (int32) over `splits`: their destinations when the
-        graph is bipartite, their sources ∪ destinations when it is not."""
+        """Unique candidates: destinations if bipartite, else sources and destinations."""
         ids = [s.destinations for s in splits]
         if not self.is_bipartite:
             ids += [s.sources for s in splits]
@@ -122,14 +101,12 @@ class DataSuite(abc.ABC):
 
     @cached_property
     def train_negative_pool(self) -> np.ndarray:
-        """Training negatives come from the train split only, so a node that first appears
-        in val/test is never trained on purely as a negative."""
+        """Training negatives come from the train split only."""
         return self._candidates(self.load().train)
 
     @cached_property
     def eval_negative_pool(self) -> np.ndarray:
-        """Our val and test negatives come from the full dataset (train ∪ val ∪ test), as
-        CRAFT/DyGLib draw both."""
+        """Eval negatives come from the full dataset."""
         loaded = self.load()
         return self._candidates(loaded.train, loaded.val, loaded.test)
 
@@ -143,8 +120,7 @@ class DataSuite(abc.ABC):
                                      self.load().train)
 
     def eval_negatives(self, split: SplitData, seed: int, tag: str) -> np.ndarray:
-        """Fixed `[N_pos, k_eval]` negatives for `split`, row i for positive i. `tag` names
-        the suite and split in the one-line notice, e.g. "[dyglib] test"."""
+        """Fixed [N_pos, k_eval] negatives for `split`."""
         pool = self.eval_negative_pool
         sampler = self.negative_sampler(pool, self.k_eval, seed, split)
         print(f"  {tag} negatives: {self.k_eval} {sampler.rule} per positive over "
@@ -154,16 +130,12 @@ class DataSuite(abc.ABC):
         return sampler.sample(whole).astype(np.int32)
 
 
-#: Valid `--data-suite` values. The train script reads this for its `choices`, so the
-#: flag and the dispatch below cannot drift apart.
+#: Valid `--data-suite` values; the train script uses them as its choices.
 SUITES = ("tgb-seq", "tgb", "dyglib")
 
 
 def make_suite(data_suite: str, **kwargs) -> DataSuite:
-    """Dispatch `--data-suite` to its native suite. The ONLY dispatch site: callers
-    pass `args.data_suite` through and never branch on it. Each suite is imported
-    lazily to avoid an import cycle (they subclass the ABCs defined here) and so that
-    a missing optional dependency only bites the suite that needs it."""
+    """Map `--data-suite` to its suite; imported lazily."""
     if data_suite == "tgb-seq":
         from .tgb_seq_eval import TGBSeqSuite
         return TGBSeqSuite(**kwargs)

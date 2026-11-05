@@ -1,5 +1,4 @@
-"""Frozen link-prediction encoder -> 5 causal features per interaction (u, t):
-|E[u]|, |p_u|, d(E[u], p_u) / r_mean, log1p(#prior edges), log1p(t - last edge time)."""
+"""Frozen link-prediction encoder -> 5 causal features per interaction (u, t)."""
 import hashlib
 
 import numpy as np
@@ -44,8 +43,7 @@ class FrozenEncoder:
         return cls(model, walk_args, graph, device, use_gpu_tempest, seed)
 
     def _fresh_walker(self) -> WalkGenerator:
-        # Tempest's RNG has no per-call seed: only a fresh walker with the same seed replays
-        # the same walks.
+        # Only a fresh walker with the same seed replays the same walks.
         a = self.walk_args
         walker = WalkGenerator(
             use_gpu=self.use_gpu_tempest,
@@ -98,7 +96,7 @@ class FrozenEncoder:
         count = walker.get_node_popularity(src, ts)
         recency = walker.get_node_recency(src, ts)
         out[:, 0] = np.log1p(count)
-        # No prior edge: recency is undefined, use a gap older than any real one.
+        # No prior edge: use a gap older than any real one.
         out[:, 1] = np.where(count > 0, np.log1p(recency), self.no_event_log_gap)
         return torch.from_numpy(out)
 

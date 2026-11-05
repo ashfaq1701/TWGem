@@ -41,8 +41,7 @@ def fit_classifier(classifier: NodeClassifier, features: Dict[str, torch.Tensor]
     for epoch in range(1, num_epochs + 1):
         classifier.train()
         t0 = time.time()
-        # Rows are encoded causally, so shuffling leaks nothing; in time order the rare
-        # positives arrive in clumps.
+        # Features are causal, so shuffling leaks nothing.
         perm = torch.randperm(len(x_train), generator=order).to(device)
         loss_sum, n_batches = 0.0, 0
         for start in range(0, len(perm), batch_size):

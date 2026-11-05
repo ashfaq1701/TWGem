@@ -1,5 +1,13 @@
 # Tempest walk-supervised temporal link prediction
 
+## Code comments: minimal, in source; detail goes in commit messages
+
+Comments and docstrings are ONE line (two at most, only where absolutely needed): tensor shapes
+and the occasional non-obvious fact. No rationale, measurements, history, alternatives
+considered or references to past runs in source files -- those belong in the commit message,
+which carries the full why, the numbers and the evidence. When you change code, write the
+detailed explanation into the commit, not into a comment.
+
 ## TGB-Seq datasets
 
 The suite we target: link prediction, MRR on TGB-Seq's shipped TEST negatives.

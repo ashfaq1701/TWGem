@@ -1,7 +1,4 @@
-"""CLI entry point for tempest-embedding training.
-
-Loads a dataset, constructs a Trainer, runs training, prints results.
-"""
+"""Link-prediction training CLI."""
 
 import argparse
 import pathlib
@@ -9,7 +6,6 @@ import sys
 import time
 from typing import Any, Dict
 
-# Put the project root on sys.path so direct invocation can import the package.
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
@@ -84,7 +80,6 @@ def parse_args() -> argparse.Namespace:
                    help="Run Tempest's walk sampler in GPU mode.")
 
     # ── Pooler widths ───────────────────────────────────────────────
-    # Low-priority knobs: the defaults are the measured design and these are not swept.
     p.add_argument("--hidden-dim", default=32, type=int,
                    help="Hidden width of the pooler MLP. Pinned independently of the feature "
                         "count so a feature change does not also move pooler capacity.")
@@ -126,11 +121,8 @@ def main() -> Dict[str, Any]:
     loaded: Loaded = suite.load()
     print(f"loaded ({args.data_suite}) in {time.time() - t0:.1f}s")
 
-    # Derived dataset constants.
     num_nodes = loaded.max_node_count
 
-    # Training negatives come from the train split; each suite's evaluators report their
-    # own eval negatives when built.
     train_negative_pool = suite.train_negative_pool
 
     print(f"  num_nodes:     {num_nodes:,}")
@@ -142,7 +134,6 @@ def main() -> Dict[str, Any]:
     print(f"  test edges:    {len(loaded.test.sources):,}")
 
     # ─── Build batch factories ─────────────────────────────────────
-    # Wrapped in lambdas so the trainer can re-iterate each split every epoch.
     train_batches_factory = (
         lambda: create_batches(loaded.train, args.batch_size)
     )
@@ -216,7 +207,7 @@ def main() -> Dict[str, Any]:
     print(f"  best_val_mrr:      {result['best_val_mrr']:.4f}")
     print(f"  best_test_mrr:     {result['best_test_mrr']:.4f}")
 
-    # Optional: dump best-val embedding table for downstream analysis.
+    # Optional: dump the best-val embedding table.
     if args.export_best_embedding_table:
         emb_dir = pathlib.Path("logs/embeddings")
         emb_dir.mkdir(parents=True, exist_ok=True)
@@ -230,8 +221,7 @@ def main() -> Dict[str, Any]:
         )
         print(f"  embedding_table:   saved to {emb_path}")
 
-    # Optional: the whole best-val model plus the args that rebuild it. train() has
-    # already restored the best-val weights, so the live model IS the checkpoint.
+    # Optional: save the best-val model (already restored) with its args.
     if args.save_checkpoint:
         ckpt_path = pathlib.Path(args.save_checkpoint)
         ckpt_path.parent.mkdir(parents=True, exist_ok=True)

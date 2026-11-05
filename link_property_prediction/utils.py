@@ -7,8 +7,7 @@ import torch
 
 
 def seed_all(seed: int) -> None:
-    """Seed Python/numpy/torch RNGs. Tempest's walk RNG is seeded separately, by
-    `WalkGenerator(seed=...)` through Tempest's `global_seed`."""
+    """Seed Python, numpy and torch; Tempest is seeded by WalkGenerator."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

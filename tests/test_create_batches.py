@@ -1,9 +1,4 @@
-"""Contract for the fixed-size chronological batch iterator (data.create_batches).
-
-Pins: consecutive fixed-size chunks, order-preserving, drop_last=False, and a
-timestamp group larger than batch_size IS split across batches (matching
-torch_geometric.TemporalDataLoader / TPNet's DataLoader-over-indices).
-"""
+"""create_batches: consecutive fixed-size chunks, order kept, last partial batch kept."""
 import numpy as np
 
 from link_property_prediction.data import SplitData, create_batches
@@ -43,8 +38,7 @@ def test_divides_evenly():
 
 
 def test_large_timestamp_group_is_split():
-    # All 500 edges share timestamp 7 — exact mode must STILL split 200/200/100,
-    # unlike the old timestamp-grouped iterator which would emit one 500-edge batch.
+    # One shared timestamp must still split 200/200/100.
     sp = _split(500, ts=np.full(500, 7))
     batches = list(create_batches(sp, 200))
     assert [len(b.src) for b in batches] == [200, 200, 100]
@@ -67,8 +61,7 @@ def test_edge_feat_none_passthrough():
 
 
 def test_batch_count_matches_ceil_div():
-    # The leaderboard-comparability claim: #batches == ceil(n / batch_size).
-    # tgbl-review train has 3,413,837 edges => 17,070 batches at bs=200.
+    # #batches == ceil(n / batch_size), e.g. tgbl-review train: 17,070 at bs=200.
     import math
     assert math.ceil(3_413_837 / 200) == 17_070
     sp = _split(3_413_837 // 1000)                  # scaled proxy, same formula

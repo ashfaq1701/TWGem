@@ -1,26 +1,4 @@
-"""Two-panel d_emb sweep figure: MRR growth vs d_emb, and runtime per epoch.
-
-Left panel plots test MRR RELATIVE to each dataset's own d=8 value, so every
-series starts at 1.0 and the panel reads as growth. Absolute MRR spans
-0.20-0.66 across these datasets, and on one shared linear axis ML-20M's real
-d=8->32 climb (+0.0224, 91% of its whole range, 112x the ~0.0002 noise floor)
-is compressed into a visually flat line. Relative scaling makes that shape
-legible and makes the per-dataset saturation point comparable.
-
-Data source: experiment_logs/d-sweep/<dataset>/d-<d>.log (seed 42, K_train 5,
-patience 3, 2-param geo_temp head, no pop bias). MRR is best_test_mrr -- test at
-the best-VAL epoch, i.e. the val-selected checkpoint, which is the reported
-metric. Runtime is the mean of (train + eval) over the cell's epochs.
-
-Absolute MRR at d=8 (the denominator of the left panel): GoogleLocal 0.5530,
-YouTube 0.3911, ML-20M 0.2000.
-
-Palette: dataviz categorical slots 1, 2, 7 (blue / orange / violet). Validated
-all-pairs on the light surface #fcfcfb -- worst normal-vision dE 16.3 (floor 15),
-worst CVD dE 14.2 (target >=8), every series >=3:1 contrast, so no relief-rule
-label obligation and the legend can carry identity alone. Slot 3 (aqua) was
-rejected at 2.74:1 contrast; slot 6 (green) at CVD dE 3.2 vs orange under protan.
-"""
+"""d_emb sweep figure: MRR relative to each dataset's d=8, and runtime per epoch."""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -84,8 +62,7 @@ ax2.yaxis.set_major_locator(FixedLocator([25, 50, 100, 200, 400]))
 ax2.yaxis.set_major_formatter(FixedFormatter(["25", "50", "100", "200", "400"]))
 ax2.minorticks_off()
 
-# Opaque surface-coloured, edgeless frame: reads as frameless but masks the grid,
-# which otherwise runs straight through the entries. Inset from the right spine.
+# Opaque edgeless legend frame, so the grid doesn't run through the entries.
 ax1.legend(loc="upper left", bbox_to_anchor=(0.03, 0.97),
            frameon=True, facecolor=SURFACE, edgecolor="none", framealpha=1.0,
            borderpad=0.6, handlelength=1.6, labelcolor=INK).set_zorder(5)

@@ -1,15 +1,11 @@
-"""Per-query backward-walk tensors from Tempest, kept in their natural [Q, K, L] structure.
-
-A query is a (seed, cutoff t) pair; K walks per query, each bounded by cutoff = t, each
-of length L. Requires shuffle_walk_order=False.
-"""
+"""Per-query backward walks as [Q, K, L] tensors; a query is a (seed, cutoff) pair."""
 from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
 import torch
 
-_TS_SENTINEL = torch.iinfo(torch.int64).max     # Tempest's seed-slot timestamp (no outgoing edge there)
+_TS_SENTINEL = torch.iinfo(torch.int64).max     # Tempest's seed-slot timestamp
 
 
 @dataclass
@@ -57,22 +53,22 @@ def build_query_walk_tokens(
     )
     k, length = int(wd.K), int(wd.nodes.shape[1])
 
-    # Rows [q*K, (q+1)*K) are query q's K walks -> reshape [Q*K, L] -> [Q, K, L].
+    # Rows [q*K, (q+1)*K) are query q's walks.
     nodes = wd.nodes.to(device=device, dtype=torch.int64).reshape(q, k, length)        # [Q, K, L]
     node_mask = nodes != -1
 
-    # AGE = cutoff - t_edge: seed sentinel -> cutoff (age 0), real edges >= 1, padding -> -1.
+    # Age = cutoff - t_edge: seed 0, padding -1.
     ts = wd.timestamps.to(device=device, dtype=torch.int64).reshape(q, k, length)
     edge_ts = torch.where(ts == _TS_SENTINEL, cutoffs_t.view(q, 1, 1), ts)
     ages = cutoffs_t.view(q, 1, 1) - edge_ts
     ages = torch.where(node_mask, ages, torch.full_like(ages, -1))
 
-    # HOP from seed: pos = lens - array_index (walks stored oldest->seed); padding -> 0.
+    # Hop from the seed (walks are stored oldest first); padding 0.
     lens = node_mask.sum(dim=-1, keepdim=True)                                          # [Q, K, 1]
     arange = torch.arange(length, device=device).view(1, 1, length)
     positions = (lens - arange).clamp_min(0)
 
-    # Per-token edge features; seed slot (age 0) and padding forced to [0]*d_ef.
+    # Edge features, zeroed at the seed slot and padding.
     edge_features = None
     if wd.edge_feats is not None:
         d_ef = int(wd.edge_feats.shape[-1])

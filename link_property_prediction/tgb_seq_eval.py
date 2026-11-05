@@ -1,9 +1,4 @@
-"""TGB-Seq (`tgb_seq.LinkPred`) — native load, negatives, and MRR metric.
-
-VAL negatives are built once by `DataSuite.eval_negatives` (uniform) at `k_eval` over the
-full dataset's candidates (fixed & seeded); TEST uses the shipped `test_ns`
-verbatim. Timestamps are cast to monotone int64 for Tempest's per-query cutoff.
-"""
+"""TGB-Seq: native load; val negatives sampled by us, test uses the shipped test_ns."""
 import numpy as np
 
 from .data import Loaded, SplitData, node_count
@@ -11,8 +6,7 @@ from .evaluator import DataSuite, Evaluator, FixedNegativesEvaluator
 
 
 def _to_int64_time(time: np.ndarray) -> np.ndarray:
-    """Monotone int64 timestamps for Tempest cutoffs. Integral floats cast
-    directly; non-integral inputs fall back to an order-preserving dense rank."""
+    """Monotone int64 timestamps; non-integral inputs fall back to a dense rank."""
     t = np.asarray(time)
     if np.isfinite(t).all() and np.array_equal(t, np.floor(t)):
         return t.astype(np.int64)
@@ -21,9 +15,7 @@ def _to_int64_time(time: np.ndarray) -> np.ndarray:
 
 
 def load_tgb_seq(name: str, root: str = "datasets") -> Loaded:
-    """Native TGB-Seq load → suite-agnostic `Loaded`. Splits from the CSV's
-    `split` column (0=train, 1=val, 2=test); live `TGBSeqLoader` kept on
-    `Loaded.dataset` so the test evaluator can read its shipped negatives."""
+    """Native TGB-Seq load -> Loaded; the loader is kept for its shipped negatives."""
     import os
 
     from tgb_seq.LinkPred.dataloader import TGBSeqLoader
@@ -54,8 +46,7 @@ def load_tgb_seq(name: str, root: str = "datasets") -> Loaded:
 
 
 class TGBSeqSuite(DataSuite):
-    """TGB-Seq adapter. VAL negatives are built once from our sampler at
-    `k_eval`; TEST uses TGB-Seq's shipped `test_ns` verbatim."""
+    """TGB-Seq adapter."""
 
     def _load(self) -> Loaded:
         return load_tgb_seq(self.name, self.root)

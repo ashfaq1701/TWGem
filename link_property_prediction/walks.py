@@ -1,10 +1,4 @@
-"""Tempest walk sampler wrapper. Samples K BACKWARD walks per node.
-
-Seed sits at row position ``lens-1``, oldest predecessor at 0, padding = -1.
-Rows ``[i*K, (i+1)*K)`` are seed i's K walks (``shuffle_walk_order=False``).
-Causality is per-query via ``cutoff_times``: a walk for (u, t) uses only edges
-with t_edge < t (EXCLUSIVE).
-"""
+"""Tempest wrapper: K backward walks per seed, cut off EXCLUSIVELY at each seed's time."""
 from typing import NamedTuple, Optional
 
 import numpy as np
@@ -14,18 +8,10 @@ from tempest import Tempest
 
 class WalkData(NamedTuple):
     nodes: torch.Tensor        # [N*K, L] int64, padding = -1
-    timestamps: torch.Tensor   # [N*K, L] int64; timestamps[p] = time of edge
-                               # (nodes[p], nodes[p+1]); INT64_MAX sentinel at
-                               # the seed slot (lens-1); padding = -1
-    lens: torch.Tensor         # [N*K] int64; walk length. Not read by the model (which
-                               # recomputes it from the node mask) but IS the contract
-                               # tests/test_walk_edge_feats.py checks edge-feature
-                               # pairing against, so it stays.
+    timestamps: torch.Tensor   # [N*K, L] int64, edge (p, p+1); seed slot INT64_MAX; padding -1
+    lens: torch.Tensor         # [N*K] int64
     K: int                     # walks per seed
-    edge_feats: Optional[torch.Tensor] = None
-                               # [N*K, L, d_ef] float32, or None if no edge feats.
-                               # edge_feats[p] pairs edge (nodes[p], nodes[p+1]) for
-                               # p in [0, lens-2]; seed slot and padding are ZERO.
+    edge_feats: Optional[torch.Tensor] = None   # [N*K, L, d_ef]; seed slot and padding zero
 
 
 class WalkGenerator:
@@ -42,8 +28,6 @@ class WalkGenerator:
         temporal_node2vec_q: float = 0.25,
         seed: Optional[int] = None,
     ):
-        # Build node2vec adjacency only when a node2vec bias is requested; p/q
-        # are the return / in-out params, inert for other biases.
         enable_n2v = "TemporalNode2Vec" in (walk_bias, start_bias)
         self.tempest = Tempest(
             is_directed=False,
@@ -55,11 +39,6 @@ class WalkGenerator:
             timescale_bound=timescale_bound,
             max_time_capacity=max_time_capacity,
             shuffle_walk_order=False,
-            # Seeds Tempest's own RNG. Without it Tempest draws a fresh random seed
-            # per process, so walks differ run-to-run even at a fixed torch/numpy
-            # seed -- the walk substrate was the last unseeded source of variance.
-            # Needs tempest-rw >= 1.0.5; earlier versions accept global_seed but
-            # never thread it into the CPU sampler or the shuffles.
             global_seed=(None if seed is None else int(seed)),
         )
         self.walk_bias = walk_bias
@@ -69,15 +48,11 @@ class WalkGenerator:
 
     def add_edges(self, src: np.ndarray, tgt: np.ndarray, ts: np.ndarray,
                   edge_feat: Optional[np.ndarray] = None) -> None:
-        """Ingest edges into Tempest (indexed by time; ingestion order is irrelevant)."""
+        """Ingest edges into Tempest; order is irrelevant."""
         self.tempest.add_multiple_edges(src, tgt, ts, edge_features=edge_feat)
 
     def get_latest_events(self, nodes: np.ndarray, cutoff_times: np.ndarray):
-        """Each node's most recent edge strictly before its cutoff, via Tempest
-        get_latest_events_for_nodes: (partner, t_last), both int64 and -1 where the node has
-        no prior edge. Backward_In_Time on this undirected walker covers every incident edge,
-        so a bipartite target (which only ever receives) is covered too. nodes int32,
-        cutoff_times int64, equal length."""
+        """(partner, t_last) of each node's latest edge before its cutoff; -1 if none."""
         node_arr = np.ascontiguousarray(nodes, dtype=np.int32)
         cutoff_arr = np.ascontiguousarray(cutoff_times, dtype=np.int64)
         partners, t_last = self.tempest.get_latest_events_for_nodes(
@@ -85,16 +60,12 @@ class WalkGenerator:
         return np.asarray(partners, dtype=np.int64), np.asarray(t_last, dtype=np.int64)
 
     def get_node_recency(self, nodes: np.ndarray, cutoff_times: np.ndarray) -> np.ndarray:
-        """Recency (age) = cutoff - t_last per node: time since each node's freshest edge
-        strictly before its cutoff. t_last = -1 when the node has no prior edge, so the age is
-        cutoff + 1 there -- maximally stale. Returns int64, same length as `nodes`."""
+        """cutoff - t_last per node (cutoff + 1 when the node has no prior edge)."""
         _, t_last = self.get_latest_events(nodes, cutoff_times)
         return np.ascontiguousarray(cutoff_times, dtype=np.int64) - t_last
 
     def get_node_popularity(self, nodes: np.ndarray, cutoff_times: np.ndarray) -> np.ndarray:
-        """Popularity = number of edges each node participates in strictly before its
-        cutoff, via Tempest get_node_participation_counts; 0 for a node with no prior edge.
-        nodes int32, cutoff_times int64, equal length; returns int64 counts."""
+        """Number of edges each node has before its cutoff."""
         node_arr = np.ascontiguousarray(nodes, dtype=np.int32)
         cutoff_arr = np.ascontiguousarray(cutoff_times, dtype=np.int64)
         return np.asarray(self.tempest.get_node_participation_counts(
@@ -105,12 +76,7 @@ class WalkGenerator:
                         start_bias: Optional[str] = None,
                         walk_bias: Optional[str] = None,
                         cutoff_times: Optional[np.ndarray] = None) -> WalkData:
-        """K BACKWARD walks per seed. ``nodes`` is [N*K, L] with rows
-        [i*K, (i+1)*K) = seed i's walks; seed at lens-1, padding = -1.
-
-        ``cutoff_times`` (int64, one per seed): walk uses only edges with
-        t_edge < cutoff (EXCLUSIVE). None = unbounded. Length / count / start-bias /
-        walk-bias default to instance values, override per-call."""
+        """K walks per seed; rows [i*K, (i+1)*K) are seed i's, seed at lens-1, padding -1."""
         mwl = self.max_walk_len if max_walk_len is None else int(max_walk_len)
         nw = self.num_walks_per_node if num_walks_per_node is None else int(num_walks_per_node)
         sb = self.start_bias if start_bias is None else start_bias
@@ -134,9 +100,7 @@ class WalkGenerator:
         )
         nodes_t = torch.from_numpy(np.asarray(nodes).astype(np.int64))
 
-        # Tempest returns edge feats [N*K, L-1, d_ef] (one col shorter than nodes);
-        # right-pad one zero column to L so it indexes 1:1 with nodes/timestamps.
-        # No edge features -> empty array (ndim 0) -> edge_feats stays None.
+        # Tempest's edge feats are one column short; right-pad to L.
         ef_arr = np.asarray(ef)
         edge_feats = None
         if ef_arr.ndim == 3 and ef_arr.size > 0:

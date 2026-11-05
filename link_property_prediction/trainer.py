@@ -1,15 +1,4 @@
-"""Per-query-causal training + eval loop with a monotone metric head over walk bags.
-
-The full graph (train + val + test) is ingested into Tempest once up front; causality is enforced
-per query by the walk cutoff, not by ingestion order. A walk for (u, t) uses cutoff = t, which is
-EXCLUSIVE: it traverses only edges with t_edge < t, so the target edge at t and any
-simultaneous/future edge are never seen. TGB-Seq splits are chronological (train < val < test).
-
-Training per batch: sample K negatives by the suite's rule, form candidates [pos | negs],
-score them TWO-SIDED (walks for the source u and for every candidate v, each cut off at the query
-time t_i), then cross-entropy with target 0 and a single optimizer step. E and the head train
-together under the link CE with no detach.
-"""
+"""Training and eval loop; every walk is cut off EXCLUSIVELY at its query's time (t_edge < t)."""
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
@@ -28,42 +17,26 @@ from .walks import WalkGenerator
 
 @dataclass
 class TrainerConfig:
-    # Dataset-derived.
     num_nodes: int
     T_train: int
     train_negative_sampler: NegativeSampler
 
-    # Embedding dimension.
     d_emb: int = 128
-
-    # Pooler MLP width, PINNED. It does NOT move with the feature count: under the
-    # old 8*n_feat rule every feature ablation silently changed pooler capacity too
-    # and the two effects could not be separated.
-    hidden_dim: int = 32
-
-    # Hidden Linear->GELU stages in the pooler MLP. Each past the first inserts a
-    # Linear(hidden, hidden) -> GELU. Depth and width are separate knobs so a capacity
-    # change can be attributed to one of them. 1 reproduces the pre-c2a7c95 shape.
+    hidden_dim: int = 32         # pooler width, fixed independently of the feature count
     n_layers_pooler: int = 2
 
-    # Walks: BACKWARD only, undirected; two-sided (source and every candidate).
+    # Backward, undirected walks for the source and every candidate.
     num_walks_per_node: int = 10
     max_walk_len: int = 5
     walk_bias: str = "ExponentialWeight"
     start_bias: str = "ExponentialWeight"
-    t2nv_p: float = 4.0    # node2vec return param (used only when a bias is TemporalNode2Vec)
-    t2nv_q: float = 0.25   # node2vec in-out param
+    t2nv_p: float = 4.0          # TemporalNode2Vec only
+    t2nv_q: float = 0.25
 
-    # One constant lr for every parameter. E steps under SparseAdam, the pooler under Adam;
-    # both read `lr`. Nothing is decayed: the score carries no free scale to hold down.
-    lr: float = 1e-3
-
-    # Run control. The epoch cap is high enough that patience, not the cap, ends every run:
-    # a cell that prints 200 epochs is a floor, not a result.
+    lr: float = 1e-3             # shared by SparseAdam (E) and Adam (pooler)
     num_epochs: int = 200
     early_stop_patience: int = 10
 
-    # System.
     seed: int = 42
     use_gpu: bool = False
     use_gpu_tempest: bool = False
@@ -75,7 +48,6 @@ class Trainer:
         self.device = device or torch.device(
             "cuda" if (config.use_gpu and torch.cuda.is_available()) else "cpu"
         )
-        # Owns the Euclidean node embeddings and the monotone metric score.
         self.model = LinkPredHead(
             num_nodes=config.num_nodes,
             T_train=config.T_train,
@@ -98,32 +70,23 @@ class Trainer:
         )
         self.neg_sampler_train = config.train_negative_sampler
 
-        # Two optimisers. E's gradient is sparse (only looked-up rows), so SparseAdam updates the
-        # moments of those rows alone: an absent row's state stays frozen instead of decaying.
-        # The pooler gets a gradient every step, so it takes plain Adam. Two optimisers, one lr:
-        # the split is forced, since SparseAdam rejects dense gradients.
+        # E's gradient is sparse, so it needs SparseAdam; the pooler takes Adam.
         pooler = [p for n, p in self.model.named_parameters() if n != "E.weight"]
         self.opt = torch.optim.Adam(pooler, lr=float(config.lr))
         self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
 
-    # Full-graph ingestion (once, up front)
-
     def ingest_full_graph(self, graph: SplitData) -> None:
-        """Ingest the entire graph (all splits) into Tempest in one add_edges call, once before
-        train()/eval. The per-query cutoff (t_edge < t_query, EXCLUSIVE) enforces causality.
-        Capacity is unbounded."""
+        """Ingest every split into Tempest once; per-query cutoffs keep walks causal."""
         self.walk_gen.add_edges(graph.sources, graph.destinations, graph.timestamps, graph.edge_feat)
         print(f"  Ingested full graph into Tempest: {len(graph.sources):,} edges "
               f"(once; per-query cutoff enforces causality)")
 
-    # Scoring — shared by train + eval
-
     def _long(self, array: np.ndarray) -> torch.Tensor:
-        """A numpy id/time array as an int64 tensor on the model's device."""
+        """Numpy array -> int64 tensor on the model's device."""
         return torch.from_numpy(np.ascontiguousarray(array, dtype=np.int64)).to(self.device)
 
     def _walk_tokens(self, seeds: torch.Tensor, cutoffs: torch.Tensor) -> WalkTokens:
-        """K backward walks per seed, each cut off (EXCLUSIVELY) at its own cutoff."""
+        """K backward walks per seed, each cut off at its own time."""
         return build_query_walk_tokens(
             self.walk_gen, self.device, seeds, cutoffs,
             max_walk_len=self.config.max_walk_len,
@@ -132,13 +95,11 @@ class Trainer:
             walk_bias=self.config.walk_bias)
 
     def _score(self, batch: Batch, candidates: np.ndarray) -> torch.Tensor:
-        """Logits [B, C] for `candidates` [B, C] of `batch`'s queries. Two-sided per-query walks:
-        K backward walks for the source and for every candidate, each cut off at its query's t_i."""
+        """Logits [B, C]; source and candidates walk with their query's cutoff."""
         src = self._long(batch.src)                                          # [B]
         t_query = self._long(batch.ts)                                       # [B]
         cand = self._long(candidates)                                        # [B, C]
 
-        # Flatten candidates [B, C] -> [B*C] query-major; each inherits its query's cutoff.
         b, c = cand.shape
         cand_cutoffs = t_query.unsqueeze(1).expand(b, c).reshape(-1)         # [B*C]
 
@@ -146,17 +107,14 @@ class Trainer:
         cand_tokens = self._walk_tokens(cand.reshape(-1), cand_cutoffs)
         return self.model(src_tokens, cand_tokens)
 
-    # Per-batch training step
-
     def _train_step(self, batch: Batch) -> float:
-        """One optimiser step; returns the batch's link CE for the epoch average."""
+        """One optimiser step; returns the batch loss."""
         neg_tgt = self.neg_sampler_train.sample(batch)                       # [B, K]
         candidates = np.concatenate(
             [batch.tgt.astype(np.int64)[:, None], neg_tgt.astype(np.int64)], axis=1)  # [B, 1+K]
 
         logits = self._score(batch, candidates)                              # [B, 1+K]
         target = torch.zeros(len(batch.src), dtype=torch.long, device=self.device)  # positive first
-        # link CE only; E trains end-to-end through the head (no detach).
         link_loss = F.cross_entropy(logits, target)
 
         self.opt.zero_grad(set_to_none=True)
@@ -167,20 +125,15 @@ class Trainer:
 
         return float(link_loss.detach())
 
-    # Epoch-line probe
-
     @torch.no_grad()
     def _probe(self) -> str:
-        """The epoch line's state watch: mean and max norm of E (its distance from the origin)."""
+        """Mean and max row norm of E, for the epoch line."""
         r = self.model.E.weight.norm(dim=-1)
         return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
 
-    # Eval — strict-causal, no_grad
-
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:
-        """[B, 1+max_K] candidates, the positive first. A positive with fewer than max_K
-        negatives is right-padded with copies of itself; only its own count is ever scored."""
+        """[B, 1+max_K] candidates, positive first; ragged rows padded with the positive."""
         max_k = max((len(neg) for neg in neg_tgt_list), default=0)
         candidates = np.tile(batch.tgt.astype(np.int64)[:, None], (1, 1 + max_k))
         for i, neg in enumerate(neg_tgt_list):
@@ -191,9 +144,7 @@ class Trainer:
     def _eval(self, evaluator: Evaluator, batches: Iterable[Batch]) -> float:
         """Mean of the suite's per-positive metric over `batches`."""
         self.model.eval()
-        # Rewind the fixed-negative cursor so every eval pass sees the same negatives.
-        # Must precede the first sample_negatives call.
-        evaluator.reset()
+        evaluator.reset()                                                    # same negatives every pass
         total, n = 0.0, 0
         for batch in batches:
             if len(batch.src) == 0:
@@ -205,16 +156,12 @@ class Trainer:
             n += len(batch.src)
         return total / max(n, 1)
 
-    # Snapshot / restore (early-stop)
-
     def _snapshot(self) -> Dict[str, torch.Tensor]:
-        """A CPU copy of the model's state, for restoring the best-val epoch."""
+        """CPU copy of the model state."""
         return {k: v.detach().to("cpu", copy=True) for k, v in self.model.state_dict().items()}
 
     def _restore(self, snap: Dict[str, torch.Tensor]) -> None:
         self.model.load_state_dict(snap)
-
-    # Train loop
 
     def train(
         self,
@@ -225,7 +172,6 @@ class Trainer:
         test_evaluator: Optional[Evaluator] = None,
         test_batches_factory=None,
     ) -> Dict[str, Any]:
-        # Ingest the full graph (train + val + test) into Tempest once, up front.
         self.ingest_full_graph(full_graph)
 
         n_epochs = self.config.num_epochs
@@ -274,8 +220,6 @@ class Trainer:
                 else:
                     no_improve += 1
                     line += f"  val {val_metric:.4f}  patience {no_improve}/{patience}"
-                # Timed around BOTH passes. A new-best epoch also evaluates the test split,
-                # and timing only the val pass printed those epochs as cheap as the rest.
                 line += f"  eval {time.time() - t1:.1f}s"
             print(line)
 
@@ -289,16 +233,10 @@ class Trainer:
                 f"(val {best_val:.4f}, test {best_test:.4f})")
 
         return {
-            # `best_epoch` is where the restored checkpoint came from, -1 if there was no
-            # validation to select one; `epochs_run` is how far the loop actually got. The
-            # single old `stopped_at_epoch` field was the first but named like the second,
-            # and its caller renamed it back to `best_epoch` to use it.
-            "best_epoch": best_epoch,
+            "best_epoch": best_epoch,                                        # -1 if nothing selected
             "epochs_run": len(per_epoch_val) if per_epoch_val else n_epochs,
             "best_val_mrr": best_val,
             "best_test_mrr": best_test,
             "per_epoch_val_mrr": per_epoch_val,
-            # Only new-best-val epochs evaluate test, so this is NOT per-epoch and is not
-            # index-aligned with `per_epoch_val_mrr`.
-            "new_best_test_mrr": new_best_test,
+            "new_best_test_mrr": new_best_test,                              # new-best epochs only
         }

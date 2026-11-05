@@ -1,16 +1,4 @@
-"""Negative samplers.
-
-  - NegativeSampler         : ABC (`sample(batch) → neg_tgt`).
-  - UniformNegativeSampler  : random over a destination pool; used for training and
-                              to build TGB-Seq's and DyGLib's fixed eval negatives.
-  - CollisionFreeNegativeSampler : CRAFT's DyGLib rule (see the class).
-
-Fixed eval negatives are built here wherever we generate them -- TGB-Seq's val and
-DyGLib's val and test, through `DataSuite.eval_negatives`. TGB's are not: it ships its own
-for both splits with a variable K per positive, which `sample() -> [B, K]` below cannot
-express, so those are served straight from `TGBEvaluator.sample_negatives`
-(`tgb_eval.py`).
-"""
+"""Negative samplers: uniform, and CRAFT's collision-free rule for DyGLib."""
 
 import abc
 from typing import Optional
@@ -21,18 +9,14 @@ from .data import Batch, SplitData
 
 
 class NegativeSampler(abc.ABC):
-    """All samplers expose `sample(batch) -> neg_tgt`, the [B, K] negative destinations,
-    and `rule`, which names the draw."""
+    """Samplers expose `sample(batch) -> [B, K]` and `rule`, a name for the draw."""
 
-    #: Short phrase naming the sampling rule, e.g. "uniform". Part of the contract, not
-    #: decoration: `DataSuite.eval_negatives` prints it in the negatives notice, so a
-    #: sampler without it raises AttributeError there rather than at construction.
+    #: Short name of the sampling rule, printed in the negatives notice.
     rule: str
 
     @abc.abstractmethod
     def sample(self, batch: Batch) -> np.ndarray:
-        """[B, K] negative destinations for `batch`. The positive's source is implicit:
-        every caller pairs the negatives with `batch.src` itself."""
+        """[B, K] negative destinations for `batch`."""
 
 
 class UniformNegativeSampler(NegativeSampler):
@@ -105,10 +89,7 @@ def _repeats(neg: np.ndarray) -> np.ndarray:
 
 
 class CollisionFreeNegativeSampler(UniformNegativeSampler):
-    """CRAFT's DyGLib collision check (`sample_with_time_collision_check`): never a destination
-    the source links to at the query's own timestamp (so never the positive), and no repeats
-    within a row unless fewer than K candidates remain, as with CRAFT's
-    `replace=len(candidates) < num_negs`. Collisions are redrawn until none remain."""
+    """CRAFT's DyGLib rule: no same-timestamp destination, no repeats within a row."""
 
     rule = "uniform collision-free"
 
