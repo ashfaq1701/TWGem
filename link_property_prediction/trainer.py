@@ -126,9 +126,10 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """Mean and max row norm of E, for the epoch line."""
+        """Mean and max row norm of E, and the learned row scale, for the epoch line."""
         r = self.model.E.weight.norm(dim=-1)
-        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+        return (f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+                f"  temp={float(self.model.temp):.4f}")
 
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:
