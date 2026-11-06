@@ -33,7 +33,8 @@ class TrainerConfig:
     t2nv_p: float = 4.0          # TemporalNode2Vec only
     t2nv_q: float = 0.25
 
-    lr: float = 1e-3             # shared by SparseAdam (E) and Adam (pooler)
+    lr_pooler: float = 1e-3      # Adam, every parameter except E.weight
+    lr_e: float = 1e-4           # SparseAdam, E.weight; per TOUCH, not per step
     num_epochs: int = 200
     early_stop_patience: int = 10
 
@@ -71,8 +72,8 @@ class Trainer:
         self.neg_sampler_train = config.train_negative_sampler
 
         pooler = [p for n, p in self.model.named_parameters() if n != "E.weight"]
-        self.opt = torch.optim.Adam(pooler, lr=float(config.lr))
-        self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
+        self.opt = torch.optim.Adam(pooler, lr=float(config.lr_pooler))
+        self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr_e))
 
     def ingest_full_graph(self, graph: SplitData) -> None:
         """Ingest every split into Tempest once."""
@@ -195,7 +196,8 @@ class Trainer:
             line = (
                 f"epoch {ep}/{n_epochs}  "
                 f"link={link_sum / max(n_batches, 1):.4f}  "
-                f"lr={self.opt.param_groups[0]['lr']:.0e}  "
+                f"lr_p={self.opt.param_groups[0]['lr']:.0e}  "
+                f"lr_e={self.opt_embedding.param_groups[0]['lr']:.0e}  "
                 f"train {train_dt:.1f}s"
             )
 
