@@ -91,7 +91,7 @@ class LinkPredHead(nn.Module):
         torch.manual_seed(seed)
 
         self.E = nn.Embedding(self.num_nodes, self.d_emb, sparse=True)
-        nn.init.xavier_uniform_(self.E.weight)
+        nn.init.xavier_normal_(self.E.weight)
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
