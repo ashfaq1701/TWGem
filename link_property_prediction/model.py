@@ -102,9 +102,9 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
+        """Logits [b, c]: negated distance between pooled points, standardised per query row."""
         pooled_u = self.bag_weights(src_tokens)                              # [b, d]
         pooled_v = self.bag_weights(cand_tokens)                             # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
-        s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
+        s = -dist(pooled_u.unsqueeze(1), pooled_v)                           # [b, c]
         return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
