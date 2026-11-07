@@ -21,8 +21,10 @@ def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
 
 
 class Bag(NamedTuple):
-    pooled: torch.Tensor  # [Q, d]  weighted midpoint of the bag
-    mid: torch.Tensor     # [Q, d]  unweighted midpoint of the bag
+    pooled: torch.Tensor   # [Q, d]     weighted midpoint of the bag
+    mid: torch.Tensor      # [Q, d]     unweighted midpoint of the bag
+    points: torch.Tensor   # [Q, T, d]
+    weights: torch.Tensor  # [Q, T]     pooling weights, summing to 1
 
 
 class BagWeights(nn.Module):
@@ -70,7 +72,7 @@ class BagWeights(nn.Module):
         return torch.stack([age, pos, d_mid, d0], dim=-1)                    # [Q, T, 4]
 
     def forward(self, tokens: WalkTokens) -> Bag:
-        """The bag's pooled point and its unweighted midpoint."""
+        """The bag's pooled point, unweighted midpoint, points and pooling weights."""
         nodes, valid = self._bag_nodes(tokens)                               # [Q, T]
         points = self.E(nodes)                                               # [Q, T, d]
         fixed = points.detach()                                              # [Q, T, d]  features only
@@ -80,7 +82,9 @@ class BagWeights(nn.Module):
         feats = self._token_features(tokens, fixed, valid_f, mid)            # [Q, T, 4]
         logits = self.net(feats).squeeze(-1)                                 # [Q, T]
         log_weights = torch.log_softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
-        return Bag(pooled=weighted_midpoint(points, log_weights.exp()), mid=mid)
+        weights = log_weights.exp()                                          # [Q, T]
+        pooled = weighted_midpoint(points, weights)                          # [Q, d]
+        return Bag(pooled=pooled, mid=mid, points=points, weights=weights)
 
 
 class LinkPredHead(nn.Module):
