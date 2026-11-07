@@ -15,6 +15,11 @@ def dist(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return ((x - y) ** 2).sum(-1).clamp_min(_SQ_DIST_FLOOR).sqrt()
 
 
+def dist0(x: torch.Tensor) -> torch.Tensor:
+    """Euclidean distance from the origin over the last axis, floored like dist."""
+    return (x ** 2).sum(-1).clamp_min(_SQ_DIST_FLOOR).sqrt()
+
+
 def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     """Weighted mean of points x [..., T, d] under weights w [..., T] summing to 1."""
     return (w.unsqueeze(-1) * x).sum(-2)                                     # [..., d]
@@ -66,7 +71,7 @@ class BagWeights(nn.Module):
         pos = pos / self.max_walk_len                                        # [Q, T]
 
         d_mid = torch.log(dist(fixed, mid.unsqueeze(-2))) * valid_f          # [Q, T]
-        r_tok = fixed.norm(dim=-1).clamp_min(_SQ_DIST_FLOOR ** 0.5)          # [Q, T]
+        r_tok = dist0(fixed)                                                 # [Q, T]
         d0 = torch.log(r_tok) * valid_f                                      # [Q, T]
 
         return torch.stack([age, pos, d_mid, d0], dim=-1)                    # [Q, T, 4]
@@ -106,7 +111,7 @@ class LinkPredHead(nn.Module):
 
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
-        r_mean = self.E.weight.detach().norm(dim=-1).mean()                  # []
+        r_mean = dist0(self.E.weight.detach()).mean()                        # []
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
