@@ -3,13 +3,14 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
+import geoopt
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 from .data import Batch, SplitData
 from .evaluator import Evaluator
-from .model import LinkPredHead, dist0
+from .model import LinkPredHead
 from .negatives import NegativeSampler
 from .walk_tokens import WalkTokens, build_query_walk_tokens
 from .walks import WalkGenerator
@@ -33,7 +34,7 @@ class TrainerConfig:
     t2nv_p: float = 4.0          # TemporalNode2Vec only
     t2nv_q: float = 0.25
 
-    lr: float = 1e-3             # shared by SparseAdam (E) and Adam (pooler)
+    lr: float = 1e-3             # shared by SparseRiemannianAdam (E) and Adam (pooler)
     num_epochs: int = 200
     early_stop_patience: int = 10
 
@@ -72,7 +73,8 @@ class Trainer:
 
         pooler = [p for n, p in self.model.named_parameters() if n != "E.weight"]
         self.opt = torch.optim.Adam(pooler, lr=float(config.lr))
-        self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
+        self.opt_embedding = geoopt.optim.SparseRiemannianAdam([self.model.E.weight],
+                                                               lr=float(config.lr))
 
     def ingest_full_graph(self, graph: SplitData) -> None:
         """Ingest every split into Tempest once."""
@@ -126,8 +128,8 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """Mean and max row norm of E, for the epoch line."""
-        r = dist0(self.model.E.weight)
+        """Mean and max geodesic radius of E, for the epoch line."""
+        r = self.model.geom.dist0(self.model.E.weight)
         return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
 
     @staticmethod

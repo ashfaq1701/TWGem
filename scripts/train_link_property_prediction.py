@@ -15,7 +15,6 @@ import torch
 
 from link_property_prediction.data import Loaded, concat_splits, create_batches
 from link_property_prediction.evaluator import SUITES, make_suite
-from link_property_prediction.model import dist0
 from link_property_prediction.trainer import Trainer, TrainerConfig
 from link_property_prediction.utils import seed_all
 
@@ -226,7 +225,7 @@ def main() -> Dict[str, Any]:
     if args.save_checkpoint:
         ckpt_path = pathlib.Path(args.save_checkpoint)
         ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-        radius = dist0(trainer.model.E.weight.detach())
+        radius = trainer.model.geom.dist0(trainer.model.E.weight.detach())
         torch.save({
             "state_dict": trainer.model.state_dict(),
             "args": vars(args),

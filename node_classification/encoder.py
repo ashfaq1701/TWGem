@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from link_property_prediction.data import SplitData, create_batches
-from link_property_prediction.model import LinkPredHead, dist, dist0
+from link_property_prediction.model import LinkPredHead
 from link_property_prediction.walk_tokens import WalkTokens, build_query_walk_tokens
 from link_property_prediction.walks import WalkGenerator
 
@@ -81,9 +81,9 @@ class FrozenEncoder:
         bag = model.bag_weights(tokens)
         e_u = model.E.weight[src]                                            # [Q, d]
         geometry = [
-            dist0(e_u),
-            dist0(bag.pooled),
-            dist(bag.pooled, bag.mid),
+            model.geom.dist0(e_u),
+            model.geom.dist0(bag.pooled),
+            model.geom.dist(bag.pooled, bag.mid),
         ]
         return torch.stack(geometry, dim=-1)                                 # [Q, 3]
 
