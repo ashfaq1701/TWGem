@@ -121,7 +121,7 @@ class LinkPredHead(nn.Module):
         """Logits [b, c]: -log distance between pooled points, standardised per query row."""
         b = src_tokens.seeds.shape[0]
         src_tokens = src_tokens.repeat_interleave(cand_tokens.seeds.shape[0] // b)  # b*c queries
-        pooled_u = self.bag_weights(src_tokens, cand_tokens.seeds).pooled    # [b*c, d]
-        pooled_v = self.bag_weights(cand_tokens, src_tokens.seeds).pooled    # [b*c, d]
-        s = -torch.log(dist(pooled_u, pooled_v)).view(b, -1)                 # [b, c]
+        p_uv = self.bag_weights(src_tokens, cand_tokens.seeds).pooled        # [b*c, d]
+        p_vu = self.bag_weights(cand_tokens, src_tokens.seeds).pooled        # [b*c, d]
+        s = -torch.log(dist(p_uv, p_vu)).view(b, -1)                         # [b, c]
         return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
