@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from .data import Batch, SplitData
 from .evaluator import Evaluator
-from .model import LinkPredHead
+from .model import LinkPredHead, dist0
 from .negatives import NegativeSampler
 from .walk_tokens import WalkTokens, build_query_walk_tokens
 from .walks import WalkGenerator
@@ -127,7 +127,7 @@ class Trainer:
     @torch.no_grad()
     def _probe(self) -> str:
         """Mean and max row norm of E, for the epoch line."""
-        r = self.model.E.weight.norm(dim=-1)
+        r = dist0(self.model.E.weight)
         return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
 
     @staticmethod
