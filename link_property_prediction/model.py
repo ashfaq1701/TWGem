@@ -86,8 +86,7 @@ class BagWeights(nn.Module):
 
         feats = self._token_features(tokens, fixed, valid_f, mid)            # [Q, T, 4]
         logits = self.net(feats).squeeze(-1)                                 # [Q, T]
-        log_weights = torch.log_softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
-        weights = log_weights.exp()                                          # [Q, T]
+        weights = torch.softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
         pooled = weighted_midpoint(points, weights)                          # [Q, d]
         return Bag(pooled=pooled, mid=mid, points=points, weights=weights)
 
