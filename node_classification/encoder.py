@@ -65,20 +65,21 @@ class FrozenEncoder:
         out = []
         for batch in create_batches(split, batch_size):
             src = torch.from_numpy(batch.src.astype(np.int64))
+            dst = torch.from_numpy(batch.tgt.astype(np.int64))
             ts = torch.from_numpy(batch.ts.astype(np.int64))
             tokens = build_query_walk_tokens(
                 walker, self.device, src, ts,
                 max_walk_len=a["max_walk_len"], num_walks_per_node=a["num_walks_per_node"],
                 start_bias=a["start_bias"], walk_bias=a["walk_bias"])
-            geometry = self._geometry(tokens, src.to(self.device))
+            geometry = self._geometry(tokens, src.to(self.device), dst.to(self.device))
             history = self._history(walker, batch.src, batch.ts)
             out.append(torch.cat([geometry, history.to(self.device)], dim=1))
         return torch.cat(out)                                                # [N, 5]
 
-    def _geometry(self, tokens: WalkTokens, src: torch.Tensor) -> torch.Tensor:
+    def _geometry(self, tokens: WalkTokens, src: torch.Tensor, dst: torch.Tensor) -> torch.Tensor:
         """u's radius, its pooled point's radius, and the pooled point's gap from the bag mid."""
         model = self.model
-        bag = model.bag_weights(tokens)
+        bag = model.bag_weights(tokens, dst)                                 # pooled toward v
         e_u = model.E.weight[src]                                            # [Q, d]
         geometry = [
             dist0(e_u),

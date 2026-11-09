@@ -1,5 +1,5 @@
 """Per-query backward walks as [Q, K, L] tensors; a query is a (seed, cutoff) pair."""
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Optional
 
 import numpy as np
@@ -19,6 +19,11 @@ class WalkTokens:
     positions: torch.Tensor                         # [Q, K, L]   hop from seed: 1 = seed, ..., lens = oldest; pad 0
     mask: torch.Tensor                              # [Q, K, L]   bool, real slots (nodes != -1), incl. seed
     edge_features: Optional[torch.Tensor] = None    # [Q, K, L, d_ef]  seed slot + padding zeroed; None if no EF
+
+    def repeat_interleave(self, n: int) -> "WalkTokens":
+        """Each query repeated n times in place: Q -> Q*n queries."""
+        def rep(x): return None if x is None else x.repeat_interleave(n, dim=0)
+        return WalkTokens(*(rep(getattr(self, f.name)) for f in fields(self)))
 
 
 def build_query_walk_tokens(
