@@ -1001,3 +1001,101 @@ would essentially never fire on TGB-Seq. **Do not point it at TGB-Seq**: that su
 come after droughts (YouTube val 0.583 -> 0.685 over ep25-50; a 14-epoch val drought ep82 ->
 ep97 means patience 15 was the minimum that reached the winning checkpoint), and a rule that
 halves on the first regression would cut every one of them.
+
+## CRAFT-R's DyGLib numbers reproduce: 4 of 6 cells, their code unmodified (measured 2026-11-09)
+
+CRAFT's reported **CRAFT-R** results on the six DyGLib datasets are legitimate. Reproduced with
+their own repo at `ashfaq1701/CRAFT` commit `81590a7`, tracked files **unmodified**, three seeds
+(0/1/2) per cell, logs `logs/craftr/`. Paper numbers are Table 3 of `../CRAFT/craft.pdf`,
+identical to Table 3 of `craft_2505.19408.pdf` (v1).
+
+| dataset | reported | ours (3 seeds) | per-seed | Δ |
+|---|---|---|---|---|
+| wikipedia | 88.25 ± 0.26 | **88.09 ± 0.12** | 87.96 / 88.12 / 88.19 | −0.16 |
+| reddit | 89.33 ± 0.11 | **89.37 ± 0.03** | 89.38 / 89.34 / 89.41 | **+0.04** |
+| uci | 75.11 ± 0.09 | **75.12 ± 0.35** | 74.72 / 75.29 / 75.35 | **+0.01** |
+| mooc | 62.32 ± 0.39 | 61.16 ± 1.67 | 59.35 / 62.62 / 61.52 | −1.16 |
+| lastfm | 55.21 ± 0.23 | — (1 seed: 54.52) | — | not closed |
+| Flights | 83.16 ± 0.16 | — (ep4 of seed 0) | — | not closed |
+
+lastfm and Flights were killed by hand, not run out. **Their rows are not evidence either way.**
+
+**CRAFT-R wins only 3 of 6 of these cells against the published baselines** — DyGFormer beats it
+on wikipedia (88.69), uci (76.61) and Flights (84.13). Quote the better of the two as the bar.
+
+### mooc's −1.16 is early stopping, not a configuration or environment difference
+
+Train loss matches their shipped seed-0 log to four decimals at every epoch (ep1 0.16923 vs
+0.16917, ep10 0.06412 vs 0.06410, ep40 0.05342 vs 0.05348), so the optimisation path is
+reproducing. What differs is where patience cut:
+
+| seed | epochs run | best val AP | at ep | test MRR |
+|---|---|---|---|---|
+| 0 | **54** | 0.967740 | 39 | **59.35** |
+| 1 | **139** | 0.973103 | 124 | **62.62** |
+| 2 | 112 | 0.971745 | 97 | 61.52 |
+| theirs (shipped log) | 123 | 0.972977 | 108 | 62.54 |
+
+Test MRR is monotone in survival. **Early stopping tracks validation `average_precision` against
+ONE negative, not MRR** (`use_mrr_val` defaults False), and on mooc that metric sits at
+0.967-0.973 with ~1e-4 per-epoch increments — so a 1e-6 numerical difference decides whether an
+epoch counts as an improvement, and one missed flicker inside the 15-epoch window ends the run 69
+epochs early. Their val AP at our stop epoch (0.967571) was BELOW our best (0.967740): we were not
+training worse, we lost the coin flips. Their ±0.39 cannot contain a 3-point outlier, so their
+three seeds all ran long. **To compare mooc at face value, raise patience** — it changes only when
+a run stops, never the trajectory.
+
+### Their protocol, verified against code and their reference log
+
+Per-dataset from Table 8 (= Table 6 in v1), all six at B 200 and F 64:
+
+| dataset | Nneighbors | hidden_dropout | attn_dropout | emb_dropout | Nlayers |
+|---|---|---|---|---|---|
+| wikipedia | 120 | 0.1 | 0.1 | 0.2 | 1 |
+| reddit | 120 | 0.1 | 0.2 | 0.1 | 1 |
+| mooc | 30 | 0.1 | 0.1 | 0.1 | **2** |
+| lastfm | 120 | 0.1 | 0.1 | 0.1 | 1 |
+| uci | 30 | **0.3** | 0.2 | 0.2 | 1 |
+| Flights | 90 | 0.2 | 0.2 | 0.2 | 1 |
+
+Fixed everywhere: lr **1e-4**, Adam, wd 0, 200 epochs, **patience 15**, `--num_output_layer 2`,
+`--loss BPR`, `--use_pos`, `--output_cat_time_intervals`, `--output_cat_repeat_times` (this flag
+IS the "-R", repeat time encoding), `sample_neighbor_strategy recent`, `num_heads 2`,
+`multi_negs_batch_size 20`, split 70/15/15 by timestamp quantile. Test MRR over 1 positive +
+**100** sampled negatives with a time-collision check.
+
+**`F` is 64 for these six and 128 for all eleven TGB/TGB-Seq datasets** — all 17 Table 8 rows
+agree. The paper's stated rule is dataset SIZE, not benchmark; the two happen to coincide. `B` does
+NOT: GoogleLocal is TGB-Seq at B 200, every TGB set is B 200, and only six TGB-Seq sets use 400.
+Our own DyGLib runs use d128, twice CRAFT's width there — state that if the numbers share a table.
+
+Three traps in their harness:
+
+- **`--load_best_configs` raises `ValueError` for CRAFT.** Every hyperparameter must be explicit.
+- **`--num_layers` defaults to 2.** Their README's mooc command omits it and gets 2 by accident;
+  five of six cells need `--num_layers 1` passed or they silently run the wrong depth.
+- **`--collision_check` is force-enabled in code** for exactly these six
+  (`train_link_prediction.py:338`), and the bipartite branch (line 318) covers wikipedia, reddit,
+  mooc, lastfm but NOT uci or Flights.
+
+### Running it here
+
+Driver `scripts/run_craftr.sh` (one cell per `CR_DS`), sbatch wrapper `scripts/_craftr.sbatch`.
+
+**Data.** CRAFT ships mooc only. `TWGem/datasets/` already holds all six in DyGLib's format --
+mooc's `ml_mooc.csv` and `ml_mooc.npy` are md5-identical to CRAFT's shipped copies. The missing
+piece is `ml_<ds>_node.npy`, which the loader reads unconditionally although CRAFT never uses node
+features; it is `zeros((max_node_id+1, 172), float64)` and that generator reproduces CRAFT's own
+mooc node file bit-for-bit. Staged as `CRAFT/data_repro/<ds>/` (symlinks plus the generated file),
+passed with `--dataset_path ./data_repro/`.
+
+**Environment.** `utils/DataLoader.py` and `evaluate_models_utils.py` transitively import
+`torch_geometric` via the TGB modules and the SGNN-HN baseline, which this path never uses.
+`torch_geometric`, `xxhash` and `psutil` live in `CRAFT/pylibs`, reached by `PYTHONPATH`; TWGem's
+venv is untouched.
+
+**Flights is CPU-bound in setup and needs an idle node.** On `artemis-rtx-02` (49 jobs, 6 users)
+it spent **45 minutes** building the neighbour sampler over 1.93M edges, emitting no log line at
+all, then ~25 min/epoch. Pinned to an idle `artemis-rtx-03` it reached ep1 inside 48 min. A frozen
+Flights log is this stage, NOT a hung process -- it was wrongly called stalled twice. Both runs
+agree on ep1 train loss 0.13673359, so the node changes speed only.
