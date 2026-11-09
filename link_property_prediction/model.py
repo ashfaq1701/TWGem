@@ -51,6 +51,10 @@ class BagWeights(nn.Module):
         layers.append(nn.Linear(self.hidden, 1))
         self.net = nn.Sequential(*layers)
 
+        self.skip = nn.Linear(self.n_feat, 1, bias=False)                    # recency/hop prior
+        with torch.no_grad():
+            self.skip.weight.copy_(torch.tensor([[-1.0, -1.0, 0.0, 0.0]]))
+
     @staticmethod
     def _bag_nodes(tokens: WalkTokens) -> Tuple[torch.Tensor, torch.Tensor]:
         """Token ids and validity [Q, T]; a cold query pools its own seed."""
@@ -85,7 +89,7 @@ class BagWeights(nn.Module):
         mid = weighted_midpoint(fixed, valid_f / valid_f.sum(-1, keepdim=True))  # [Q, d]
 
         feats = self._token_features(tokens, fixed, valid_f, mid)            # [Q, T, 4]
-        logits = self.net(feats).squeeze(-1)                                 # [Q, T]
+        logits = (self.skip(feats) + self.net(feats)).squeeze(-1)            # [Q, T]
         weights = torch.softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
         pooled = weighted_midpoint(points, weights)                          # [Q, d]
         return Bag(pooled=pooled, mid=mid, points=points, weights=weights)
