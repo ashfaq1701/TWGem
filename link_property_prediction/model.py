@@ -25,6 +25,15 @@ def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     return (w.unsqueeze(-1) * x).sum(-2)                                     # [..., d]
 
 
+def bag_item_count(tokens: WalkTokens, node_ids: torch.Tensor) -> torch.Tensor:
+    """Share of each bag's valid tokens equal to node_ids [Q, n] -> [Q, n]; 0 for a cold bag."""
+    nodes = tokens.nodes.flatten(1)                                          # [Q, T]
+    mask = tokens.mask.flatten(1)                                            # [Q, T]
+    hits = (nodes.unsqueeze(1) == node_ids.unsqueeze(-1)) & mask.unsqueeze(1)  # [Q, n, T]
+    valid = mask.sum(-1, keepdim=True).clamp_min(1)                          # [Q, 1]
+    return hits.sum(-1) / valid                                              # [Q, n]
+
+
 class Bag(NamedTuple):
     pooled: torch.Tensor   # [Q, d]     weighted midpoint of the bag
     mid: torch.Tensor      # [Q, d]     unweighted midpoint of the bag
@@ -114,9 +123,16 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
+        """Logits [b, c]: -log distance plus log co-occurrence shares, standardised per row."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
+        b, c = pooled_v.shape[:2]
+        floor = 1.0 / (src_tokens.nodes[0].numel() + 1)                      # < 1 hit, full bag
+        count_uv = bag_item_count(cand_tokens, src_tokens.seeds.repeat_interleave(c).unsqueeze(-1))
+        count_uv = count_uv.view(b, c).clamp_min(floor)                      # [b, c]  u in v's bag
+        count_vu = bag_item_count(src_tokens, cand_tokens.seeds.view(b, c))
+        count_vu = count_vu.clamp_min(floor)                                 # [b, c]  v in u's bag
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
+        s = s + torch.log(count_uv) + torch.log(count_vu)                    # [b, c]
         return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
