@@ -104,7 +104,10 @@ class Trainer:
 
         src_tokens = self._walk_tokens(src, t_query)
         cand_tokens = self._walk_tokens(cand.reshape(-1), cand_cutoffs)
-        return self.model(src_tokens, cand_tokens)
+        cand_pop = self.walk_gen.get_node_popularity(
+            candidates.reshape(-1), np.repeat(batch.ts, c))                  # edges before t
+        cand_pop = torch.from_numpy(cand_pop).to(self.device, torch.float32).view(b, c)  # [B, C]
+        return self.model(src_tokens, cand_tokens, cand_pop)
 
     def _train_step(self, batch: Batch) -> float:
         """One optimiser step; returns the batch loss."""
@@ -126,11 +129,11 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """Mean and max row norm of E and the two score weights, for the epoch line."""
+        """Mean and max row norm of E and the three score weights, for the epoch line."""
         r = dist0(self.model.E.weight)
         w = self.model.score_w
         return (f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
-                f"  w0={float(w[0]):.3f}  w1={float(w[1]):.3f}")
+                f"  w0={float(w[0]):.3f}  w1={float(w[1]):.3f}  w2={float(w[2]):.3f}")
 
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:

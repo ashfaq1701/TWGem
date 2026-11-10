@@ -115,15 +115,17 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
-        self.score_w = nn.Parameter(torch.tensor([1.0, 0.0]))               # w0 dist, w1 co-occurrence
+        self.score_w = nn.Parameter(torch.tensor([1.0, 0.0, 0.0]))          # w0 dist, w1 co, w2 pop
 
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
         r_mean = dist0(self.E.weight.detach()).mean()                        # []
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
-    def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: w0 * -log distance + w1 * log1p co-occurrence counts, each row-normed."""
+    def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens,
+                cand_pop: torch.Tensor) -> torch.Tensor:
+        """Logits [b, c]: w0 * -log distance + w1 * log1p co-occurrence + w2 * log1p popularity,
+        each row-normed."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
@@ -135,4 +137,6 @@ class LinkPredHead(nn.Module):
         geo = F.layer_norm(s, s.shape[-1:])                                  # [b, c]
         co = torch.log1p(count_uv) + torch.log1p(count_vu)                   # [b, c]
         co = F.layer_norm(co, co.shape[-1:])                                 # [b, c]
-        return self.score_w[0] * geo + self.score_w[1] * co                  # [b, c]
+        pop = F.layer_norm(torch.log1p(cand_pop), cand_pop.shape[-1:])       # [b, c]
+        w = self.score_w
+        return w[0] * geo + w[1] * co + w[2] * pop                           # [b, c]
