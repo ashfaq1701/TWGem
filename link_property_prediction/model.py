@@ -124,18 +124,16 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: w0 * -log distance + w1 * log co-occurrence shares, each row-normed."""
+        """Logits [b, c]: w0 * -log distance + w1 * log1p co-occurrence shares, each row-normed."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         b, c = pooled_v.shape[:2]
-        floor = 1.0 / (src_tokens.nodes[0].numel() + 1)                      # < 1 hit, full bag
         count_uv = bag_item_count(cand_tokens, src_tokens.seeds.repeat_interleave(c).unsqueeze(-1))
-        count_uv = count_uv.view(b, c).clamp_min(floor)                      # [b, c]  u in v's bag
-        count_vu = bag_item_count(src_tokens, cand_tokens.seeds.view(b, c))
-        count_vu = count_vu.clamp_min(floor)                                 # [b, c]  v in u's bag
+        count_uv = count_uv.view(b, c)                                       # [b, c]  u in v's bag
+        count_vu = bag_item_count(src_tokens, cand_tokens.seeds.view(b, c))  # [b, c]  v in u's bag
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
         geo = F.layer_norm(s, s.shape[-1:])                                  # [b, c]
-        co = torch.log(count_uv) + torch.log(count_vu)                       # [b, c]
+        co = torch.log1p(count_uv) + torch.log1p(count_vu)                   # [b, c]
         co = F.layer_norm(co, co.shape[-1:])                                 # [b, c]
         return self.score_w[0] * geo + self.score_w[1] * co                  # [b, c]
