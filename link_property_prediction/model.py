@@ -25,22 +25,19 @@ def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
 
 
 class RunningNorm(nn.Module):
-    """Standardises x with an EMA of past training batches' mean and within-query variance.
-    A batch is never scored with its own stats: standardise first, then fold the batch in.
-    Eval reads the frozen buffers. Stats are buffers: no gradient, saved in state_dict."""
+    """Scales x by an EMA of past training batches' within-query variance; no mean subtraction.
+    A batch is never scored with its own stats; eval reads the frozen buffer."""
 
     def __init__(self, momentum: float = 0.1, eps: float = 1e-5):
         super().__init__()
         self.momentum = momentum
         self.eps = eps
-        self.register_buffer("running_mean", torch.zeros(()))
         self.register_buffer("running_var", torch.ones(()))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        out = (x - self.running_mean) / (self.running_var + self.eps).sqrt()
+        out = x / (self.running_var + self.eps).sqrt()
         if self.training:
             with torch.no_grad():
-                self.running_mean.lerp_(x.mean(), self.momentum)
                 self.running_var.lerp_(x.var(dim=-1, unbiased=False).mean(), self.momentum)
         return out
 
@@ -135,9 +132,10 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised by past batches."""
+        """Logits [b, c]: -log distance between pooled points, row-centred, past-batch scaled."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
+        s = s - s.mean(dim=-1, keepdim=True)                                 # [b, c]
         return self.score_norm(s)                                            # [b, c]
