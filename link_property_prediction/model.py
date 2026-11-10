@@ -44,7 +44,7 @@ class BagWeights(nn.Module):
         self.n_layers = int(n_layers)
         if self.n_layers < 1:
             raise ValueError(f"n_layers must be >= 1, got {n_layers}")
-        self.n_feat = 4
+        self.n_feat = 5
         layers = [nn.Linear(self.n_feat, self.hidden), nn.LayerNorm(self.hidden), nn.GELU()]
         for _ in range(self.n_layers - 1):
             layers += [nn.Linear(self.hidden, self.hidden), nn.LayerNorm(self.hidden), nn.GELU()]
@@ -62,9 +62,10 @@ class BagWeights(nn.Module):
             valid[cold, 0] = True
         return nodes, valid
 
-    def _token_features(self, tokens: WalkTokens, fixed: torch.Tensor,
+    def _token_features(self, tokens: WalkTokens, nodes: torch.Tensor, fixed: torch.Tensor,
                         valid_f: torch.Tensor, mid: torch.Tensor) -> torch.Tensor:
-        """Per-token features [Q, T, 4]: age, hop, log distance to the bag centre, log radius."""
+        """Per-token features [Q, T, 5]: age, hop, log distance to the bag centre, log radius,
+        log1p of how often the token's node occurs in its bag."""
         age = tokens.ages.flatten(1).clamp_min(0).to(fixed.dtype)            # [Q, T]
         pos = tokens.positions.flatten(1).to(fixed.dtype)                    # [Q, T]
         age = torch.log1p(age) / self.log_T_train                            # [Q, T]
@@ -74,7 +75,10 @@ class BagWeights(nn.Module):
         r_tok = dist0(fixed)                                                 # [Q, T]
         d0 = torch.log(r_tok) * valid_f                                      # [Q, T]
 
-        return torch.stack([age, pos, d_mid, d0], dim=-1)                    # [Q, T, 4]
+        same = (nodes.unsqueeze(-1) == nodes.unsqueeze(-2)) * valid_f.unsqueeze(-2)  # [Q, T, T]
+        mult = torch.log1p(same.sum(-1)) * valid_f                           # [Q, T]
+
+        return torch.stack([age, pos, d_mid, d0, mult], dim=-1)              # [Q, T, 5]
 
     def forward(self, tokens: WalkTokens) -> Bag:
         """The bag's pooled point, unweighted midpoint, points and pooling weights."""
@@ -84,7 +88,7 @@ class BagWeights(nn.Module):
         valid_f = valid.to(fixed.dtype)                                      # [Q, T]
         mid = weighted_midpoint(fixed, valid_f / valid_f.sum(-1, keepdim=True))  # [Q, d]
 
-        feats = self._token_features(tokens, fixed, valid_f, mid)            # [Q, T, 4]
+        feats = self._token_features(tokens, nodes, fixed, valid_f, mid)     # [Q, T, 5]
         logits = self.net(feats).squeeze(-1)                                 # [Q, T]
         weights = torch.softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
         pooled = weighted_midpoint(points, weights)                          # [Q, d]
