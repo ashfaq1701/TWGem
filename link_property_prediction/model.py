@@ -26,12 +26,11 @@ def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
 
 
 def bag_item_count(tokens: WalkTokens, node_ids: torch.Tensor) -> torch.Tensor:
-    """Share of each bag's valid tokens equal to node_ids [Q, n] -> [Q, n]; 0 for a cold bag."""
+    """Number of each bag's valid tokens equal to node_ids [Q, n] -> [Q, n]."""
     nodes = tokens.nodes.flatten(1)                                          # [Q, T]
     mask = tokens.mask.flatten(1)                                            # [Q, T]
     hits = (nodes.unsqueeze(1) == node_ids.unsqueeze(-1)) & mask.unsqueeze(1)  # [Q, n, T]
-    valid = mask.sum(-1, keepdim=True).clamp_min(1)                          # [Q, 1]
-    return hits.sum(-1) / valid                                              # [Q, n]
+    return hits.sum(-1).float()                                              # [Q, n]
 
 
 class Bag(NamedTuple):
@@ -124,7 +123,7 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: w0 * -log distance + w1 * log1p co-occurrence shares, each row-normed."""
+        """Logits [b, c]: w0 * -log distance + w1 * log1p co-occurrence counts, each row-normed."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
