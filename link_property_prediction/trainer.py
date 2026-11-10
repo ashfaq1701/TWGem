@@ -113,8 +113,8 @@ class Trainer:
             [batch.tgt.astype(np.int64)[:, None], neg_tgt.astype(np.int64)], axis=1)  # [B, 1+K]
 
         logits = self._score(batch, candidates)                              # [B, 1+K]
-        target = torch.zeros(len(batch.src), dtype=torch.long, device=self.device)  # positive first
-        link_loss = F.cross_entropy(logits, target)
+        gap = logits[:, :1] - logits[:, 1:]                                  # [B, K]
+        link_loss = F.softplus(-gap).mean()                                  # -log sigmoid(gap)
 
         self.opt.zero_grad(set_to_none=True)
         self.opt_embedding.zero_grad(set_to_none=True)
