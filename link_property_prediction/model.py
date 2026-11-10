@@ -124,7 +124,7 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: w0 * row-standardised -log distance + w1 * log co-occurrence shares."""
+        """Logits [b, c]: w0 * -log distance + w1 * log co-occurrence shares, each row-normed."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
@@ -137,4 +137,5 @@ class LinkPredHead(nn.Module):
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
         geo = F.layer_norm(s, s.shape[-1:])                                  # [b, c]
         co = torch.log(count_uv) + torch.log(count_vu)                       # [b, c]
+        co = F.layer_norm(co, co.shape[-1:])                                 # [b, c]
         return self.score_w[0] * geo + self.score_w[1] * co                  # [b, c]
