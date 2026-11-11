@@ -3,7 +3,6 @@ from typing import NamedTuple, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .walk_tokens import WalkTokens
 
@@ -23,6 +22,27 @@ def dist0(x: torch.Tensor) -> torch.Tensor:
 def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     """Weighted mean of points x [..., T, d] under weights w [..., T] summing to 1."""
     return (w.unsqueeze(-1) * x).sum(-2)                                     # [..., d]
+
+
+class RowNorm(nn.Module):
+    """Centres each query row of scores and divides by its own spread floored by the mean row spread."""
+
+    def __init__(self, momentum: float = 0.1):
+        super().__init__()
+        self.momentum = float(momentum)
+        self.register_buffer("v_ref", torch.ones(()))                        # running mean row variance
+
+    def forward(self, s: torch.Tensor) -> torch.Tensor:
+        """Rows of s [..., c], centred and scaled; the floor is the batch's in training, running at eval."""
+        s = s - s.mean(dim=-1, keepdim=True)                                 # [..., c]
+        v = s.var(dim=-1, keepdim=True, unbiased=False)                      # [..., 1]
+        if self.training:
+            floor = v.mean()                                                 # []
+            with torch.no_grad():
+                self.v_ref.lerp_(floor, self.momentum)
+        else:
+            floor = self.v_ref
+        return s / (v + floor).clamp_min(torch.finfo(s.dtype).tiny).sqrt()   # [..., c]
 
 
 class Bag(NamedTuple):
@@ -107,6 +127,7 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
+        self.score_norm = RowNorm()
 
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
@@ -114,9 +135,9 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
+        """Logits [b, c]: -log distance between pooled points, row-normalised with a batch floor."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
+        return self.score_norm(s)                                            # [b, c]
