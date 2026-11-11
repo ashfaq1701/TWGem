@@ -107,7 +107,7 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
-        self.score_temp = nn.Parameter(torch.ones(()))                      # shared score gain
+        self.score_temp = nn.Parameter(torch.ones(()))                      # shared score gain, undecayed
 
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
