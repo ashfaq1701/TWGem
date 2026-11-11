@@ -11,11 +11,11 @@ WikiLink:      -
 
 TGB (--data-suite tgb):
 
-tgbl-wiki:     --is-bipartite --eval-batch-size 200
-tgbl-review:   -
-tgbl-coin:     -
-tgbl-comment:  -
-tgbl-flight:   -
+tgbl-wiki:     --is-bipartite --eval-batch-size 200 --lr 1e-4
+tgbl-review:   --lr 1e-4
+tgbl-coin:     --lr 1e-4
+tgbl-comment:  --lr 1e-4
+tgbl-flight:   --lr 1e-4
 
 DyGLib (--data-suite dyglib):
 
