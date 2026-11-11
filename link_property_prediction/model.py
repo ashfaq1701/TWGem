@@ -42,6 +42,7 @@ class RowNorm(nn.Module):
                 self.v_ref.lerp_(floor, self.momentum)
         else:
             floor = self.v_ref
+        # Row spread out = sqrt(v / (v + floor)): BatchNorm-like below the floor, capped at 1 above.
         return s / (v + floor).clamp_min(torch.finfo(s.dtype).tiny).sqrt()   # [..., c]
 
 
