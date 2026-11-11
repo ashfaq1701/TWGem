@@ -106,7 +106,7 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
-        self.score_norm = nn.BatchNorm1d(1, affine=False)                    # one shared scale
+        self.score_norm = nn.BatchNorm1d(1)                                  # shared scale, learned gain/shift
 
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
