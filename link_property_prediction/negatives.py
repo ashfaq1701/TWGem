@@ -178,8 +178,10 @@ class HistRndNegativeSampler(UniformNegativeSampler):
         neg = super().sample(batch)                                     # [B, K] uniform
         have = self.prior.count(batch.src, batch.ts)                    # [B]
         take = (self.rng.random(neg.shape) < self.ratio) & (have > 0)[:, None]
-        rows = np.nonzero(take)[0]
-        if len(rows):
-            pick = (self.rng.random(len(rows)) * have[rows]).astype(np.int64)
-            neg[take] = self.prior.at(batch.src[rows], pick)
+        r, c = np.nonzero(take)
+        if len(r):
+            pick = (self.rng.random(len(r)) * have[r]).astype(np.int64)
+            drawn = self.prior.at(batch.src[r], pick)
+            keep = drawn != batch.tgt[r]                                 # never the query's own positive
+            neg[r[keep], c[keep]] = drawn[keep]
         return neg
