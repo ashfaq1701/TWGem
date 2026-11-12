@@ -94,12 +94,14 @@ class BagWeights(nn.Module):
 class LinkPredHead(nn.Module):
 
     def __init__(self, num_nodes: int, T_train: int, max_walk_len: int, d_emb: int,
-                 hidden_dim: int = 32, n_layers_pooler: int = 2, seed: int = 42):
+                 hidden_dim: int = 32, n_layers_pooler: int = 2, k_train: int = 5,
+                 seed: int = 42):
         super().__init__()
         self.num_nodes = int(num_nodes)
         self.T_train = int(T_train)
         self.max_walk_len = int(max_walk_len)
         self.d_emb = int(d_emb)
+        self.gain = math.sqrt(int(k_train))                                  # = sqrt(c-1); same at train and eval
         torch.manual_seed(seed)
 
         self.E = nn.Embedding(self.num_nodes, self.d_emb, sparse=True)
@@ -114,10 +116,9 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: the row-standardised -log distance of pooled points, gained by sqrt(c-1)."""
+        """Logits [b, c]: the row-standardised -log distance of pooled points, gained by sqrt(k_train)."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        gain = math.sqrt(s.shape[-1] - 1)                                    # makes the attainable gap c
-        return gain * F.layer_norm(s, s.shape[-1:])                          # [b, c]
+        return self.gain * F.layer_norm(s, s.shape[-1:])                     # [b, c]

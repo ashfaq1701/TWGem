@@ -24,6 +24,7 @@ class TrainerConfig:
     d_emb: int = 128
     hidden_dim: int = 32
     n_layers_pooler: int = 2
+    k_train: int = 5             # training negatives per positive; sets the score gain
 
     # Backward, undirected walks for the source and every candidate.
     num_walks_per_node: int = 10
@@ -55,6 +56,7 @@ class Trainer:
             d_emb=int(config.d_emb),
             hidden_dim=int(config.hidden_dim),
             n_layers_pooler=int(config.n_layers_pooler),
+            k_train=int(config.k_train),
             seed=int(config.seed),
         ).to(self.device)
 

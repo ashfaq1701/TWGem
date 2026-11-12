@@ -158,6 +158,7 @@ def main() -> Dict[str, Any]:
         d_emb=args.d_emb,
         hidden_dim=args.hidden_dim,
         n_layers_pooler=args.n_layers_pooler,
+        k_train=args.k_train,
 
         num_walks_per_node=args.num_walks_per_node,
         max_walk_len=args.max_walk_len,
