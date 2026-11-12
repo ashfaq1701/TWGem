@@ -7,6 +7,7 @@ import numpy as np
 
 from .data import Batch, Loaded, SplitData, node_count
 from .evaluator import DataSuite, Evaluator
+from .negatives import HistRndNegativeSampler, NegativeSampler
 
 
 def _strip_version_suffix(name: str) -> str:
@@ -102,6 +103,13 @@ class TGBSuite(DataSuite):
     def _load(self) -> Loaded:
         return load_tgb(self.name, self.root)
 
+    def negative_sampler(self, pool: np.ndarray, k: int, seed: int,
+                         edges: SplitData) -> NegativeSampler:
+        """`--train-hist-ratio` 0 keeps the uniform draw; above 0 mirrors TGB's hist_rnd."""
+        if self.train_hist_ratio <= 0.0:
+            return super().negative_sampler(pool, k, seed, edges)
+        return HistRndNegativeSampler(num_neg_per_pos=k, dst_pool=pool, edges=edges,
+                                      ratio=self.train_hist_ratio, seed=seed)
 
     def _val_evaluator(self) -> Evaluator:
         self.load().dataset.load_val_ns()

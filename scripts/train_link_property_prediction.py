@@ -55,6 +55,11 @@ def parse_args() -> argparse.Namespace:
     # ── Negatives ───────────────────────────────────────────────────
     p.add_argument("--k-train", default=5, type=int,
                    help="Per-query training negatives.")
+    p.add_argument("--train-hist-ratio", default=0.0, type=float,
+                   help="TGB only: share of TRAINING negatives drawn from the source's own "
+                        "prior destinations. 0 is the uniform draw. TGB's shipped TEST "
+                        "negatives measure 0.079 (review, K=100), 0.322 (comment), 0.332 "
+                        "(coin) and 0.501 (flight), all at K=20 except review.")
     p.add_argument("--k-eval", default=100, type=int,
                    help="Eval negatives per positive (tgb-seq val only).")
 
@@ -117,7 +122,7 @@ def main() -> Dict[str, Any]:
     suite = make_suite(
         args.data_suite,
         name=args.dataset, root=args.data_root, is_bipartite=args.is_bipartite,
-        k_eval=args.k_eval, seed=args.seed,
+        k_eval=args.k_eval, seed=args.seed, train_hist_ratio=args.train_hist_ratio,
     )
     loaded: Loaded = suite.load()
     print(f"loaded ({args.data_suite}) in {time.time() - t0:.1f}s")

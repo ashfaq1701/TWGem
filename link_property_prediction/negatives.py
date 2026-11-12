@@ -1,4 +1,4 @@
-"""Negative samplers: uniform, and CRAFT's collision-free rule for DyGLib."""
+"""Negative samplers: uniform, CRAFT's collision-free rule, and TGB's hist_rnd."""
 
 import abc
 from typing import Optional
@@ -117,4 +117,69 @@ class CollisionFreeNegativeSampler(UniformNegativeSampler):
             redrawn = neg[rows]
             redrawn[bad] = self.dst_pool[self.rng.integers(0, len(self.dst_pool), int(bad.sum()))]
             neg[rows] = redrawn
+        return neg
+
+
+class PriorDestinations:
+    """Each source's distinct destinations, keyed by the time it first met them."""
+
+    def __init__(self, edges: SplitData, num_nodes: int):
+        self._n = int(num_nodes)
+        self._times = np.unique(edges.timestamps)
+        if self._n * len(self._times) >= np.iinfo(np.int64).max:
+            raise ValueError("(source, time) keys overflow int64")
+        key = edges.sources.astype(np.int64) * self._n + edges.destinations
+        order = np.lexsort((edges.timestamps, key))
+        key_s, ts_s = key[order], edges.timestamps[order]
+        first = np.ones(key_s.shape, dtype=bool)
+        np.not_equal(key_s[1:], key_s[:-1], out=first[1:])              # first time src met dst
+        src_u = key_s[first] // self._n
+        rank_u = np.searchsorted(self._times, ts_s[first])
+        regroup = np.lexsort((rank_u, src_u))
+        self._dst = (key_s[first] % self._n)[regroup].astype(np.int32)  # [U] by (src, time)
+        self._ckey = (src_u * len(self._times) + rank_u)[regroup]       # [U] ascending
+        self._start = np.searchsorted(src_u[regroup], np.arange(self._n + 1))
+
+    def count(self, src: np.ndarray, ts: np.ndarray) -> np.ndarray:
+        """[B] int: distinct destinations src[i] met strictly before ts[i]."""
+        rank = np.searchsorted(self._times, ts)                         # strict: t_first < ts
+        pos = np.searchsorted(self._ckey, src.astype(np.int64) * len(self._times) + rank)
+        return pos - self._start[src]
+
+    def at(self, src: np.ndarray, i: np.ndarray) -> np.ndarray:
+        """[B] the i-th oldest prior destination of src, for i < count(src, ts)."""
+        return self._dst[self._start[src] + i]
+
+
+class HistRndNegativeSampler(UniformNegativeSampler):
+    """TGB's rule: each slot is one of the source's prior destinations with prob `ratio`."""
+
+    rule = "hist_rnd"
+
+    def __init__(
+        self,
+        num_neg_per_pos: int,
+        dst_pool: np.ndarray,
+        edges: SplitData,
+        ratio: float,
+        seed: Optional[int] = None,
+    ):
+        super().__init__(num_neg_per_pos, dst_pool, seed)
+        num_nodes = max(self.dst_pool.max(), edges.sources.max(), edges.destinations.max()) + 1
+        self.prior = PriorDestinations(edges, num_nodes)
+        self.ratio = float(ratio)
+
+    def __repr__(self) -> str:
+        return (f"{type(self).__name__}(k={self.num_neg_per_pos}, "
+                f"pool={len(self.dst_pool):,}, ratio={self.ratio:.4f})")
+
+    def sample(self, batch: Batch) -> np.ndarray:
+        """Per-slot Bernoulli, so the composition holds at any k_train."""
+        neg = super().sample(batch)                                     # [B, K] uniform
+        have = self.prior.count(batch.src, batch.ts)                    # [B]
+        take = (self.rng.random(neg.shape) < self.ratio) & (have > 0)[:, None]
+        rows = np.nonzero(take)[0]
+        if len(rows):
+            pick = (self.rng.random(len(rows)) * have[rows]).astype(np.int64)
+            neg[take] = self.prior.at(batch.src[rows], pick)
         return neg

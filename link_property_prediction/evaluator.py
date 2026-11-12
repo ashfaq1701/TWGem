@@ -53,12 +53,14 @@ class FixedNegativesEvaluator(Evaluator):
 class DataSuite(abc.ABC):
     """Benchmark adapter: native load and native evaluators."""
 
-    def __init__(self, name: str, root: str, is_bipartite: bool, k_eval: int, seed: int):
+    def __init__(self, name: str, root: str, is_bipartite: bool, k_eval: int, seed: int,
+                 train_hist_ratio: float = 0.0):
         self.name = name
         self.root = root
         self.is_bipartite = bool(is_bipartite)
         self.k_eval = int(k_eval)
         self.seed = seed
+        self.train_hist_ratio = float(train_hist_ratio)   # historical share of TRAIN negatives
         self._loaded: Optional[Loaded] = None
 
     def load(self) -> Loaded:
