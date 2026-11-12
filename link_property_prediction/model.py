@@ -51,11 +51,10 @@ class BagWeights(nn.Module):
         layers.append(nn.Linear(self.hidden, 1))
         self.net = nn.Sequential(*layers)
 
-    @staticmethod
-    def _bag_nodes(tokens: WalkTokens) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Token ids and validity [Q, T]; a cold query pools its own seed."""
-        nodes = tokens.nodes.flatten(1).clamp_min(0).clone()                 # [Q, T]
+    def _bag_nodes(self, tokens: WalkTokens) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Token ids and validity [Q, T]; padding takes the sentinel row, a cold query its seed."""
         valid = tokens.mask.flatten(1).clone()                               # [Q, T]
+        nodes = tokens.nodes.flatten(1).masked_fill(~valid, self.E.padding_idx)
         cold = ~valid.any(dim=-1)                                            # [Q]
         if bool(cold.any()):
             nodes[cold, 0] = tokens.seeds[cold]
@@ -102,15 +101,28 @@ class LinkPredHead(nn.Module):
         self.d_emb = int(d_emb)
         torch.manual_seed(seed)
 
-        self.E = nn.Embedding(self.num_nodes, self.d_emb, sparse=True)
+        self.E = nn.Embedding(self.num_nodes + 1, self.d_emb, sparse=True,
+                              padding_idx=self.num_nodes)                    # last row: padding
         nn.init.normal_(self.E.weight, std=self.d_emb ** -0.5)              # row norm ~1
+        with torch.no_grad():
+            self.E.weight[self.num_nodes].zero_()                            # init overwrote it
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
 
+    @property
+    def node_embeddings(self) -> torch.Tensor:
+        """The real-node rows of E [num_nodes, d]; the last row is padding and never trains."""
+        return self.E.weight[:-1]
+
+    @staticmethod
+    def num_nodes_in(state: dict) -> int:
+        """Real node count behind a saved E.weight, which carries one padding row."""
+        return int(state["E.weight"].shape[0]) - 1
+
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
-        r_mean = dist0(self.E.weight.detach()).mean()                        # []
+        r_mean = dist0(self.node_embeddings.detach()).mean()                 # []
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:

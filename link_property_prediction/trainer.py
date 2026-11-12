@@ -127,7 +127,7 @@ class Trainer:
     @torch.no_grad()
     def _probe(self) -> str:
         """Mean and max row norm of E, for the epoch line."""
-        r = dist0(self.model.E.weight)
+        r = dist0(self.model.node_embeddings)
         return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
 
     @staticmethod
