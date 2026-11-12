@@ -17,6 +17,9 @@ py-tgb>=2.3.0
 # `df.iloc[:, k].values` in place and raises "output array is read-only".
 pandas>=2,<3
 
+# Prodigy adapts the pooler's step size; lr stays 1.0 and d0 carries --lr.
+prodigyopt>=1.1.2
+
 tempest-rw>=1.0.6
 tgb-seq
 
