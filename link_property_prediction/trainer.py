@@ -33,7 +33,8 @@ class TrainerConfig:
     t2nv_p: float = 4.0          # TemporalNode2Vec only
     t2nv_q: float = 0.25
 
-    lr: float = 1e-3             # shared by SparseAdam (E) and Adam (pooler)
+    lr: float = 1e-3             # SparseAdam (E), and Adam (pooler) when lr_pooler is None
+    lr_pooler: Optional[float] = None    # Adam, every parameter except E.weight; None means lr
     num_epochs: int = 200
     early_stop_patience: int = 10
 
@@ -71,7 +72,8 @@ class Trainer:
         self.neg_sampler_train = config.train_negative_sampler
 
         pooler = [p for n, p in self.model.named_parameters() if n != "E.weight"]
-        self.opt = torch.optim.Adam(pooler, lr=float(config.lr))
+        self.lr_pooler = float(config.lr if config.lr_pooler is None else config.lr_pooler)
+        self.opt = torch.optim.Adam(pooler, lr=self.lr_pooler)
         self.opt_embedding = torch.optim.SparseAdam([self.model.E.weight], lr=float(config.lr))
 
     def ingest_full_graph(self, graph: SplitData) -> None:
@@ -126,10 +128,9 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """Mean and max row norm of E and the score temperature, for the epoch line."""
+        """Mean and max row norm of E and the pooler's lr, for the epoch line."""
         r = dist0(self.model.E.weight)
-        temp = float(self.model.score_temp)
-        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}  temp={temp:.3f}"
+        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}  lr_p={self.lr_pooler:.2e}"
 
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:
