@@ -183,7 +183,7 @@ def main() -> Dict[str, Any]:
 
     print("\n=== Parameter counts ===")
     n_total = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
-    n_E = trainer.model.E.weight.numel()
+    n_E = trainer.model.E.weight.numel()           # includes the frozen padding row
     print(f"  model.E:         {n_E:>12,}")
     print(f"  head params:     {n_total - n_E:>12,}")
     print(f"  TOTAL trainable: {n_total:>12,}")
@@ -218,7 +218,7 @@ def main() -> Dict[str, Any]:
         )
         np.save(
             emb_path,
-            trainer.model.E.weight.detach().cpu().numpy(),
+            trainer.model.node_embeddings.detach().cpu().numpy(),
         )
         print(f"  embedding_table:   saved to {emb_path}")
 
@@ -226,7 +226,7 @@ def main() -> Dict[str, Any]:
     if args.save_checkpoint:
         ckpt_path = pathlib.Path(args.save_checkpoint)
         ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-        radius = dist0(trainer.model.E.weight.detach())
+        radius = dist0(trainer.model.node_embeddings.detach())
         torch.save({
             "state_dict": trainer.model.state_dict(),
             "args": vars(args),
