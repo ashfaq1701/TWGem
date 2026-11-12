@@ -107,7 +107,6 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
-        self.score_temp = nn.Parameter(torch.ones(()))                      # shared score gain, undecayed
 
     def mean_radius(self) -> torch.Tensor:
         """Mean row norm of E, detached."""
@@ -115,9 +114,10 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: shared temp times the row-standardised -log distance of pooled points."""
+        """Logits [b, c]: the row-standardised -log distance of pooled points, gained by sqrt(c-1)."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        return self.score_temp * F.layer_norm(s, s.shape[-1:])               # [b, c]
+        gain = math.sqrt(s.shape[-1] - 1)                                    # makes the attainable gap c
+        return gain * F.layer_norm(s, s.shape[-1:])                          # [b, c]
