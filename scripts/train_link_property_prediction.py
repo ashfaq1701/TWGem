@@ -59,9 +59,11 @@ def parse_args() -> argparse.Namespace:
                    help="Eval negatives per positive (tgb-seq val only).")
 
     # ── Optimisation / training ─────────────────────────────────────
+    p.add_argument("--lr-pooler", default=None, type=float,
+                   help="Adam lr for every parameter except E. Unset means --lr.")
     p.add_argument("--lr", default=1e-3, type=float,
-                   help="Learning rate of every parameter: the embedding table E (SparseAdam) "
-                        "and the NN pooler (Adam).")
+                   help="Learning rate of the embedding table E (SparseAdam), and of the NN "
+                        "pooler (Adam) unless --lr-pooler overrides it.")
     p.add_argument("--batch-size", default=1000, type=int,
                    help="Train batch size.")
     p.add_argument("--eval-batch-size", default=1000, type=int,
@@ -166,6 +168,7 @@ def main() -> Dict[str, Any]:
         t2nv_p=args.t2nv_p,
         t2nv_q=args.t2nv_q,
         lr=args.lr,
+        lr_pooler=args.lr_pooler,
         num_epochs=args.num_epochs,
         early_stop_patience=args.early_stop_patience,
 
