@@ -125,10 +125,14 @@ class LinkPredHead(nn.Module):
         r_mean = dist0(self.node_embeddings.detach()).mean()                 # []
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
-    def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
+    def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens,
+                recurrence: torch.Tensor) -> torch.Tensor:
+        """Logits [b, c]: row-standardised -log distance plus row-standardised log1p recurrence."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
+        geo = F.layer_norm(s, s.shape[-1:])                                  # [b, c]
+        rec = torch.log1p(recurrence)                                        # [b, c]
+        rec = F.layer_norm(rec, rec.shape[-1:])                              # [b, c]
+        return geo + rec                                                     # [b, c]

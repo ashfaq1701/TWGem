@@ -20,7 +20,8 @@ def _step(model, opt, ctx, cands, seed_id=7):
     src = _tokens([[[-1, ctx, seed_id]]])
     cand = _tokens([[[-1, -1, c]] for c in cands])
     opt.zero_grad()
-    F.cross_entropy(model(src, cand), torch.zeros(1, dtype=torch.long)).backward()
+    recurrence = torch.zeros(1, len(cands))
+    F.cross_entropy(model(src, cand, recurrence), torch.zeros(1, dtype=torch.long)).backward()
     touched = sorted(set(model.E.weight.grad.coalesce().indices()[0].tolist()))
     opt.step()
     return touched

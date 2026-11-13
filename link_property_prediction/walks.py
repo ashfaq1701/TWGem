@@ -71,6 +71,15 @@ class WalkGenerator:
         return np.asarray(self.tempest.get_node_participation_counts(
             node_arr, cutoff_times=cutoff_arr, direction="Backward_In_Time"), dtype=np.int64)
 
+    def get_recurrence_count(self, us: np.ndarray, vs: np.ndarray,
+                             cutoff_times: np.ndarray) -> np.ndarray:
+        """Number of edges between each pair (u, v) before its cutoff."""
+        u_arr = np.ascontiguousarray(us, dtype=np.int32)
+        v_arr = np.ascontiguousarray(vs, dtype=np.int32)
+        cutoff_arr = np.ascontiguousarray(cutoff_times, dtype=np.int64)
+        return np.asarray(self.tempest.get_pair_co_occurrence_counts(
+            u_arr, v_arr, cutoff_times=cutoff_arr, direction="Backward_In_Time"), dtype=np.int64)
+
     def walks_for_nodes(self, seeds: np.ndarray, max_walk_len: Optional[int] = None,
                         num_walks_per_node: Optional[int] = None,
                         start_bias: Optional[str] = None,

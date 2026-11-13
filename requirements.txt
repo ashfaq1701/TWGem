@@ -17,7 +17,7 @@ py-tgb>=2.3.0
 # `df.iloc[:, k].values` in place and raises "output array is read-only".
 pandas>=2,<3
 
-tempest-rw>=1.0.6
+tempest-rw>=1.0.7
 tgb-seq
 
 # node classification: ROC-AUC; DyGLib datasets download from Zenodo.

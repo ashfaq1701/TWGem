@@ -104,7 +104,10 @@ class Trainer:
 
         src_tokens = self._walk_tokens(src, t_query)
         cand_tokens = self._walk_tokens(cand.reshape(-1), cand_cutoffs)
-        return self.model(src_tokens, cand_tokens)
+        recurrence = self.walk_gen.get_recurrence_count(                    # (u, v) edges before t
+            np.repeat(batch.src, c), candidates.reshape(-1), np.repeat(batch.ts, c))
+        recurrence = torch.from_numpy(recurrence).to(self.device, torch.float32).view(b, c)
+        return self.model(src_tokens, cand_tokens, recurrence)
 
     def _train_step(self, batch: Batch) -> float:
         """One optimiser step; returns the batch loss."""
