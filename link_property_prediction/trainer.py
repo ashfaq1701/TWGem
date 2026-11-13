@@ -129,9 +129,10 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """Mean and max row norm of E, for the epoch line."""
+        """Mean and max row norm of E and the recurrence mix weight, for the epoch line."""
         r = dist0(self.model.node_embeddings)
-        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+        mix = torch.sigmoid(self.model.mix_logit)
+        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}  mix={float(mix):.4f}"
 
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:

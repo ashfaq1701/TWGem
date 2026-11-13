@@ -109,6 +109,7 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
+        self.mix_logit = nn.Parameter(torch.tensor(-4.6))                    # sigmoid ~0.01: starts at geo
 
     @property
     def node_embeddings(self) -> torch.Tensor:
@@ -127,7 +128,7 @@ class LinkPredHead(nn.Module):
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens,
                 recurrence: torch.Tensor) -> torch.Tensor:
-        """Logits [b, c]: row-standardised -log distance plus row-standardised log1p recurrence."""
+        """Logits [b, c]: sigmoid-mixed row-standardised -log distance and log1p recurrence."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
@@ -135,4 +136,5 @@ class LinkPredHead(nn.Module):
         geo = F.layer_norm(s, s.shape[-1:])                                  # [b, c]
         rec = torch.log1p(recurrence)                                        # [b, c]
         rec = F.layer_norm(rec, rec.shape[-1:])                              # [b, c]
-        return geo + rec                                                     # [b, c]
+        mix = torch.sigmoid(self.mix_logit)                                  # []  weight on rec
+        return (1 - mix) * geo + mix * rec                                   # [b, c]
