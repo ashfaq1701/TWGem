@@ -1,6 +1,7 @@
 # Euclidean geometry: the paper runs
 
-Two arms, three seeds each (5, 42, 1), one log per cell. Archive layout:
+Two arms at three seeds each (5, 42, 1) plus a k_train probe, one log per cell.
+Archive layout:
 
     euclidean/<arm>/<dataset>/seed_<S>.log
 
@@ -15,7 +16,15 @@ Master `78bbf8f`. Every knob is the argparse default except the per-dataset flag
 Defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
 eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
 
-18 datasets x 3 seeds, 39 Slurm jobs `11689843`-`11689881` (DyGLib runs its six in one job).
+18 datasets x 3 seeds, 39 Slurm jobs (DyGLib runs its six in one job). Ids
+`11689843`-`11689881`, except eight small cells moved off RTX onto A40 on 2026-11-14 and
+resubmitted as `11696628`-`11696635`: seed 42 DyGLib, and seed 1 tgbl-review, YouTube,
+Patent, ML-20M, DyGLib, GoogleLocal, Flickr. All six RTX GPUs were held by this sweep's own
+WikiLink / tgbl-comment / tgbl-flight cells, which cost 1.1-1.7 days each, and equal job
+priority runs by job id, so the cheap cells sat behind them. A40 is 3-5x slower per epoch
+than RTX here, which these cells can absorb and the long ones cannot. Per-epoch times are
+therefore NOT comparable between an A40 cell and an RTX one. `logs/paper_euclidean/MANIFEST.tsv`
+carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 
 | suite | datasets |
 |---|---|
@@ -84,10 +93,31 @@ recurrence arm.
 No cell has closed. tempest_rw 1.0.7 is required: 1.0.6 has no
 `get_pair_co_occurrence_counts`.
 
+## k5_jobs -- the k_train probe
+
+Code identical to the default arm (`78bbf8f`, clean tree, conf line read from the file); one
+flag differs, `--k-train 5` against the arm's 10. Evaluation is untouched, so these compare
+directly with the default arm's Yelp and Taobao cells. Seed 5 only: jobs `11690736` (Taobao)
+and `11690735` (Yelp), logs in `logs/k5_side/seed_5`.
+
+Live at 2026-11-14 23:00, both still running, so both numbers are floors:
+
+| cell | k5 (live) | at ep | k10 seed 5 | k10 seed 42 |
+|---|---|---|---|---|
+| Taobao | 0.6510 | 33 | 0.6440 | 0.6436 |
+| Yelp | 0.6849 | 74 | 0.6849 | 0.6856 |
+
+Taobao k5 leads by 0.0070 and its best val (0.6699) is above both k10 cells' (0.6677, 0.6685),
+so the gain is not only in the val->test gap. Against that it carries `r_max` 12.0-12.4 while
+the two k10 Taobao seeds disagree 11.80 vs 4.29, so Taobao's radius is unstable at both k and
+the margin may sit inside that. Yelp k5 is level with one k10 seed and 0.0007 under the other.
+Each run has broken out of 8/10 or 9/10 patience twice, so neither is near converged.
+
+Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter. That
+decision is open and these directories exist to hold the evidence either way, not to presume it.
+
 ## Not in this tree
 
-- **k=5 side runs** (`logs/k5_side`, jobs `11690735`/`11690736`): a k_train probe against the
-  closed k10 Yelp and Taobao cells, not part of either arm. Not archived, not reported.
 - **tgbl-wiki**: no arm here. It exists only in `experiment_logs/craft_reproduction`.
 - **Patent**: run and archived at both arms' default, but CRAFT does not report it, so it
   carries no comparison and stays out of the paper tables.
