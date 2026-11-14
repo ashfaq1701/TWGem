@@ -131,7 +131,7 @@ class LinkPredHead(nn.Module):
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens,
                 recurrence: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Logits [b, c]: row-standardised -log distance, sigmoid-mixed with log1p recurrence if on."""
+        """Logits [b, c]: row-normed -log distance, sigmoid-mixed with log1p recurrence if on."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
