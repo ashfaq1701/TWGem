@@ -1,7 +1,6 @@
 # Euclidean geometry: the paper runs
 
-Two arms at three seeds each (5, 42, 1) plus a k_train probe, one log per cell.
-Archive layout:
+Three arms, three seeds each (5, 42, 1), one log per cell. Archive layout:
 
     euclidean/<arm>/<dataset>/seed_<S>.log
 
@@ -93,14 +92,26 @@ recurrence arm.
 No cell has closed. tempest_rw 1.0.7 is required: 1.0.6 has no
 `get_pair_co_occurrence_counts`.
 
-## k5_jobs -- the k_train probe
+## k5_jobs -- TWGem at k_train 5
 
 Code identical to the default arm (`78bbf8f`, clean tree, conf line read from the file); one
 flag differs, `--k-train 5` against the arm's 10. Evaluation is untouched, so these compare
-directly with the default arm's Yelp and Taobao cells. Seed 5 only: jobs `11690736` (Taobao)
-and `11690735` (Yelp), logs in `logs/k5_side/seed_5`.
+cell for cell with the default arm's Yelp and Taobao.
 
-Live at 2026-11-14 23:00, both still running, so both numbers are floors:
+2 datasets x 3 seeds, 6 jobs. Seed 5 ran on `scripts/run_k5s.sh`; seeds 42 and 1 on
+`scripts/run_k5b.sh`, which differs only in header text (per-seed baseline path, and it no
+longer calls itself a side run). Logs in `logs/k5_side/seed_<S>`, tracked by
+`logs/k5_side/MANIFEST.tsv`; `scripts/pe_status.sh logs/k5_side` prints the arm.
+
+| cell | seed 5 | seed 42 | seed 1 |
+|---|---|---|---|
+| Yelp | `11690735` | `11696639` | `11696641` |
+| Taobao | `11690736` | `11696640` | `11696642` |
+
+The whole arm runs on A40, where the default arm's Yelp and Taobao ran on RTX, so per-epoch
+times do not compare across the two; the MRRs do.
+
+Live at 2026-11-14 23:10, seed 5 still running, so both numbers are floors:
 
 | cell | k5 (live) | at ep | k10 seed 5 | k10 seed 42 |
 |---|---|---|---|---|
@@ -113,11 +124,14 @@ the two k10 Taobao seeds disagree 11.80 vs 4.29, so Taobao's radius is unstable 
 the margin may sit inside that. Yelp k5 is level with one k10 seed and 0.0007 under the other.
 Each run has broken out of 8/10 or 9/10 patience twice, so neither is near converged.
 
-Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter. That
-decision is open and these directories exist to hold the evidence either way, not to presume it.
+Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter, so the
+arm is carried at full seed coverage rather than as a one-seed probe, and the decision is made
+on three seeds against three.
 
 ## Not in this tree
 
+- **k5 beyond Yelp and Taobao**: no other dataset has a k5 cell. The arm exists because those
+  two are the sweep's two largest deficits against CRAFT, not as a general k sweep.
 - **tgbl-wiki**: no arm here. It exists only in `experiment_logs/craft_reproduction`.
 - **Patent**: run and archived at both arms' default, but CRAFT does not report it, so it
   carries no comparison and stays out of the paper tables.
