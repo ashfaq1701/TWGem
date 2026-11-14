@@ -89,6 +89,12 @@ def parse_args() -> argparse.Namespace:
                         "first inserts a Linear(hidden, hidden) -> GELU before the output "
                         "layer. 1 reproduces the single-hidden-layer shape used before.")
 
+    # ── Score ───────────────────────────────────────────────────────
+    p.add_argument("--use-recurrence-count", action="store_true",
+                   help="Mix a row-normed log1p count of u in v's walk bag and v in u's into "
+                        "the score with a learned sigmoid weight. Off: the score is the "
+                        "geometry alone.")
+
     # ── Post-training outputs ───────────────────────────────────────
     p.add_argument("--export-best-embedding-table", action="store_true",
                    help="After training, dump the best-val embedding table to disk.")
@@ -172,6 +178,7 @@ def main() -> Dict[str, Any]:
         seed=args.seed,
         use_gpu=args.use_gpu,
         use_gpu_tempest=args.use_gpu_tempest,
+        use_recurrence_count=args.use_recurrence_count,
     )
 
     print("\n=== Config ===")

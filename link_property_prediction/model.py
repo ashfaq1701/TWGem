@@ -1,5 +1,5 @@
 import math
-from typing import NamedTuple, Tuple
+from typing import NamedTuple, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -23,6 +23,14 @@ def dist0(x: torch.Tensor) -> torch.Tensor:
 def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     """Weighted mean of points x [..., T, d] under weights w [..., T] summing to 1."""
     return (w.unsqueeze(-1) * x).sum(-2)                                     # [..., d]
+
+
+def bag_item_count(tokens: WalkTokens, node_ids: torch.Tensor) -> torch.Tensor:
+    """Number of each bag's valid tokens equal to node_ids [Q, n] -> [Q, n]."""
+    nodes = tokens.nodes.flatten(1)                                          # [Q, T]
+    mask = tokens.mask.flatten(1)                                            # [Q, T]
+    hits = (nodes.unsqueeze(1) == node_ids.unsqueeze(-1)) & mask.unsqueeze(1)  # [Q, n, T]
+    return hits.sum(-1).float()                                              # [Q, n]
 
 
 class Bag(NamedTuple):
@@ -93,7 +101,8 @@ class BagWeights(nn.Module):
 class LinkPredHead(nn.Module):
 
     def __init__(self, num_nodes: int, T_train: int, max_walk_len: int, d_emb: int,
-                 hidden_dim: int = 32, n_layers_pooler: int = 2, seed: int = 42):
+                 hidden_dim: int = 32, n_layers_pooler: int = 2, seed: int = 42,
+                 use_recurrence_count: bool = False):
         super().__init__()
         self.num_nodes = int(num_nodes)
         self.T_train = int(T_train)
@@ -109,6 +118,9 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
+        self.mix_logit = None
+        if use_recurrence_count:
+            self.mix_logit = nn.Parameter(torch.tensor(0.0))                 # sigmoid 0.5: even mix
 
     @property
     def node_embeddings(self) -> torch.Tensor:
@@ -126,9 +138,19 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
+        """Logits [b, c]: row-normed -log distance, sigmoid-mixed with bag recurrence if on."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
         s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
+        geo = F.layer_norm(s, s.shape[-1:])                                  # [b, c]
+        if self.mix_logit is None:
+            return geo                                                       # no recurrence term
+        b, c = pooled_v.shape[:2]
+        u_ids = src_tokens.seeds.repeat_interleave(c).unsqueeze(-1)          # [b*c, 1]
+        count_uv = bag_item_count(cand_tokens, u_ids).view(b, c)             # [b, c]  u in v's bag
+        count_vu = bag_item_count(src_tokens, cand_tokens.seeds.view(b, c))  # [b, c]  v in u's bag
+        rec = torch.log1p(count_uv) + torch.log1p(count_vu)                  # [b, c]
+        rec = F.layer_norm(rec, rec.shape[-1:])                              # [b, c]
+        mix = torch.sigmoid(self.mix_logit)                                  # []  weight on rec
+        return (1 - mix) * geo + mix * rec                                   # [b, c]

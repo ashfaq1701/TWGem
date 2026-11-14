@@ -40,6 +40,7 @@ class TrainerConfig:
     seed: int = 42
     use_gpu: bool = False
     use_gpu_tempest: bool = False
+    use_recurrence_count: bool = False
 
 
 class Trainer:
@@ -56,6 +57,7 @@ class Trainer:
             hidden_dim=int(config.hidden_dim),
             n_layers_pooler=int(config.n_layers_pooler),
             seed=int(config.seed),
+            use_recurrence_count=config.use_recurrence_count,
         ).to(self.device)
 
         self.walk_gen = WalkGenerator(
@@ -126,9 +128,12 @@ class Trainer:
 
     @torch.no_grad()
     def _probe(self) -> str:
-        """Mean and max row norm of E, for the epoch line."""
+        """Mean and max row norm of E and the recurrence mix weight, for the epoch line."""
         r = dist0(self.model.node_embeddings)
-        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+        line = f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+        if self.config.use_recurrence_count:
+            line += f"  mix={float(torch.sigmoid(self.model.mix_logit)):.4f}"
+        return line
 
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:
