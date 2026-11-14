@@ -105,11 +105,12 @@ longer calls itself a side run). Logs in `logs/k5_side/seed_<S>`, tracked by
 
 | cell | seed 5 | seed 42 | seed 1 |
 |---|---|---|---|
-| Yelp | `11690735` | `11696639` | `11696641` |
-| Taobao | `11690736` | `11696640` | `11696642` |
+| Yelp | `11690735` | `11696684` | `11696686` |
+| Taobao | `11690736` | `11696685` | `11696687` |
 
-The whole arm runs on A40, where the default arm's Yelp and Taobao ran on RTX, so per-epoch
-times do not compare across the two; the MRRs do.
+Seed 5 runs on A40, seeds 42 and 1 on RTX like the default arm. Per-epoch times therefore do
+not compare between seed 5 and the other two, nor between seed 5 and any default-arm cell;
+the MRRs do.
 
 Live at 2026-11-14 23:10, seed 5 still running, so both numbers are floors:
 
