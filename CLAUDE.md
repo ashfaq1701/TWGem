@@ -299,6 +299,30 @@ only) and `fix/tgbl-wiki-ragged-test-negatives` (shift + trimming tgbl-wiki's 99
 run with the shift fix: **tgbl-review 0.2231 vs the paper's 41.77** (single run, not yet the
 paired protocol below).
 
+### The corrected numbers, measured (2026-10-11 .. 2026-11-13)
+
+CRAFT's official code on our server, its own Table 6 hyperparameters per dataset, batch 200,
+seeds 1/2/3, one change only: `test_ns = test_ns + 1`. Full provenance and logs in
+`experiment_logs/craft_reproduction/` (`PROVENANCE.md`, `s_<seed>/<dataset>.log`). The `ours`
+column is master at `--k-train 10`, seed 5, single seed, val-selected.
+
+| dataset | reported | corrected | seeds | ours | margin |
+|---|---|---|---|---|---|
+| tgbl-review | 41.77 +- 0.06 | **22.71 +- 0.23** | 3 | 30.17 (max 30.40) | **+7.46** |
+| tgbl-comment | 91.72 +- 0.59 | **74.82** | 1 | 75.87 | **+1.05** |
+| tgbl-coin | 88.47 +- 0.25 | **74.69 +- 0.47** | 3 | 75.02 | **+0.33** |
+| tgbl-flight | 91.39 +- 0.03 | **86.47** | 1 | >=81.26 (floor, ep2) | **-5.21** |
+
+**Ahead on 3 of 4; tgbl-flight is the loss.** The correction is -13.8 to -19.1 on three cells
+and -4.9 on flight. coin's +0.33 and comment's +1.05 are marginal -- coin's sits inside CRAFT's
+own +-0.47 -- and both of ours are single seed, so the `paper_euclidean` 3-seed sweep is what
+turns them into quotable numbers. Corrected comment and flight are **one seed** each (flight
+seeds 2-3 queued 2026-11-13), so neither of those gaps carries a std yet. tgbl-flight's `ours`
+is a hand-killed ep2 floor, not a result.
+
+**Reported to the authors 2026-10-20** as PR luyi256/CRAFT#2 (`e77bf60`). Still open, no review,
+no maintainer reply, no activity since the opening post as of 2026-11-13.
+
 **How to handle it in the paper -- be direct, but airtight and neutral:**
 
 1. **Make the evidence decisive first.** Run CRAFT's official code twice on the same server,

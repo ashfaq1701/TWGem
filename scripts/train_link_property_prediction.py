@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
                    help="node2vec in-out param q (TemporalNode2Vec bias only).")
 
     # ── Negatives ───────────────────────────────────────────────────
-    p.add_argument("--k-train", default=5, type=int,
+    p.add_argument("--k-train", default=10, type=int,
                    help="Per-query training negatives.")
     p.add_argument("--k-eval", default=100, type=int,
                    help="Eval negatives per positive (tgb-seq val only).")
