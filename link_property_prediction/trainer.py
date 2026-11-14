@@ -40,6 +40,7 @@ class TrainerConfig:
     seed: int = 42
     use_gpu: bool = False
     use_gpu_tempest: bool = False
+    use_recurrence_count: bool = False
 
 
 class Trainer:
@@ -56,6 +57,7 @@ class Trainer:
             hidden_dim=int(config.hidden_dim),
             n_layers_pooler=int(config.n_layers_pooler),
             seed=int(config.seed),
+            use_recurrence_count=config.use_recurrence_count,
         ).to(self.device)
 
         self.walk_gen = WalkGenerator(
@@ -104,9 +106,11 @@ class Trainer:
 
         src_tokens = self._walk_tokens(src, t_query)
         cand_tokens = self._walk_tokens(cand.reshape(-1), cand_cutoffs)
-        recurrence = self.walk_gen.get_recurrence_count(                    # (u, v) edges before t
-            np.repeat(batch.src, c), candidates.reshape(-1), np.repeat(batch.ts, c))
-        recurrence = torch.from_numpy(recurrence).to(self.device, torch.float32).view(b, c)
+        recurrence = None
+        if self.config.use_recurrence_count:
+            recurrence = self.walk_gen.get_recurrence_count(                # (u, v) edges before t
+                np.repeat(batch.src, c), candidates.reshape(-1), np.repeat(batch.ts, c))
+            recurrence = torch.from_numpy(recurrence).to(self.device, torch.float32).view(b, c)
         return self.model(src_tokens, cand_tokens, recurrence)
 
     def _train_step(self, batch: Batch) -> float:
@@ -131,8 +135,10 @@ class Trainer:
     def _probe(self) -> str:
         """Mean and max row norm of E and the recurrence mix weight, for the epoch line."""
         r = dist0(self.model.node_embeddings)
-        mix = torch.sigmoid(self.model.mix_logit)
-        return f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}  mix={float(mix):.4f}"
+        line = f"  r_mean={float(r.mean()):.3f}  r_max={float(r.max()):.3f}"
+        if self.config.use_recurrence_count:
+            line += f"  mix={float(torch.sigmoid(self.model.mix_logit)):.4f}"
+        return line
 
     @staticmethod
     def _eval_candidates(batch: Batch, neg_tgt_list: List[np.ndarray]) -> np.ndarray:
