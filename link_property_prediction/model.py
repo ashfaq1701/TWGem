@@ -109,7 +109,7 @@ class LinkPredHead(nn.Module):
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
                                       hidden_dim=hidden_dim, n_layers=n_layers_pooler)
-        self.mix_logit = nn.Parameter(torch.tensor(-4.6))                    # sigmoid ~0.01: starts at geo
+        self.mix_logit = nn.Parameter(torch.tensor(0.0))                     # sigmoid 0.5: even mix
 
     @property
     def node_embeddings(self) -> torch.Tensor:
