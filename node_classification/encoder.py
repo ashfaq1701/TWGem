@@ -5,9 +5,16 @@ import numpy as np
 import torch
 
 from link_property_prediction.data import SplitData, create_batches
-from link_property_prediction.model import LinkPredHead, dist, dist0
+from link_property_prediction.model import Bag, LinkPredHead, dist, dist0
 from link_property_prediction.walk_tokens import WalkTokens, build_query_walk_tokens
 from link_property_prediction.walks import WalkGenerator
+
+
+def bag_spread(bag: Bag) -> torch.Tensor:
+    """Mean distance of each bag's valid points from its mid [Q]; valid = nonzero pooling weight."""
+    valid = (bag.weights > 0).to(bag.points.dtype)                           # [Q, T]
+    gaps = dist(bag.points, bag.mid.unsqueeze(-2)) * valid                   # [Q, T]
+    return gaps.sum(-1) / valid.sum(-1)                                      # [Q]
 
 
 class FrozenEncoder:
@@ -82,13 +89,10 @@ class FrozenEncoder:
         model = self.model
         bag = model.bag_weights(tokens)
         e_u = model.E.weight[src]                                            # [Q, d]
-        valid = model.bag_weights._bag_nodes(tokens)[1].to(bag.points.dtype)  # [Q, T]
-        gaps = dist(bag.points, bag.mid.unsqueeze(-2)) * valid               # [Q, T]
-        spread = gaps.sum(-1) / valid.sum(-1)                                # [Q]  mean gap
         geometry = [
             dist0(e_u),
             dist0(bag.pooled),
-            spread,
+            bag_spread(bag),
         ]
         return torch.stack(geometry, dim=-1)                                 # [Q, 3]
 
