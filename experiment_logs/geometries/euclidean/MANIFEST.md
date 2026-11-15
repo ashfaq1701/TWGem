@@ -31,7 +31,7 @@ carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 | TGB | tgbl-review, tgbl-coin, tgbl-comment, tgbl-flight |
 | DyGLib | wikipedia, reddit, mooc, lastfm, uci, Flights |
 
-### Closed cells (2026-11-15 00:17)
+### Closed cells (2026-11-15 13:00)
 
 | dataset | seed | test@val-ckpt | max test | best val | sel/ran |
 |---|---|---|---|---|---|
@@ -39,34 +39,45 @@ carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 | GoogleLocal | 42 | 0.6960 | 0.6964 | 0.7196 | 199/200 |
 | YouTube | 5 | 0.6274 | 0.6274 | 0.7019 | 14/24 |
 | YouTube | 42 | 0.6146 | 0.6201 | 0.7014 | 15/25 |
+| YouTube | 1 | 0.6241 | 0.6285 | 0.7020 | 13/23 |
 | Flickr | 5 | 0.6655 | 0.6655 | 0.7087 | 37/47 |
 | Flickr | 42 | 0.6621 | 0.6622 | 0.7074 | 54/64 |
 | Patent | 5 | 0.0417 | 0.0417 | 0.0793 | 1/11 |
 | Patent | 42 | 0.0418 | 0.0418 | 0.0748 | 1/11 |
+| Patent | 1 | 0.0387 | 0.0387 | 0.0755 | 1/11 |
 | ML-20M | 5 | 0.2855 | 0.2855 | 0.3458 | 1/11 |
 | ML-20M | 42 | 0.2834 | 0.2834 | 0.3456 | 1/11 |
+| ML-20M | 1 | 0.2830 | 0.2830 | 0.3447 | 1/11 |
 | Taobao | 5 | 0.6440 | 0.6450 | 0.6677 | 24/34 |
 | Taobao | 42 | 0.6436 | 0.6452 | 0.6685 | 30/40 |
 | Yelp | 5 | 0.6849 | 0.6854 | 0.7230 | 40/50 |
 | Yelp | 42 | 0.6856 | 0.6869 | 0.7247 | 49/59 |
 | tgbl-review | 5 | 0.3017 | 0.3040 | 0.2503 | 3/13 |
 | tgbl-review | 42 | 0.3010 | 0.3013 | 0.2504 | 3/13 |
+| tgbl-review | 1 | 0.3024 | 0.3024 | 0.2482 | 2/12 |
 | tgbl-coin | 5 | 0.7502 | 0.7502 | 0.7404 | 14/24 |
 | tgbl-coin | 42 | 0.7485 | 0.7500 | 0.7387 | 17/27 |
+| tgbl-comment | 42 | 0.7592 | 0.7598 | 0.7216 | 11/21 |
+| tgbl-flight | 5 | 0.8126 | 0.8126 | 0.8344 | 2/12 |
 | wikipedia | 5 | 0.8784 | 0.8800 | 0.9001 | 13/23 |
+| wikipedia | 1 | 0.8792 | 0.8792 | 0.9008 | 8/18 |
 | reddit | 5 | 0.8618 | 0.8632 | 0.8764 | 11/21 |
 | mooc | 5 | 0.3757 | 0.3757 | 0.3840 | 13/23 |
 | lastfm | 5 | 0.4495 | 0.4549 | 0.4490 | 7/17 |
 | uci | 5 | 0.7123 | 0.7123 | 0.6700 | 5/15 |
 | Flights | 5 | 0.8042 | 0.8042 | 0.8182 | 3/13 |
 
-24 of 54 cells closed, all `rc=0`. Open: WikiLink, tgbl-comment, tgbl-flight at seed 5;
-WikiLink and tgbl-comment running, tgbl-flight and the DyGLib six pending at seed 42; all 13
-cells pending at seed 1.
+31 of 54 cells closed `rc=0`. Open: WikiLink and tgbl-comment at seed 5; WikiLink,
+tgbl-flight and the DyGLib six at seed 42; all of seed 1 but the five rows above.
 
-Taobao, Yelp, tgbl-review and tgbl-coin all replicate across the two seeds to 0.0004, 0.0007,
-0.0007 and 0.0017, and tgbl-review selects at ep3 in both. GoogleLocal seed 42 selected at
-ep199 of 200, so that cell is an epoch-cap floor.
+**tgbl-comment seed 5 failed `rc=135` and has not been requeued.** It is the one cell in the
+sweep with no result and no running job.
+
+Every repeated cell replicates tightly: Taobao 0.0004, Yelp 0.0007, tgbl-coin 0.0017,
+tgbl-review 0.0014 across three seeds, YouTube 0.0128 across three, ML-20M 0.0025 across
+three, Patent 0.0031, wikipedia 0.0008. tgbl-review selects at ep2-3 in all three seeds and
+Patent and ML-20M at ep1 in all three. GoogleLocal seed 42 selected at ep199 of 200, so that
+cell is an epoch-cap floor.
 
 ## recurrence -- TWGem-R
 
@@ -79,7 +90,8 @@ default arm: the scorer mixes the geometry logit with a recurrence logit at a le
 where the pair count is Tempest's `get_pair_co_occurrence_counts(u, v, cutoff, Backward_In_Time)`.
 That call does not advance Tempest's RNG, so at a fixed seed this arm samples bit-identical
 walks to the default arm -- a one-variable comparison. `m` is logged as `mix=` per epoch.
-Off (no `--use-recurrence-count`) the parameter does not exist and master is reproduced.
+Off (no `--use-recurrence-count`) the parameter does not exist and master is reproduced; the
+flag is on master since `18bc6f8`, so the default arm's pin stays comparable with this one.
 `--k-train 10` is passed explicitly: the branch forks before the commit that made 10 the default.
 
 8 datasets x 3 seeds, 9 Slurm jobs. These are the eight cells CRAFT reports CRAFT-R on
@@ -90,36 +102,63 @@ recurrence arm.
 |---|---|
 | tgbl-coin | 11695524 / 11696376 / 11696378 |
 | tgbl-flight | 11696255 / 11696377 / 11696379 |
-| DyGLib six | 11696356 / 11696357 / 11696358 |
+| DyGLib six | 11696356 / 11698293 / 11696358 |
 
 tempest_rw 1.0.7 is required: 1.0.6 has no `get_pair_co_occurrence_counts`.
 
-### Closed cells (2026-11-15 00:17), seed 5
+### Closed cells (2026-11-15 13:00)
 
 `mix` is the gate's final logged value, `default` the same cell in the default arm at the same
 seed. Walks are bit-identical between the two arms at a fixed seed, so each delta is the
 recurrence term alone.
 
-| dataset | test@val-ckpt | max test | best val | sel/ran | mix | default | delta |
-|---|---|---|---|---|---|---|---|
-| reddit | 0.8937 | 0.8937 | 0.8928 | 2/12 | 0.0666 | 0.8618 | +0.0319 |
-| wikipedia | 0.8920 | 0.8920 | 0.9067 | 8/18 | 0.1571 | 0.8784 | +0.0136 |
-| uci | 0.7616 | 0.7656 | 0.7076 | 10/20 | 0.3295 | 0.7123 | +0.0493 |
-| lastfm | 0.4956 | 0.5010 | 0.4754 | 2/12 | 0.0247 | 0.4495 | +0.0461 |
-| mooc | 0.3830 | 0.3830 | 0.3915 | 7/17 | 0.0466 | 0.3757 | +0.0073 |
+| dataset | seed | test@val-ckpt | max test | best val | sel/ran | mix | default | delta |
+|---|---|---|---|---|---|---|---|---|
+| reddit | 5 | 0.8937 | 0.8937 | 0.8928 | 2/12 | 0.0666 | 0.8618 | +0.0319 |
+| wikipedia | 5 | 0.8920 | 0.8920 | 0.9067 | 8/18 | 0.1571 | 0.8784 | +0.0136 |
+| uci | 5 | 0.7616 | 0.7656 | 0.7076 | 10/20 | 0.3295 | 0.7123 | +0.0493 |
+| lastfm | 5 | 0.4956 | 0.5010 | 0.4754 | 2/12 | 0.0247 | 0.4495 | +0.0461 |
+| mooc | 5 | 0.3830 | 0.3830 | 0.3915 | 7/17 | 0.0466 | 0.3757 | +0.0073 |
+| Flights | 5 | 0.8354 | 0.8387 | 0.8400 | 2/12 | 0.0041 | 0.8042 | +0.0312 |
+| tgbl-coin | 5 | 0.7732 | 0.7732 | 0.7566 | 5/15 | 0.0821 | 0.7502 | +0.0230 |
+| wikipedia | 1 | 0.8915 | 0.8915 | 0.9078 | 8/18 | 0.1582 | 0.8792 | +0.0123 |
+| reddit | 1 | 0.8941 | 0.8941 | 0.8929 | 2/12 | 0.0666 | pending | -- |
+| uci | 1 | 0.7549 | 0.7549 | 0.7062 | 7/17 | 0.3649 | pending | -- |
+| lastfm | 1 | 0.4951 | 0.5004 | 0.4743 | 2/12 | 0.0244 | pending | -- |
+| mooc | 1 | 0.3812 | 0.3843 | 0.3915 | 10/20 | 0.0326 | pending | -- |
+| Flights | 1 | 0.8362 | 0.8390 | 0.8406 | 2/12 | 0.0041 | pending | -- |
 
-Five of five positive, +0.1482 summed. Against CRAFT's own Table 3 these take wikipedia
-(+0.95 over CRAFT-R 88.25, and +0.51 over DyGFormer 88.69, the best number in that column),
-uci (+1.05 over 75.11, +1.55 over DyGFormer 76.61) and reddit (+0.04 over 89.33); lastfm
-(-5.65) and mooc (-24.02) stay well short.
+13 of 24 cells closed. Eight deltas are measurable and **all eight are positive**, +0.1917
+summed; the five seed-1 cells await their default-arm twins in the relaunched DyGLib job.
 
-**Every DyGLib cell settles `mix` far below the 0.5 init** -- 0.025 to 0.33, i.e. the gate
+**Seed 1 reproduces seed 5 to 0.0004-0.0067 on all six DyGLib cells, and `mix` lands on the
+same value per dataset to three or four decimals** (reddit 0.0666 both, Flights 0.0041 both,
+wikipedia 0.157/0.158, lastfm 0.0247/0.0244, uci 0.330/0.365, mooc 0.047/0.033). The gate is
+a property of the dataset, not of the draw.
+
+Against CRAFT's own Table 3 the seed-5 cells take wikipedia (+0.95 over CRAFT-R 88.25, and
++0.51 over DyGFormer 88.69, the best number in that column), uci (+1.05 over 75.11, +1.55
+over DyGFormer 76.61), reddit (+0.04 over 89.33) and Flights (+0.38 over 83.16, though
+DyGFormer 84.13 is still ahead); lastfm (-5.65) and mooc (-24.02) stay well short. tgbl-coin
+0.7732 is +2.63 over CRAFT reproduced with corrected test negatives (74.69) and +1.75 over
+GraphMixer 75.57, but -1.14 against SGNN-HN 78.46.
+
+**Every DyGLib cell settles `mix` far below the 0.5 init** -- 0.004 to 0.36, i.e. the gate
 keeps mostly geometry and uses the recurrence count as a small correction, and still gains
-0.7 to 4.9 points. tgbl-coin runs the other way, rising to 0.68 at ep1 and settling near 0.50,
-so the gate is dataset-adaptive rather than a constant that could be folded into the scorer.
+0.7 to 4.9 points. tgbl-coin runs the other way, rising to 0.68 at ep1 before decaying to
+0.08, so the gate is dataset-adaptive rather than a constant that could be folded into the
+scorer.
 
-Open at seed 5: Flights (live, patience 9/10, `mix` down to 0.0064) and tgbl-coin (live, ep4,
-test 0.7701 against the default arm's closed 0.7502). Seeds 42 and 1 are pending throughout.
+Open: tgbl-flight at all three seeds, tgbl-coin at seeds 42 and 1, the DyGLib six at seed 42.
+
+### The artemis-a40-10 hang
+
+`11696357` (recurrence DyGLib seed 42) and `11696628` (default DyGLib seed 42) both landed on
+`artemis-a40-10` and hung at the Tempest ingest with zero epoch lines, for 12 h 15 m and
+9 h 52 m respectively, on wikipedia -- a 157k-edge graph that takes about two minutes an epoch
+on A40. The node was at cpu=128/128 allocated, CPULoad 106. Both were cancelled on 2026-11-15
+and resubmitted as `11698293` and `11698294` with `--exclude=artemis-a40-10`; the two
+zero-epoch logs are parked under `logs/<arm>/aborted/` and are not archived here.
 
 ## k5_jobs -- TWGem at k_train 5
 
@@ -137,31 +176,31 @@ longer calls itself a side run). Logs in `logs/k5_side/seed_<S>`, tracked by
 | Yelp | `11690735` | `11696684` | `11696686` |
 | Taobao | `11690736` | `11696685` | `11696687` |
 
-Seed 5 runs on A40, seeds 42 and 1 on RTX like the default arm. Per-epoch times therefore do
+Seed 5 ran on A40, seeds 42 and 1 on RTX like the default arm. Per-epoch times therefore do
 not compare between seed 5 and the other two, nor between seed 5 and any default-arm cell;
 the MRRs do.
 
-Live at 2026-11-15 00:17, seed 5 still running, so both numbers are floors:
+### Closed cells (2026-11-15 02:49), seed 5
 
-| cell | k5 (live) | at ep | best val | k10 seed 5 | k10 seed 42 |
-|---|---|---|---|---|---|
-| Taobao | 0.6514 | 38 | 0.6718 | 0.6440 | 0.6436 |
-| Yelp | 0.6862 | 80 | 0.7226 | 0.6849 | 0.6856 |
+| cell | test@val-ckpt | best val | sel/ran | k10 seed 5 | k10 seed 42 | delta |
+|---|---|---|---|---|---|---|
+| Taobao | 0.6514 | 0.6718 | 38/48 | 0.6440 | 0.6436 | +0.0074 |
+| Yelp | 0.6862 | 0.7226 | 80/90 | 0.6849 | 0.6856 | +0.0006 |
 
-Both now lead every k10 cell they have -- Taobao by 0.0074, Yelp by 0.0006 -- and both lead on
-val too (Taobao 0.6718 against 0.6677/0.6685; Yelp 0.7226 against 0.7230/0.7247 is the one
-exception, still below), so Taobao's gain is not only in the val->test gap.
+Both beat every k10 cell they have. Taobao also beats both k10 cells on **val** (0.6718
+against 0.6677 and 0.6685), so that gain is in the model and not only in the val->test gap;
+Yelp's val 0.7226 is below both k10 vals (0.7230, 0.7247) while its test is above, so its
+0.0006 is inside the gap and is not evidence on its own.
 
-Against that, neither is converged and both advance by drift rather than escape: Yelp's val
-peaks rose 0.7188 -> 0.7200 -> 0.7206 -> 0.7215 -> 0.7226 over ep56-80, about +0.0001/epoch,
-inside a 0.005 band, with 8/10 patience reached twice and train loss flat at 0.0001/epoch
-while `r_mean` climbs +0.011/epoch. Taobao carries `r_max` 10.9-12.4 while the two k10 Taobao
-seeds disagree 11.80 vs 4.29, so that cell's radius is unstable at both k and the margin may
-sit inside that.
+Taobao closed on a clean plateau: ten epochs in a 0.0021 val band after the ep38 checkpoint,
+train loss moving 0.0004/epoch, and `r_max` **contracting** 12.41 -> 9.28 over ep31-48, the
+first time that cell's radius has fallen rather than inflated. Yelp closed the same way, val
+0.7208-0.7219 over its last four epochs. Neither gained by escape; both advanced by drift of
+about +0.0001/epoch inside a 0.005 band.
 
 Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter, so the
 arm is carried at full seed coverage rather than as a one-seed probe, and the decision is made
-on three seeds against three.
+on three seeds against three. Seeds 42 and 1 are pending on RTX.
 
 ## Not in this tree
 
