@@ -1,0 +1,78 @@
+# dataset=reddit suite=dyglib task=link_pred seed=5 defaults (k_train 10, d_emb 128), no recurrence; checkpoint=/home/ms2420/CLionProjects/TWGem/logs/node_classification/reddit/link_pred_seed_5.pt
+# branch=master commit=18bc6f8 dirty_tracked_files=0 gpu=NVIDIA RTX 2000 Ada Generation Laptop GPU
+# start=2026-11-15T03:06:48+00:00
+# cmd (cwd /home/ms2420/CLionProjects/TWGem-wt-mix): /home/ms2420/CLionProjects/TWGem/.venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset reddit --is-bipartite --data-root /home/ms2420/CLionProjects/TWGem/datasets --eval-batch-size 200 --seed 5 --use-gpu --use-gpu-tempest --save-checkpoint /home/ms2420/CLionProjects/TWGem/logs/node_classification/reddit/link_pred_seed_5.pt
+=== tempest-embedding training ===
+dataset: reddit
+device:  cuda
+seed:    5
+loaded (dyglib) in 1.2s
+  num_nodes:     10,985
+  T_train:       1,882,468,745
+  neg_pool:      981 train destinations (training negatives)
+  train edges:   470,713
+  val edges:     100,867
+  test edges:    100,867
+  [dyglib] val negatives: 100 uniform collision-free per positive over 984 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 984 full-dataset candidates
+
+=== Config ===
+  num_nodes: 10985
+  T_train: 1882468745
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=981)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 5
+  use_gpu: True
+  use_gpu_tempest: True
+  use_recurrence_count: False
+
+=== Parameter counts ===
+  model.E:            1,406,208
+  head params:            1,377
+  TOTAL trainable:    1,407,585
+
+=== Training ===
+  Ingested full graph into Tempest: 672,447 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.6864  lr=1e-03  train 174.8s  r_mean=0.996  r_max=1.486  val 0.8338  test 0.8320 (new best)  eval 604.8s
+epoch 2/200  link=0.5075  lr=1e-03  train 176.1s  r_mean=1.001  r_max=1.476  val 0.8533  test 0.8501 (new best)  eval 605.1s
+epoch 3/200  link=0.4496  lr=1e-03  train 176.0s  r_mean=1.010  r_max=1.676  val 0.8640  test 0.8582 (new best)  eval 604.9s
+epoch 4/200  link=0.4184  lr=1e-03  train 176.6s  r_mean=1.020  r_max=1.555  val 0.8698  test 0.8612 (new best)  eval 604.7s
+epoch 5/200  link=0.3989  lr=1e-03  train 176.5s  r_mean=1.030  r_max=1.635  val 0.8727  test 0.8632 (new best)  eval 604.7s
+epoch 6/200  link=0.3860  lr=1e-03  train 177.0s  r_mean=1.042  r_max=1.695  val 0.8739  test 0.8632 (new best)  eval 604.9s
+epoch 7/200  link=0.3778  lr=1e-03  train 176.4s  r_mean=1.053  r_max=1.675  val 0.8746  test 0.8625 (new best)  eval 605.0s
+epoch 8/200  link=0.3709  lr=1e-03  train 176.5s  r_mean=1.066  r_max=1.650  val 0.8753  test 0.8616 (new best)  eval 606.0s
+epoch 9/200  link=0.3657  lr=1e-03  train 176.3s  r_mean=1.079  r_max=1.736  val 0.8759  test 0.8630 (new best)  eval 604.8s
+epoch 10/200  link=0.3619  lr=1e-03  train 176.3s  r_mean=1.093  r_max=1.823  val 0.8760  test 0.8624 (new best)  eval 605.1s
+epoch 11/200  link=0.3588  lr=1e-03  train 176.4s  r_mean=1.108  r_max=1.867  val 0.8764  test 0.8618 (new best)  eval 604.9s
+epoch 12/200  link=0.3559  lr=1e-03  train 176.4s  r_mean=1.123  r_max=1.931  val 0.8757  patience 1/10  eval 302.5s
+epoch 13/200  link=0.3542  lr=1e-03  train 176.4s  r_mean=1.138  r_max=1.962  val 0.8749  patience 2/10  eval 303.1s
+epoch 14/200  link=0.3514  lr=1e-03  train 177.9s  r_mean=1.153  r_max=2.002  val 0.8744  patience 3/10  eval 302.5s
+epoch 15/200  link=0.3506  lr=1e-03  train 177.7s  r_mean=1.170  r_max=2.025  val 0.8751  patience 4/10  eval 302.5s
+epoch 16/200  link=0.3493  lr=1e-03  train 178.0s  r_mean=1.186  r_max=2.061  val 0.8742  patience 5/10  eval 302.5s
+epoch 17/200  link=0.3482  lr=1e-03  train 176.6s  r_mean=1.202  r_max=2.053  val 0.8752  patience 6/10  eval 302.8s
+epoch 18/200  link=0.3472  lr=1e-03  train 177.2s  r_mean=1.218  r_max=2.089  val 0.8746  patience 7/10  eval 302.4s
+epoch 19/200  link=0.3463  lr=1e-03  train 177.5s  r_mean=1.234  r_max=2.073  val 0.8736  patience 8/10  eval 302.3s
+epoch 20/200  link=0.3453  lr=1e-03  train 176.1s  r_mean=1.250  r_max=2.095  val 0.8732  patience 9/10  eval 302.2s
+epoch 21/200  link=0.3449  lr=1e-03  train 174.9s  r_mean=1.266  r_max=2.088  val 0.8728  patience 10/10  eval 303.6s
+  restored best weights from epoch 11 (val 0.8764, test 0.8618)
+
+=== Final results ===
+  dataset:           reddit
+  seed:              5
+  best_epoch:        11
+  epochs_run:        21
+  best_val_mrr:      0.8764
+  best_test_mrr:     0.8618
+  checkpoint:        saved to /home/ms2420/CLionProjects/TWGem/logs/node_classification/reddit/link_pred_seed_5.pt (r_mean=1.108, r_max=1.867)
+# exit=0 end=2026-11-15T06:50:04+00:00
