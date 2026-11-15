@@ -1,0 +1,74 @@
+# TWGem-R: recurrence-mix. arm=rcm pin=016b821 branch=feature/recurrence-mix seed=42
+#   logits = (1-m)*layer_norm(-log d) + m*layer_norm(log1p(pair count before t)), m=sigmoid(mix_logit), init 0.5.
+#   Baseline is logs/paper_euclidean/seed_42/Flights.log at master 78bbf8f, same seed, same conf line.
+# conf line: Flights: --eval-batch-size 200   k_train=10
+# experiment=rcm cell=seed_42  dataset=Flights suite=dyglib arm=rcm seed=42
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-rcm commit=016b821 tree=clean tempest=1.0.7
+# host=artemis-a40-11.local job=11698293 gpu=NVIDIA A40
+# started=2026-11-15 17:01:57
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --k-train 10 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Flights
+device:  cuda
+seed:    42
+loaded (dyglib) in 1.2s
+  num_nodes:     13,170
+  T_train:       90
+  neg_pool:      12,569 train nodes (training negatives)
+  train edges:   1,359,922
+  val edges:     279,399
+  test edges:    287,824
+  [dyglib] val negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+
+=== Config ===
+  num_nodes: 13170
+  T_train: 90
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=12,569)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  use_recurrence_count: True
+
+=== Parameter counts ===
+  model.E:            1,685,888
+  head params:            1,378
+  TOTAL trainable:    1,687,266
+
+=== Training ===
+  Ingested full graph into Tempest: 1,927,145 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.6723  lr=1e-03  train 72.3s  r_mean=1.129  r_max=1.729  mix=0.5261  val 0.8381  test 0.8393 (new best)  eval 146.0s
+epoch 2/200  link=0.5442  lr=1e-03  train 70.2s  r_mean=1.274  r_max=2.044  mix=0.3121  val 0.8401  test 0.8361 (new best)  eval 146.6s
+epoch 3/200  link=0.4756  lr=1e-03  train 69.6s  r_mean=1.352  r_max=2.127  mix=0.1924  val 0.8362  patience 1/10  eval 71.8s
+epoch 4/200  link=0.4505  lr=1e-03  train 69.8s  r_mean=1.413  r_max=2.339  mix=0.1246  val 0.8300  patience 2/10  eval 71.7s
+epoch 5/200  link=0.4370  lr=1e-03  train 68.2s  r_mean=1.467  r_max=2.484  mix=0.0822  val 0.8226  patience 3/10  eval 79.0s
+epoch 6/200  link=0.4287  lr=1e-03  train 66.8s  r_mean=1.517  r_max=2.542  mix=0.0544  val 0.8146  patience 4/10  eval 71.1s
+epoch 7/200  link=0.4229  lr=1e-03  train 67.3s  r_mean=1.564  r_max=2.733  mix=0.0359  val 0.8068  patience 5/10  eval 69.9s
+epoch 8/200  link=0.4190  lr=1e-03  train 71.2s  r_mean=1.609  r_max=2.749  mix=0.0236  val 0.7988  patience 6/10  eval 69.7s
+epoch 9/200  link=0.4159  lr=1e-03  train 69.5s  r_mean=1.653  r_max=2.769  mix=0.0154  val 0.7906  patience 7/10  eval 69.5s
+epoch 10/200  link=0.4134  lr=1e-03  train 70.0s  r_mean=1.695  r_max=2.957  mix=0.0100  val 0.7849  patience 8/10  eval 69.5s
+epoch 11/200  link=0.4113  lr=1e-03  train 70.3s  r_mean=1.736  r_max=3.053  mix=0.0065  val 0.7780  patience 9/10  eval 69.8s
+epoch 12/200  link=0.4096  lr=1e-03  train 69.7s  r_mean=1.776  r_max=3.073  mix=0.0042  val 0.7707  patience 10/10  eval 69.3s
+  restored best weights from epoch 2 (val 0.8401, test 0.8361)
+
+=== Final results ===
+  dataset:           Flights
+  seed:              42
+  best_epoch:        2
+  epochs_run:        12
+  best_val_mrr:      0.8401
+  best_test_mrr:     0.8361
+=== rc=0 finished=2026-11-15 17:32:49 ===

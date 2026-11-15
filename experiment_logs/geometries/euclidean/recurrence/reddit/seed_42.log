@@ -1,0 +1,74 @@
+# TWGem-R: recurrence-mix. arm=rcm pin=016b821 branch=feature/recurrence-mix seed=42
+#   logits = (1-m)*layer_norm(-log d) + m*layer_norm(log1p(pair count before t)), m=sigmoid(mix_logit), init 0.5.
+#   Baseline is logs/paper_euclidean/seed_42/reddit.log at master 78bbf8f, same seed, same conf line.
+# conf line: reddit: --is-bipartite --eval-batch-size 200   k_train=10
+# experiment=rcm cell=seed_42  dataset=reddit suite=dyglib arm=rcm seed=42
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-rcm commit=016b821 tree=clean tempest=1.0.7
+# host=artemis-a40-11.local job=11698293 gpu=NVIDIA A40
+# started=2026-11-15 15:31:56
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset reddit --is-bipartite --eval-batch-size 200 --k-train 10 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: reddit
+device:  cuda
+seed:    42
+loaded (dyglib) in 1.2s
+  num_nodes:     10,985
+  T_train:       1,882,468,745
+  neg_pool:      981 train destinations (training negatives)
+  train edges:   470,713
+  val edges:     100,867
+  test edges:    100,867
+  [dyglib] val negatives: 100 uniform collision-free per positive over 984 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 984 full-dataset candidates
+
+=== Config ===
+  num_nodes: 10985
+  T_train: 1882468745
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=981)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  use_recurrence_count: True
+
+=== Parameter counts ===
+  model.E:            1,406,208
+  head params:            1,378
+  TOTAL trainable:    1,407,586
+
+=== Training ===
+  Ingested full graph into Tempest: 672,447 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.5886  lr=1e-03  train 91.9s  r_mean=1.001  r_max=1.503  mix=0.5649  val 0.8915  test 0.8931 (new best)  eval 290.0s
+epoch 2/200  link=0.5210  lr=1e-03  train 91.3s  r_mean=1.010  r_max=1.554  mix=0.4979  val 0.8924  test 0.8936 (new best)  eval 281.7s
+epoch 3/200  link=0.4856  lr=1e-03  train 86.0s  r_mean=1.023  r_max=1.629  mix=0.4121  val 0.8921  patience 1/10  eval 140.3s
+epoch 4/200  link=0.4543  lr=1e-03  train 91.0s  r_mean=1.038  r_max=1.617  mix=0.3330  val 0.8914  patience 2/10  eval 139.9s
+epoch 5/200  link=0.4301  lr=1e-03  train 89.9s  r_mean=1.055  r_max=1.644  mix=0.2676  val 0.8900  patience 3/10  eval 139.2s
+epoch 6/200  link=0.4107  lr=1e-03  train 91.4s  r_mean=1.071  r_max=1.778  mix=0.2155  val 0.8883  patience 4/10  eval 138.8s
+epoch 7/200  link=0.3971  lr=1e-03  train 91.7s  r_mean=1.088  r_max=1.791  mix=0.1747  val 0.8859  patience 5/10  eval 140.1s
+epoch 8/200  link=0.3864  lr=1e-03  train 88.7s  r_mean=1.105  r_max=1.735  mix=0.1424  val 0.8843  patience 6/10  eval 139.5s
+epoch 9/200  link=0.3783  lr=1e-03  train 90.7s  r_mean=1.122  r_max=1.786  mix=0.1166  val 0.8832  patience 7/10  eval 139.5s
+epoch 10/200  link=0.3717  lr=1e-03  train 90.8s  r_mean=1.139  r_max=1.825  mix=0.0960  val 0.8809  patience 8/10  eval 139.0s
+epoch 11/200  link=0.3669  lr=1e-03  train 89.5s  r_mean=1.156  r_max=1.900  mix=0.0792  val 0.8795  patience 9/10  eval 137.1s
+epoch 12/200  link=0.3625  lr=1e-03  train 83.7s  r_mean=1.173  r_max=1.917  mix=0.0655  val 0.8804  patience 10/10  eval 125.7s
+  restored best weights from epoch 2 (val 0.8924, test 0.8936)
+
+=== Final results ===
+  dataset:           reddit
+  seed:              42
+  best_epoch:        2
+  epochs_run:        12
+  best_val_mrr:      0.8924
+  best_test_mrr:     0.8936
+=== rc=0 finished=2026-11-15 16:22:33 ===

@@ -8,6 +8,9 @@ Only runs that closed `rc=0` are copied here, from `logs/` once finished. Record
 test@val-checkpoint and max test: on this suite val flickers walk the checkpointed number
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
+Populated 2026-11-15 with **69 of the 84 cells** -- default 48, recurrence 19, k5 2. The other
+fifteen are seven cells in flight and eight not yet started; they are copied in as they close.
+
 ## default -- TWGem
 
 Master `78bbf8f`. Every knob is the argparse default except the per-dataset flags in
