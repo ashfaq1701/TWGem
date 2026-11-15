@@ -78,14 +78,17 @@ class FrozenEncoder:
         return torch.cat(out)                                                # [N, 5]
 
     def _geometry(self, tokens: WalkTokens, src: torch.Tensor) -> torch.Tensor:
-        """u's radius, its pooled point's radius, and the pooled point's gap from the bag mid."""
+        """u's radius, its pooled point's radius, and the bag's spread around its mid."""
         model = self.model
         bag = model.bag_weights(tokens)
         e_u = model.E.weight[src]                                            # [Q, d]
+        valid = model.bag_weights._bag_nodes(tokens)[1].to(bag.points.dtype)  # [Q, T]
+        gaps = dist(bag.points, bag.mid.unsqueeze(-2)) * valid               # [Q, T]
+        spread = gaps.sum(-1) / valid.sum(-1)                                # [Q]  mean gap
         geometry = [
             dist0(e_u),
             dist0(bag.pooled),
-            dist(bag.pooled, bag.mid),
+            spread,
         ]
         return torch.stack(geometry, dim=-1)                                 # [Q, 3]
 
