@@ -1,6 +1,6 @@
 """Training and eval loop; every walk is cut off EXCLUSIVELY at its query's time (t_edge < t)."""
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from .data import Batch, SplitData
 from .evaluator import Evaluator
-from .model import LinkPredHead, dist0
+from .model import Ablation, LinkPredHead, dist0
 from .negatives import NegativeSampler
 from .walk_tokens import WalkTokens, build_query_walk_tokens
 from .walks import WalkGenerator
@@ -41,6 +41,8 @@ class TrainerConfig:
     use_gpu: bool = False
     use_gpu_tempest: bool = False
 
+    ablation: Ablation = field(default_factory=Ablation)   # defaults are TWGem
+
 
 class Trainer:
     def __init__(self, config: TrainerConfig, device: Optional[torch.device] = None):
@@ -56,6 +58,7 @@ class Trainer:
             hidden_dim=int(config.hidden_dim),
             n_layers_pooler=int(config.n_layers_pooler),
             seed=int(config.seed),
+            ablation=config.ablation,
         ).to(self.device)
 
         self.walk_gen = WalkGenerator(
