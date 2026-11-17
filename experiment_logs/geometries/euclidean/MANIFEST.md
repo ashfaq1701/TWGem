@@ -123,8 +123,12 @@ rather than learning.
 
 ## recurrence -- TWGem-R
 
-Branch `feature/recurrence-mix`, pin `016b821` (master merged in). One change against the
-default arm: the scorer mixes the geometry logit with a recurrence logit at a learned weight,
+Branch `feature/recurrence-mix`, pin `016b821` (master merged in); the code is preserved on
+**`feature/twgem-r-do-not-remove`**, which is master at `f793d56` and so carries the channel
+plus this archive. **`ba17bda` removed the channel from master** -- these logs stay here, the
+code does not.
+
+One change against the default arm: the scorer mixes the geometry logit with a recurrence logit at a learned weight,
 
     logits = (1 - m) * layer_norm(-log d) + m * layer_norm(log1p(pair count before t))
     m = sigmoid(mix_logit), one scalar, init 0 so m = 0.5
@@ -132,8 +136,9 @@ default arm: the scorer mixes the geometry logit with a recurrence logit at a le
 where the pair count is Tempest's `get_pair_co_occurrence_counts(u, v, cutoff, Backward_In_Time)`.
 That call does not advance Tempest's RNG, so at a fixed seed this arm samples bit-identical
 walks to the default arm -- a one-variable comparison. `m` is logged as `mix=` per epoch.
-Off (no `--use-recurrence-count`) the parameter does not exist and master is reproduced; the
-flag is on master since `18bc6f8`, so the default arm's pin stays comparable with this one.
+Off (no `--use-recurrence-count`) the parameter does not exist and master is reproduced. The
+flag was on master from `18bc6f8` until `ba17bda` removed it, and both arms' pins predate the
+removal, so the default arm's pin stays comparable with this one; master's tip no longer is.
 `--k-train 10` is passed explicitly: the branch forks before the commit that made 10 the default.
 
 8 datasets x 3 seeds, 9 Slurm jobs. These are the eight cells CRAFT reports CRAFT-R on
@@ -146,7 +151,9 @@ recurrence arm.
 | tgbl-flight | 11696255 / 11696377 / 11696379 |
 | DyGLib six | 11696356 / 11698293 / 11696358 |
 
-tempest_rw 1.0.7 is required: 1.0.6 has no `get_pair_co_occurrence_counts`.
+tempest_rw 1.0.7 is required to reproduce this arm: 1.0.6 has no
+`get_pair_co_occurrence_counts`. Master's `requirements.txt` went back to `>=1.0.6` at
+`ba17bda`, so reproduce from `feature/twgem-r-do-not-remove`, not from master.
 
 ### Closed cells (2026-11-15 19:00)
 
