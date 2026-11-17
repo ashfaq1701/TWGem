@@ -124,11 +124,13 @@ rather than learning.
 ## recurrence -- TWGem-R
 
 Branch `feature/recurrence-mix`, pin `016b821` (master merged in); the code is preserved on
-**`feature/twgem-r-do-not-remove`**, which is master at `f793d56` and so carries the channel
-plus this archive. **`ba17bda` removed the channel from master** -- these logs stay here, the
-code does not.
+**`feature/twgem-r-do-not-remove`** and fixed by the annotated tag **`twgem-r-results`**, both
+at `f793d56`, which is master carrying the channel plus this archive. Cite the tag: a branch
+can move or be deleted, the tag cannot. **`ba17bda` removed the channel from master** -- these
+logs stay here, the code does not.
 
-One change against the default arm: the scorer mixes the geometry logit with a recurrence logit at a learned weight,
+One change against the default arm: the scorer mixes the geometry logit with a recurrence
+logit at a learned weight,
 
     logits = (1 - m) * layer_norm(-log d) + m * layer_norm(log1p(pair count before t))
     m = sigmoid(mix_logit), one scalar, init 0 so m = 0.5
@@ -138,7 +140,9 @@ That call does not advance Tempest's RNG, so at a fixed seed this arm samples bi
 walks to the default arm -- a one-variable comparison. `m` is logged as `mix=` per epoch.
 Off (no `--use-recurrence-count`) the parameter does not exist and master is reproduced. The
 flag was on master from `18bc6f8` until `ba17bda` removed it, and both arms' pins predate the
-removal, so the default arm's pin stays comparable with this one; master's tip no longer is.
+removal, so the default arm's pin stays comparable with this one. **Master's tip reproduces
+the default arm but can no longer run this one**: with the flag off the code is what it was,
+so nothing about the default arm changed.
 `--k-train 10` is passed explicitly: the branch forks before the commit that made 10 the default.
 
 8 datasets x 3 seeds, 9 Slurm jobs. These are the eight cells CRAFT reports CRAFT-R on
