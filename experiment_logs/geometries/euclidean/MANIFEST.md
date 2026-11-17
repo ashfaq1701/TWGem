@@ -212,32 +212,49 @@ cell for cell with the default arm's Yelp and Taobao.
 
 2 datasets x 3 seeds, 6 jobs. Seed 5 ran on `scripts/run_k5s.sh`; seeds 42 and 1 on
 `scripts/run_k5b.sh`, which differs only in header text (per-seed baseline path, and it no
-longer calls itself a side run). Logs in `logs/k5_side/seed_<S>`, tracked by
+longer calls itself a side run), except the two relaunched Taobao cells, which run
+`scripts/run_k5t2.sh` -- a copy of `run_k5b.sh` identical below its comment line. Logs in
+`logs/k5_side/seed_<S>`, tracked by
 `logs/k5_side/MANIFEST.tsv`; `scripts/pe_status.sh logs/k5_side` prints the arm.
 
 | cell | seed 5 | seed 42 | seed 1 |
 |---|---|---|---|
 | Yelp | `11690735` | `11696684` | `11696686` |
-| Taobao | `11690736` | `11696685` | `11696687` |
+| Taobao | `11690736` | `11738156` | `11738157` |
 
-Seed 5 ran on A40, seeds 42 and 1 on RTX like the default arm. Per-epoch times therefore do
-not compare between seed 5 and the other two, nor between seed 5 and any default-arm cell;
-the MRRs do.
+**Taobao seeds 42 and 1 moved to A40** on 2026-11-17: `11696685`/`11696687` cancelled, neither
+having started, and resubmitted on `--partition=gpu --gres=gpu:A40:1` as `11738156`/`11738157`.
+They had sat `(QOSMaxGRESPerUser)` behind our own 2-GPU ceilings in `long` and `verylong`
+while five of our RTX cards were held by other cells. Seed 5 ran this same cell on
+`artemis-a40-02` and closed `rc=0` in 22 h 48 m over 48 epochs, so the move has a same-cell
+precedent: train 458 s an epoch, eval 533 s ordinary and 1,605 s mean on a new-best epoch.
+A repartition alone could not do it -- the cancelled jobs requested `gres/gpu:RTX:1` and Slurm
+will not change a pending job's GPU type -- so cancel and resubmit was the only route.
+
+Taobao therefore runs on A40 at all three seeds. Yelp ran seed 5 on A40 (`artemis-a40-11`) and
+has seeds 42 and 1 still queued for RTX. Per-epoch times do not compare across cards; the
+MRRs do.
 
 ### Closed cells (2026-11-15 02:49), seed 5
 
 | cell | k5 test | best val | sel/ran | k10 s5 | k10 s42 | k10 s1 | delta vs best k10 |
 |---|---|---|---|---|---|---|---|
 | Taobao | 0.6514 | 0.6718 | 38/48 | 0.6440 | 0.6436 | 0.6477 | **+0.0037** |
-| Yelp | 0.6862 | 0.7226 | 80/90 | 0.6849 | 0.6856 | live | **+0.0006** |
+| Yelp | 0.6862 | 0.7226 | 80/90 | 0.6849 | 0.6856 | 0.6906 | **-0.0044** |
 
 **The margin narrowed when the third k10 seed closed.** Taobao k10 seed 1 came in at 0.6477,
 above both earlier k10 seeds, so k5 leads the best k10 cell by 0.0037 rather than the 0.0074
 it led the first two by, and on val by 0.0010 (0.6718 against 0.6708) rather than clearly
 above every k10 val. Taobao k10 also carries `r_max` 11.80 / 4.29 / 18.97 across its three
-seeds -- a factor of four -- and the k5 margin sits inside that spread. Yelp's +0.0006 is
-smaller than its own val deficit (k5 val 0.7226 against k10 0.7230 and 0.7247), so it lives
-entirely in the val->test gap and is not evidence on its own.
+seeds -- a factor of four -- and the k5 margin sits inside that spread.
+
+**Yelp has since reversed outright.** k10 seed 1 closed at 0.6906 (val 0.7288, sel 83/93), above
+both earlier k10 seeds and above k5's 0.6862, so k5 **loses** Yelp by 0.0044 against the best
+k10 cell and by 0.0008 against the three-seed k10 mean of 0.6870. Its val was already below
+every k10 val (0.7226 against 0.7230 / 0.7247 / 0.7288), which is why the earlier +0.0006 was
+not evidence: it lived entirely in the val->test gap and the gap closed. One k5 seed against
+three k10 seeds, so this is not a verdict on k5 either -- it is the reason the other two k5
+seeds are worth running.
 
 Both cells closed on clean plateaus rather than escapes. Taobao held a 0.0021 val band for the
 ten epochs after its ep38 checkpoint with train loss moving 0.0004/epoch, and its `r_max`
@@ -246,7 +263,8 @@ held 0.7208-0.7219 over its last four epochs against a 0.7226 best.
 
 Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter, so the
 arm is carried at full seed coverage rather than as a one-seed probe, and the decision is made
-on three seeds against three. Seeds 42 and 1 are pending on RTX.
+on three seeds against three. Taobao seeds 42 and 1 are queued on A40 as `11738156`/`11738157`;
+Yelp seeds 42 and 1 remain queued for RTX as `11696684`/`11696686`.
 
 ## Not in this tree
 
