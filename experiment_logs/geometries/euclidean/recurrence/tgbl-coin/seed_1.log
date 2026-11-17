@@ -1,0 +1,78 @@
+# TWGem-R: recurrence-mix. arm=rcm pin=016b821 branch=feature/recurrence-mix
+#   logits = (1-m)*layer_norm(-log d) + m*layer_norm(log1p(pair count before t)), m=sigmoid(mix_logit), init 0.5.
+#   --k-train 10 is the default at this pin (master merged in at 016b821); passed explicitly anyway.
+#   Baseline is logs/paper_euclidean/seed_1/tgbl-coin.log at master 78bbf8f, same seed, same conf line.
+# conf line: tgbl-coin: --lr 1e-4
+# experiment=rcm_tgb cell=seed_1  dataset=tgbl-coin suite=tgb arm=rcm seed=1 k_train=10
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-rcm commit=016b821 tree=clean tempest=1.0.7
+# host=artemis-a40-02.local job=11699062 gpu=NVIDIA A40
+# started=2026-11-15 19:33:20
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb --dataset tgbl-coin --lr 1e-4 --k-train 10 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: tgbl-coin
+device:  cuda
+seed:    1
+loaded (tgb) in 18.0s
+  num_nodes:     638,486
+  T_train:       13,284,796
+  neg_pool:      574,791 train nodes (training negatives)
+  train edges:   15,966,659
+  val edges:     3,421,416
+  test edges:    3,421,411
+  [tgb] val negatives: TGB's pre-generated set (--k-eval=100 ignored)
+  [tgb] test negatives: TGB's pre-generated set (--k-eval=100 ignored)
+
+=== Config ===
+  num_nodes: 638486
+  T_train: 13284796
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=574,791)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.0001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+  use_recurrence_count: True
+
+=== Parameter counts ===
+  model.E:           81,726,336
+  head params:            1,378
+  TOTAL trainable:   81,727,714
+
+=== Training ===
+  Ingested full graph into Tempest: 22,809,486 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.6425  lr=1e-04  train 3091.3s  r_mean=1.022  r_max=2.191  mix=0.6757  val 0.7435  test 0.7587 (new best)  eval 2703.8s
+epoch 2/200  link=0.6205  lr=1e-04  train 3090.6s  r_mean=1.040  r_max=2.438  mix=0.6028  val 0.7481  test 0.7634 (new best)  eval 2708.6s
+epoch 3/200  link=0.6043  lr=1e-04  train 3093.9s  r_mean=1.058  r_max=2.444  mix=0.5577  val 0.7515  test 0.7675 (new best)  eval 2685.5s
+epoch 4/200  link=0.5929  lr=1e-04  train 3052.7s  r_mean=1.074  r_max=2.668  mix=0.5217  val 0.7534  test 0.7694 (new best)  eval 2666.7s
+epoch 5/200  link=0.5814  lr=1e-04  train 3050.8s  r_mean=1.089  r_max=2.715  mix=0.4842  val 0.7549  test 0.7714 (new best)  eval 2665.6s
+epoch 6/200  link=0.5699  lr=1e-04  train 3051.6s  r_mean=1.103  r_max=2.853  mix=0.4494  val 0.7541  patience 1/10  eval 1254.2s
+epoch 7/200  link=0.5589  lr=1e-04  train 3051.0s  r_mean=1.117  r_max=3.012  mix=0.4136  val 0.7546  patience 2/10  eval 1252.4s
+epoch 8/200  link=0.5476  lr=1e-04  train 3061.0s  r_mean=1.131  r_max=3.177  mix=0.3786  val 0.7529  patience 3/10  eval 1268.7s
+epoch 9/200  link=0.5364  lr=1e-04  train 3077.9s  r_mean=1.144  r_max=3.343  mix=0.3413  val 0.7527  patience 4/10  eval 1269.3s
+epoch 10/200  link=0.5243  lr=1e-04  train 3080.8s  r_mean=1.157  r_max=3.465  mix=0.3016  val 0.7533  patience 5/10  eval 1269.0s
+epoch 11/200  link=0.5111  lr=1e-04  train 3080.3s  r_mean=1.170  r_max=3.611  mix=0.2543  val 0.7497  patience 6/10  eval 1270.4s
+epoch 12/200  link=0.4953  lr=1e-04  train 3077.7s  r_mean=1.182  r_max=3.775  mix=0.1906  val 0.7519  patience 7/10  eval 1270.5s
+epoch 13/200  link=0.4740  lr=1e-04  train 3046.5s  r_mean=1.194  r_max=3.978  mix=0.1201  val 0.7503  patience 8/10  eval 1251.8s
+epoch 14/200  link=0.4567  lr=1e-04  train 3094.9s  r_mean=1.205  r_max=4.186  mix=0.0673  val 0.7460  patience 9/10  eval 1297.8s
+epoch 15/200  link=0.4439  lr=1e-04  train 3122.5s  r_mean=1.215  r_max=4.404  mix=0.0337  val 0.7429  patience 10/10  eval 1286.2s
+  restored best weights from epoch 5 (val 0.7549, test 0.7714)
+
+=== Final results ===
+  dataset:           tgbl-coin
+  seed:              1
+  best_epoch:        5
+  epochs_run:        15
+  best_val_mrr:      0.7549
+  best_test_mrr:     0.7714
+=== rc=0 finished=2026-11-16 15:38:56 ===

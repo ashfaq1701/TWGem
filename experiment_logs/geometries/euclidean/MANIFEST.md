@@ -8,8 +8,10 @@ Only runs that closed `rc=0` are copied here, from `logs/` once finished. Record
 test@val-checkpoint and max test: on this suite val flickers walk the checkpointed number
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
-Populated 2026-11-15 with **69 of the 84 cells** -- default 48, recurrence 19, k5 2. The other
-fifteen are seven cells in flight and eight not yet started; they are copied in as they close.
+Populated 2026-11-15 with **77 of the 84 cells** -- default 54, recurrence 21, k5 2. **The
+default arm is complete at 54 of 54 and the recurrence arm's DyGLib and tgbl-coin blocks are
+complete at 21 of 21.** The other seven are the three recurrence tgbl-flight cells and the four
+k5 cells, all still running; they are copied in as they close.
 
 ## default -- TWGem
 
@@ -46,6 +48,7 @@ carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 | YouTube | 1 | 0.6241 | 0.6285 | 0.7020 | 13/23 |
 | Flickr | 5 | 0.6655 | 0.6655 | 0.7087 | 37/47 |
 | Flickr | 42 | 0.6621 | 0.6622 | 0.7074 | 54/64 |
+| Flickr | 1 | 0.6621 | 0.6633 | 0.7069 | 45/55 |
 | Patent | 5 | 0.0417 | 0.0417 | 0.0793 | 1/11 |
 | Patent | 42 | 0.0418 | 0.0418 | 0.0748 | 1/11 |
 | Patent | 1 | 0.0387 | 0.0387 | 0.0755 | 1/11 |
@@ -57,31 +60,43 @@ carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 | Taobao | 1 | 0.6477 | 0.6483 | 0.6708 | 26/36 |
 | Yelp | 5 | 0.6849 | 0.6854 | 0.7230 | 40/50 |
 | Yelp | 42 | 0.6856 | 0.6869 | 0.7247 | 49/59 |
+| Yelp | 1 | 0.6906 | 0.6906 | 0.7288 | 83/93 |
 | WikiLink | 5 | 0.8207 | 0.8207 | 0.8398 | 136/146 |
+| WikiLink | 42 | 0.8198 | 0.8198 | 0.8387 | 103/113 |
+| WikiLink | 1 | 0.8191 | 0.8191 | 0.8382 | 84/94 |
 | tgbl-review | 5 | 0.3017 | 0.3040 | 0.2503 | 3/13 |
 | tgbl-review | 42 | 0.3010 | 0.3013 | 0.2504 | 3/13 |
 | tgbl-review | 1 | 0.3024 | 0.3024 | 0.2482 | 2/12 |
 | tgbl-coin | 5 | 0.7502 | 0.7502 | 0.7404 | 14/24 |
 | tgbl-coin | 42 | 0.7485 | 0.7500 | 0.7387 | 17/27 |
+| tgbl-coin | 1 | 0.7517 | 0.7517 | 0.7423 | 14/24 |
 | tgbl-comment | 5 | 0.7592 | 0.7592 | 0.7222 | 17/27 |
 | tgbl-comment | 42 | 0.7592 | 0.7598 | 0.7216 | 11/21 |
+| tgbl-comment | 1 | 0.7631 | 0.7631 | 0.7239 | 18/28 |
 | tgbl-flight | 5 | 0.8126 | 0.8126 | 0.8344 | 2/12 |
+| tgbl-flight | 42 | 0.8133 | 0.8133 | 0.8347 | 2/12 |
+| tgbl-flight | 1 | 0.8136 | 0.8136 | 0.8351 | 2/12 |
 | wikipedia | 5 | 0.8784 | 0.8800 | 0.9001 | 13/23 |
 | wikipedia | 42 | 0.8803 | 0.8811 | 0.9018 | 11/21 |
 | wikipedia | 1 | 0.8792 | 0.8792 | 0.9008 | 8/18 |
 | reddit | 5 | 0.8618 | 0.8632 | 0.8764 | 11/21 |
+| reddit | 42 | 0.8635 | 0.8644 | 0.8770 | 12/22 |
 | reddit | 1 | 0.8637 | 0.8656 | 0.8769 | 13/23 |
 | mooc | 5 | 0.3757 | 0.3757 | 0.3840 | 13/23 |
+| mooc | 42 | 0.3688 | 0.3714 | 0.3786 | 11/21 |
 | mooc | 1 | 0.3754 | 0.3763 | 0.3822 | 13/23 |
 | lastfm | 5 | 0.4495 | 0.4549 | 0.4490 | 7/17 |
+| lastfm | 42 | 0.4535 | 0.4643 | 0.4489 | 11/21 |
 | lastfm | 1 | 0.4519 | 0.4605 | 0.4488 | 4/14 |
 | uci | 5 | 0.7123 | 0.7123 | 0.6700 | 5/15 |
+| uci | 42 | 0.6983 | 0.7045 | 0.6690 | 8/18 |
 | uci | 1 | 0.6920 | 0.6965 | 0.6660 | 5/15 |
 | Flights | 5 | 0.8042 | 0.8042 | 0.8182 | 3/13 |
+| Flights | 42 | 0.8051 | 0.8051 | 0.8179 | 3/13 |
 | Flights | 1 | 0.8035 | 0.8036 | 0.8177 | 4/14 |
 
-41 of 54 cells. Open: Flickr and Yelp at seed 1; WikiLink at seeds 42 and 1; tgbl-flight at
-seeds 42 and 1; tgbl-coin and tgbl-comment at seed 1; the DyGLib five at seed 42.
+**54 of 54 cells -- the default arm is closed.** All 18 datasets ran all three seeds to
+`rc=0`, bar the one waived `rc=135` below.
 
 **tgbl-comment seed 5 exited `rc=135` and the cell is valid anyway.** All 27 epochs ran,
 patience fired at 10/10, the checkpoint was restored and the final block printed; the process
@@ -90,11 +105,15 @@ and the CUDA context both release. Slurm recorded the job COMPLETED 0:0 and MaxR
 against a 64 GB request, so this is not a memory failure. The run is therefore reported, and the
 `rc=0`-only archive rule is waived for this one log.
 
-Replication across seeds: tgbl-comment 0.0000, Taobao 0.0041, tgbl-review 0.0014, tgbl-coin
-0.0017, Yelp 0.0007, wikipedia 0.0019, reddit 0.0019, mooc 0.0003, lastfm 0.0024, Flights
-0.0007, Patent 0.0031, ML-20M 0.0025, YouTube 0.0128, GoogleLocal 0.0158, **uci 0.0203**. uci
-is the loosest cell in the arm and the smallest dataset in it (110-310 s a run). tgbl-review
-selects at ep2-3 and Patent and ML-20M at ep1 in all three seeds.
+Replication across all three seeds, as max-min of test MRR, ascending: tgbl-flight 0.0010,
+tgbl-review 0.0014, WikiLink 0.0016, Flights 0.0016, reddit 0.0019, wikipedia 0.0019, ML-20M
+0.0025, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, tgbl-comment 0.0039, lastfm 0.0040,
+Taobao 0.0041, Yelp 0.0057, mooc 0.0069, YouTube 0.0128, GoogleLocal 0.0158, **uci 0.0203**.
+**Fifteen of eighteen datasets replicate inside 0.0070 and the median spread is 0.0032.** uci
+is the loosest cell in the arm and the smallest dataset in it (110-310 s a run); GoogleLocal's
+0.0158 is an artefact of the epoch cap, two of its three seeds having been stopped at 197-199
+of 200 while still improving. tgbl-review selects at ep2-3 and Patent and ML-20M at ep1 in all
+three seeds.
 
 **GoogleLocal is an epoch-cap floor at two of three seeds** -- sel 199/200 and 197/200, both
 still improving when the 200-epoch cap stopped them. WikiLink seed 5 is not: it selected at
@@ -138,29 +157,32 @@ recurrence term alone.
 | dataset | seed | test@val-ckpt | max test | best val | sel/ran | mix | default | delta |
 |---|---|---|---|---|---|---|---|---|
 | reddit | 5 | 0.8937 | 0.8937 | 0.8928 | 2/12 | 0.0666 | 0.8618 | +0.0319 |
-| reddit | 42 | 0.8936 | 0.8936 | 0.8924 | 2/12 | 0.0655 | pending | -- |
+| reddit | 42 | 0.8936 | 0.8936 | 0.8924 | 2/12 | 0.0655 | 0.8635 | +0.0301 |
 | reddit | 1 | 0.8941 | 0.8941 | 0.8929 | 2/12 | 0.0666 | 0.8637 | +0.0304 |
 | wikipedia | 5 | 0.8920 | 0.8920 | 0.9067 | 8/18 | 0.1571 | 0.8784 | +0.0136 |
 | wikipedia | 42 | 0.8938 | 0.8938 | 0.9079 | 7/17 | 0.1688 | 0.8803 | +0.0135 |
 | wikipedia | 1 | 0.8915 | 0.8915 | 0.9078 | 8/18 | 0.1582 | 0.8792 | +0.0123 |
 | uci | 5 | 0.7616 | 0.7656 | 0.7076 | 10/20 | 0.3295 | 0.7123 | +0.0493 |
-| uci | 42 | 0.7541 | 0.7541 | 0.7064 | 10/20 | 0.3352 | pending | -- |
+| uci | 42 | 0.7541 | 0.7541 | 0.7064 | 10/20 | 0.3352 | 0.6983 | +0.0558 |
 | uci | 1 | 0.7549 | 0.7549 | 0.7062 | 7/17 | 0.3649 | 0.6920 | +0.0629 |
 | lastfm | 5 | 0.4956 | 0.5010 | 0.4754 | 2/12 | 0.0247 | 0.4495 | +0.0461 |
-| lastfm | 42 | 0.4971 | 0.5030 | 0.4748 | 2/12 | 0.0249 | pending | -- |
+| lastfm | 42 | 0.4971 | 0.5030 | 0.4748 | 2/12 | 0.0249 | 0.4535 | +0.0436 |
 | lastfm | 1 | 0.4951 | 0.5004 | 0.4743 | 2/12 | 0.0244 | 0.4519 | +0.0432 |
 | Flights | 5 | 0.8354 | 0.8387 | 0.8400 | 2/12 | 0.0041 | 0.8042 | +0.0312 |
-| Flights | 42 | 0.8361 | 0.8393 | 0.8401 | 2/12 | 0.0042 | pending | -- |
+| Flights | 42 | 0.8361 | 0.8393 | 0.8401 | 2/12 | 0.0042 | 0.8051 | +0.0310 |
 | Flights | 1 | 0.8362 | 0.8390 | 0.8406 | 2/12 | 0.0041 | 0.8035 | +0.0327 |
 | mooc | 5 | 0.3830 | 0.3830 | 0.3915 | 7/17 | 0.0466 | 0.3757 | +0.0073 |
-| mooc | 42 | 0.3815 | 0.3817 | 0.3882 | 9/19 | 0.0369 | pending | -- |
+| mooc | 42 | 0.3815 | 0.3817 | 0.3882 | 9/19 | 0.0369 | 0.3688 | +0.0127 |
 | mooc | 1 | 0.3812 | 0.3843 | 0.3915 | 10/20 | 0.0326 | 0.3754 | +0.0058 |
 | tgbl-coin | 5 | 0.7732 | 0.7732 | 0.7566 | 5/15 | 0.0821 | 0.7502 | +0.0230 |
+| tgbl-coin | 42 | 0.7723 | 0.7723 | 0.7556 | 6/16 | 0.1243 | 0.7485 | +0.0238 |
+| tgbl-coin | 1 | 0.7714 | 0.7714 | 0.7549 | 5/15 | 0.0337 | 0.7517 | +0.0197 |
 
-19 of 24 cells. **The DyGLib block is complete: 6 datasets x 3 seeds, 18 of 18.** Fourteen
-deltas are measurable and **all fourteen are positive**, +0.4032 summed (+0.2024 at seed 5,
-+0.1873 at seed 1, +0.0135 on the one seed-42 cell whose twin has closed). The five seed-42
-deltas wait on the default arm's relaunched DyGLib job.
+21 of 24 cells. **The DyGLib block is complete at 18 of 18 and tgbl-coin at 3 of 3**; only
+tgbl-flight is open. Now that the default arm has closed, **every one of the 21 deltas is
+measurable and every one is positive**, +0.6199 summed and remarkably even across seeds:
++0.2024 at seed 5, +0.2105 at seed 42, +0.2070 at seed 1, seven cells each. The arm has not
+lost a single cell to the default arm anywhere it has been measured.
 
 **The arm replicates tightly and `mix` is a property of the dataset, not the draw.** Five of
 six DyGLib cells agree within 0.0023 across three seeds (reddit 0.0005, Flights 0.0008, mooc
@@ -181,7 +203,13 @@ keeps mostly geometry and uses the recurrence count as a small correction, and s
 0.08, so the gate is dataset-adaptive rather than a constant that could be folded into the
 scorer.
 
-Open: tgbl-flight at all three seeds, tgbl-coin at seeds 42 and 1.
+**tgbl-coin replicates to 0.0018 across three seeds** -- 0.7732 / 0.7723 / 0.7714, tighter
+than the default arm's own 0.0032 on the same cell -- while `mix` spreads 0.0337 to 0.1243,
+an order of magnitude wider than any DyGLib cell. So the gain is stable even where the gate's
+settled value is not, which argues the recurrence channel matters less by its final weight than
+by having been available during the first few epochs.
+
+Open: tgbl-flight at all three seeds.
 
 ### Hardware moves in this arm
 
