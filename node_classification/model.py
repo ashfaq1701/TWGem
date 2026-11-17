@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class NodeClassifier(nn.Module):
 
-    def __init__(self, n_in: int, width: int = 32, dropout: float = 0.1):
+    def __init__(self, n_in: int, width: int = 32, dropout: float = 0.2):
         super().__init__()
         stem = max(width // 2, n_in)
         self.net = nn.Sequential(
@@ -12,8 +12,6 @@ class NodeClassifier(nn.Module):
             nn.Linear(n_in, stem),
             nn.GELU(),
             nn.Linear(stem, width),
-            nn.GELU(),
-            nn.Linear(width, width),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(width, 1),
