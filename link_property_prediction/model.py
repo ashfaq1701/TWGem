@@ -63,15 +63,15 @@ class BagWeights(nn.Module):
 
     def _token_features(self, tokens: WalkTokens, fixed: torch.Tensor,
                         valid_f: torch.Tensor, mid: torch.Tensor) -> torch.Tensor:
-        """Per-token features [Q, T, 4]: age, hop, log distance to the bag centre, log radius."""
+        """Per-token features [Q, T, 4]: age, hop, distance to the bag centre, radius."""
         age = tokens.ages.flatten(1).clamp_min(0).to(fixed.dtype)            # [Q, T]
         pos = tokens.positions.flatten(1).to(fixed.dtype)                    # [Q, T]
         age = torch.log1p(age) / self.log_T_train                            # [Q, T]
         pos = pos / self.max_walk_len                                        # [Q, T]
 
-        d_mid = torch.log(dist(fixed, mid.unsqueeze(-2))) * valid_f          # [Q, T]
+        d_mid = dist(fixed, mid.unsqueeze(-2)) * valid_f                      # [Q, T]
         r_tok = dist0(fixed)                                                 # [Q, T]
-        d0 = torch.log(r_tok) * valid_f                                      # [Q, T]
+        d0 = r_tok * valid_f                                                 # [Q, T]
 
         return torch.stack([age, pos, d_mid, d0], dim=-1)                    # [Q, T, 4]
 
@@ -126,9 +126,9 @@ class LinkPredHead(nn.Module):
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
+        """Logits [b, c]: -distance between pooled points, standardised per query row."""
         pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
         pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
-        s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
+        s = -dist(pooled_u.unsqueeze(1), pooled_v)                           # [b, c]
         return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
