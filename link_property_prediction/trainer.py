@@ -195,15 +195,18 @@ class Trainer:
             line = (
                 f"epoch {ep}/{n_epochs}  "
                 f"link={link_sum / max(n_batches, 1):.4f}  "
-                f"lr={self.opt.param_groups[0]['lr']:.0e}  "
-                f"train {train_dt:.1f}s"
+                f"lr={self.opt.param_groups[0]['lr']:.0e}"
             )
 
             line += self._probe()
 
+            val_dt: Optional[float] = None
+            test_dt: Optional[float] = None
+
             if val_evaluator is not None and val_batches_factory is not None:
                 t1 = time.time()
                 val_metric = self._eval(val_evaluator, val_batches_factory())
+                val_dt = time.time() - t1
                 per_epoch_val.append(val_metric)
 
                 if val_metric > best_val:
@@ -211,7 +214,9 @@ class Trainer:
                     best_snap = self._snapshot()
                     no_improve = 0
                     if test_evaluator is not None and test_batches_factory is not None:
+                        t2 = time.time()
                         best_test = self._eval(test_evaluator, test_batches_factory())
+                        test_dt = time.time() - t2
                         new_best_test.append(best_test)
                         line += f"  val {val_metric:.4f}  test {best_test:.4f} (new best)"
                     else:
@@ -219,7 +224,12 @@ class Trainer:
                 else:
                     no_improve += 1
                     line += f"  val {val_metric:.4f}  patience {no_improve}/{patience}"
-                line += f"  eval {time.time() - t1:.1f}s"
+
+            line += f"  train_time {train_dt:.1f}s"
+            if val_dt is not None:
+                line += f"  val_time {val_dt:.1f}s"
+            if test_dt is not None:
+                line += f"  test_time {test_dt:.1f}s"
             print(line)
 
             if patience > 0 and no_improve >= patience:
