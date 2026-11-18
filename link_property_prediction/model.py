@@ -125,10 +125,28 @@ class LinkPredHead(nn.Module):
         r_mean = dist0(self.node_embeddings.detach()).mean()                 # []
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
+    @staticmethod
+    def _cross_log_dist(pooled: torch.Tensor, points: torch.Tensor,
+                        weights: torch.Tensor) -> torch.Tensor:
+        """Sum over the other bag's tokens of weight * log distance to the pooled point [b, c]."""
+        log_d = torch.log(dist(pooled.unsqueeze(-2), points))                # [b, c, T]
+        return (weights * log_d).sum(-1)                                     # [b, c]
+
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
-        """Logits [b, c]: -log distance between pooled points, standardised per query row."""
-        pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
-        pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
-        pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
-        s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
+        """Logits [b, c]: -(both sides' weighted log distances to the other bag), standardised per row."""
+        bag_u = self.bag_weights(src_tokens)                                 # [b, ...]
+        bag_v = self.bag_weights(cand_tokens)                                # [b*c, ...]
+        b, d = bag_u.pooled.shape
+        c = bag_v.pooled.shape[0] // b
+
+        pooled_u = bag_u.pooled.unsqueeze(1).expand(b, c, d)                 # [b, c, d]
+        points_u = bag_u.points.unsqueeze(1).expand(b, c, -1, d)             # [b, c, T, d]
+        weights_u = bag_u.weights.unsqueeze(1).expand(b, c, -1)              # [b, c, T]
+        pooled_v = bag_v.pooled.view(b, c, d)                                # [b, c, d]
+        points_v = bag_v.points.view(b, c, -1, d)                            # [b, c, T, d]
+        weights_v = bag_v.weights.view(b, c, -1)                             # [b, c, T]
+
+        u_to_v = self._cross_log_dist(pooled_u, points_v, weights_v)         # [b, c]
+        v_to_u = self._cross_log_dist(pooled_v, points_u, weights_u)         # [b, c]
+        s = -(u_to_v + v_to_u)                                               # [b, c]
         return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
