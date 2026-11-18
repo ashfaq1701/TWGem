@@ -2,8 +2,9 @@
 # repo: ashfaq1701/CRAFT fork at /mnt/nfs2/inf/ms2420/CRAFT_fork
 #   branch fix/tgb-test-negative-shift  commit e77bf60  worktree /mnt/nfs2/inf/ms2420/craft_runs/wt-shift
 # slurm lane: s23  (--num_runs 2 --seed 2  (this file = Run 1 of 2))
-# lane completion marker: none yet -- job 11689728 started 2026-11-13 14:11:57 and is still
-#   running Run 2 (seed 3). Run 1 itself finished, costing 168473.22s.
+# lane completion marker: 2026-11-18 11:13:07 rc=0 421269s   [covers BOTH seeds 2 and 3 in one process]
+#   slurm job 11689728, COMPLETED 0:0, elapsed 4-21:01:26, ended 2026-11-18 11:13:22.
+#   Run 1 (this file) cost 168473.22s of that; Run 2 (seed 3) cost 252305.78s.
 # CRAFT's own per-run logger file: /mnt/nfs2/inf/ms2420/craft_runs/wt-shift/logs/tgbl-flight/CRAFT/fixed_CRAFT_seed2_batchsize200_num_neighbors90_dropout0.1_sample_neighbor_strategyrecent_numlayers1_vfixed/1794579187.7545307.log
 # command: /mnt/nfs2/inf/ms2420/CRAFT_fork/venv/bin/python train_link_prediction.py --dataset_name tgbl-flight --model_name CRAFT --gpu 0 --dataset_path ./data/ --loss BPR --shuffle --use_pos --output_cat_time_intervals --num_output_layer 2 --num_runs 2 --seed 2 --batch_size 200 --embedding_size 128 --num_neighbors 90  --num_layers 1 --hidden_dropout 0.2 --attn_dropout_prob 0.2 --emb_dropout_prob 0.2 --output_cat_repeat_times --version fixed
 #
@@ -22,8 +23,8 @@
 #   source stdout: /mnt/nfs2/inf/ms2420/craft_runs/out/s23/flight.log  (UNMODIFIED, kept outside git)
 #   that stdout holds BOTH seeds sequentially; split at the
 #   '********** Run 2 starts. **********' marker. Run 1 = seed 2, Run 2 = seed 3.
-#   the other s_2 files append the lane's 'metrics over 2 runs' aggregate block after a
-#   blank line; there is none to append here, the lane not having finished Run 2.
+#   the lane's 'metrics over 2 runs' aggregate block is appended after a blank line, as in
+#   the other s_2 files.
 #   tqdm progress bars were collapsed to the final rendered state of each line
 #   (sed 's/.*\r//'). That drops 138.8 MB of carriage-return redraws across the lanes
 #   and loses NO log line -- INFO-line counts are identical before and after
@@ -615,3 +616,17 @@ INFO:root:test roc_auc, 0.99359702
 INFO:root:test val_loss, 0.02124191
 INFO:root:test mrr, 0.86382180
 INFO:root:Run 1 cost 168473.22 seconds.
+
+# ---- APPENDIX: the 2-run aggregate this lane printed. It covers seeds 2 AND 3
+# ---- together and is the only place the +-std appears; per-seed values are
+# ---- recoverable exactly as mean +- std/sqrt(2).
+INFO:root:metrics over 2 runs:
+INFO:root:test average_precision, [np.float64(0.9936860979574192), np.float64(0.9935382795785521)]
+INFO:root:average test average_precision, 0.99361219 ± 0.00010452
+INFO:root:test roc_auc, [np.float64(0.9935970244896094), np.float64(0.9935083295234169)]
+INFO:root:average test roc_auc, 0.99355268 ± 0.00006272
+INFO:root:test val_loss, [np.float64(0.02124190627900477), np.float64(0.0214325994993646)]
+INFO:root:average test val_loss, 0.02133725 ± 0.00013484
+INFO:root:test mrr, [np.float32(0.8638218), np.float32(0.86220556)]
+INFO:root:average test mrr, 0.86301368 ± 0.00114285
+/mnt/nfs2/inf/ms2420/craft_runs/wt-shift/logs/tgbl-flight/CRAFT/fixed_CRAFT_seed2_batchsize200_num_neighbors90_dropout0.1_sample_neighbor_strategyrecent_numlayers1_vfixed/1794579187.7545307.log

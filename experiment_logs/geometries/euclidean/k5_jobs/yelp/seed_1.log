@@ -1,0 +1,96 @@
+# k5 ARM, archived under experiment_logs/geometries/euclidean/k5_jobs. Yelp at --k-train 5.
+#   One flag differs from the default arm: --k-train 5. Evaluation untouched, so it compares cell for cell.
+#   Baseline is logs/paper_euclidean/seed_1/Yelp.log at master 78bbf8f, same seed, same conf line.
+# experiment=k5_side dataset=Yelp suite=tgb-seq seed=1 k_train=5
+# conf line: Yelp: --is-bipartite
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-pe commit=78bbf8f tree=clean
+# host=artemis-rtx-00.local job=11696686 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-17 21:17:46
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset Yelp --is-bipartite --k-train 5 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Yelp
+device:  cuda
+seed:    1
+loaded (tgb-seq) in 8.1s
+  num_nodes:     1,743,770
+  T_train:       413,744,546
+  neg_pool:      405,081 train destinations (training negatives)
+  train edges:   17,025,551
+  val edges:     1,702,388
+  test edges:    1,032,354
+  [tgb-seq] val negatives: 100 uniform per positive over 405,081 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 1743770
+  T_train: 413744546
+  train_negative_sampler: UniformNegativeSampler(k=5, pool=405,081)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:          223,202,688
+  head params:            1,377
+  TOTAL trainable:  223,204,065
+
+=== Training ===
+  Ingested full graph into Tempest: 19,760,293 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.6658  lr=1e-03  train 257.1s  r_mean=1.159  r_max=3.580  val 0.6186  test 0.5711 (new best)  eval 244.5s
+epoch 2/200  link=0.4483  lr=1e-03  train 260.6s  r_mean=1.205  r_max=5.821  val 0.6640  test 0.6318 (new best)  eval 244.0s
+epoch 3/200  link=0.3982  lr=1e-03  train 255.6s  r_mean=1.229  r_max=6.244  val 0.6824  test 0.6549 (new best)  eval 247.0s
+epoch 4/200  link=0.3800  lr=1e-03  train 260.7s  r_mean=1.247  r_max=3.491  val 0.6901  test 0.6638 (new best)  eval 245.5s
+epoch 5/200  link=0.3700  lr=1e-03  train 255.7s  r_mean=1.264  r_max=3.264  val 0.6942  test 0.6667 (new best)  eval 244.8s
+epoch 6/200  link=0.3630  lr=1e-03  train 253.8s  r_mean=1.280  r_max=3.451  val 0.6982  test 0.6705 (new best)  eval 245.4s
+epoch 7/200  link=0.3578  lr=1e-03  train 258.1s  r_mean=1.295  r_max=3.478  val 0.7002  test 0.6725 (new best)  eval 245.4s
+epoch 8/200  link=0.3537  lr=1e-03  train 269.6s  r_mean=1.310  r_max=3.429  val 0.7019  test 0.6734 (new best)  eval 245.3s
+epoch 9/200  link=0.3503  lr=1e-03  train 257.7s  r_mean=1.325  r_max=3.617  val 0.7038  test 0.6750 (new best)  eval 243.6s
+epoch 10/200  link=0.3474  lr=1e-03  train 255.0s  r_mean=1.339  r_max=3.909  val 0.7060  test 0.6768 (new best)  eval 247.4s
+epoch 11/200  link=0.3450  lr=1e-03  train 263.9s  r_mean=1.354  r_max=3.667  val 0.7060  test 0.6759 (new best)  eval 243.5s
+epoch 12/200  link=0.3429  lr=1e-03  train 258.2s  r_mean=1.368  r_max=3.642  val 0.7082  test 0.6783 (new best)  eval 244.9s
+epoch 13/200  link=0.3411  lr=1e-03  train 255.6s  r_mean=1.383  r_max=3.535  val 0.7070  patience 1/10  eval 152.0s
+epoch 14/200  link=0.3395  lr=1e-03  train 256.7s  r_mean=1.397  r_max=3.550  val 0.7070  patience 2/10  eval 151.6s
+epoch 15/200  link=0.3380  lr=1e-03  train 257.5s  r_mean=1.412  r_max=3.598  val 0.7082  patience 3/10  eval 153.7s
+epoch 16/200  link=0.3368  lr=1e-03  train 266.7s  r_mean=1.426  r_max=3.581  val 0.7089  test 0.6760 (new best)  eval 244.6s
+epoch 17/200  link=0.3356  lr=1e-03  train 254.6s  r_mean=1.441  r_max=3.749  val 0.7091  test 0.6766 (new best)  eval 245.5s
+epoch 18/200  link=0.3346  lr=1e-03  train 259.3s  r_mean=1.455  r_max=3.609  val 0.7091  patience 1/10  eval 152.2s
+epoch 19/200  link=0.3337  lr=1e-03  train 255.5s  r_mean=1.469  r_max=3.712  val 0.7089  patience 2/10  eval 155.4s
+epoch 20/200  link=0.3328  lr=1e-03  train 262.0s  r_mean=1.484  r_max=3.816  val 0.7095  test 0.6762 (new best)  eval 246.2s
+epoch 21/200  link=0.3320  lr=1e-03  train 257.7s  r_mean=1.498  r_max=3.750  val 0.7096  test 0.6762 (new best)  eval 244.9s
+epoch 22/200  link=0.3312  lr=1e-03  train 259.5s  r_mean=1.512  r_max=3.820  val 0.7079  patience 1/10  eval 151.6s
+epoch 23/200  link=0.3306  lr=1e-03  train 258.7s  r_mean=1.526  r_max=3.998  val 0.7116  test 0.6774 (new best)  eval 248.2s
+epoch 24/200  link=0.3300  lr=1e-03  train 272.2s  r_mean=1.540  r_max=4.048  val 0.7108  patience 1/10  eval 153.1s
+epoch 25/200  link=0.3294  lr=1e-03  train 257.9s  r_mean=1.554  r_max=4.026  val 0.7133  test 0.6801 (new best)  eval 245.2s
+epoch 26/200  link=0.3288  lr=1e-03  train 288.1s  r_mean=1.568  r_max=4.112  val 0.7098  patience 1/10  eval 155.5s
+epoch 27/200  link=0.3284  lr=1e-03  train 298.2s  r_mean=1.582  r_max=4.185  val 0.7114  patience 2/10  eval 156.5s
+epoch 28/200  link=0.3279  lr=1e-03  train 298.2s  r_mean=1.596  r_max=4.344  val 0.7131  patience 3/10  eval 152.2s
+epoch 29/200  link=0.3274  lr=1e-03  train 284.9s  r_mean=1.610  r_max=4.479  val 0.7109  patience 4/10  eval 152.0s
+epoch 30/200  link=0.3270  lr=1e-03  train 270.7s  r_mean=1.623  r_max=4.620  val 0.7122  patience 5/10  eval 153.1s
+epoch 31/200  link=0.3266  lr=1e-03  train 267.8s  r_mean=1.637  r_max=4.769  val 0.7118  patience 6/10  eval 152.9s
+epoch 32/200  link=0.3263  lr=1e-03  train 270.2s  r_mean=1.651  r_max=4.933  val 0.7129  patience 7/10  eval 153.6s
+epoch 33/200  link=0.3260  lr=1e-03  train 280.6s  r_mean=1.664  r_max=5.004  val 0.7120  patience 8/10  eval 153.9s
+epoch 34/200  link=0.3256  lr=1e-03  train 257.2s  r_mean=1.678  r_max=4.932  val 0.7125  patience 9/10  eval 153.3s
+epoch 35/200  link=0.3254  lr=1e-03  train 261.5s  r_mean=1.691  r_max=5.074  val 0.7118  patience 10/10  eval 152.4s
+  restored best weights from epoch 25 (val 0.7133, test 0.6801)
+
+=== Final results ===
+  dataset:           Yelp
+  seed:              1
+  best_epoch:        25
+  epochs_run:        35
+  best_val_mrr:      0.7133
+  best_test_mrr:     0.6801
+=== rc=0 finished=2026-11-18 01:49:40 ===

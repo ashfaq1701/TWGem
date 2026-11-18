@@ -8,10 +8,10 @@ Only runs that closed `rc=0` are copied here, from `logs/` once finished. Record
 test@val-checkpoint and max test: on this suite val flickers walk the checkpointed number
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
-Populated 2026-11-15 with **77 of the 84 cells** -- default 54, recurrence 21, k5 2. **The
-default arm is complete at 54 of 54 and the recurrence arm's DyGLib and tgbl-coin blocks are
-complete at 21 of 21.** The other seven are the three recurrence tgbl-flight cells and the four
-k5 cells, all still running; they are copied in as they close.
+Populated 2026-11-15, extended 2026-11-18 to **81 of the 84 cells** -- default 54, recurrence
+21, k5 6. **The default arm is complete at 54 of 54, the k5 arm at 6 of 6, and the recurrence
+arm's DyGLib and tgbl-coin blocks at 21 of 21.** The three open cells are recurrence tgbl-flight
+at each seed, still running; they are copied in as they close.
 
 ## default -- TWGem
 
@@ -271,8 +271,8 @@ A repartition alone could not do it -- the cancelled jobs requested `gres/gpu:RT
 will not change a pending job's GPU type -- so cancel and resubmit was the only route.
 
 Taobao therefore runs on A40 at all three seeds. Yelp ran seed 5 on A40 (`artemis-a40-11`) and
-has seeds 42 and 1 still queued for RTX. Per-epoch times do not compare across cards; the
-MRRs do.
+seeds 42 and 1 on `artemis-rtx-00`, one after the other in the same card. Per-epoch times do not
+compare across cards; the MRRs do.
 
 ### Closed cells (2026-11-15 02:49), seed 5
 
@@ -302,8 +302,36 @@ held 0.7208-0.7219 over its last four epochs against a 0.7226 best.
 
 Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter, so the
 arm is carried at full seed coverage rather than as a one-seed probe, and the decision is made
-on three seeds against three. Taobao seeds 42 and 1 are queued on A40 as `11738156`/`11738157`;
-Yelp seeds 42 and 1 remain queued for RTX as `11696684`/`11696686`.
+on three seeds against three. All four remaining cells closed `rc=0` between 2026-11-17 18:36
+and 2026-11-18 01:49.
+
+### Closed cells (2026-11-18 01:49) -- the arm is complete at 6 of 6
+
+| cell | seed | k5 test | max test | best val | sel/ran | k10 same seed | delta |
+|---|---|---|---|---|---|---|---|
+| Taobao | 5 | 0.6514 | 0.6514 | 0.6718 | 38/48 | 0.6440 | **+0.0074** |
+| Taobao | 42 | 0.6518 | 0.6518 | 0.6723 | 36/46 | 0.6436 | **+0.0082** |
+| Taobao | 1 | 0.6505 | 0.6505 | 0.6713 | 38/48 | 0.6477 | **+0.0028** |
+| Yelp | 5 | 0.6862 | 0.6862 | 0.7226 | 80/90 | 0.6849 | +0.0013 |
+| Yelp | 42 | 0.6851 | 0.6851 | 0.7222 | 111/121 | 0.6856 | -0.0005 |
+| Yelp | 1 | 0.6801 | 0.6801 | 0.7133 | 25/35 | 0.6906 | **-0.0105** |
+
+Max test equals the reported number on all six cells.
+
+**Three-seed means: Taobao k5 0.6512 against k10 0.6451, +0.0061; Yelp k5 0.6838 against k10
+0.6870, -0.0032.** The one-seed read holds up under full coverage -- k5 wins Taobao at every
+seed and loses Yelp on the mean -- so k5 is a per-dataset gain, not a suite-level one, and
+reporting Taobao at k5 with the rest at k10 would still be a per-dataset hyperparameter.
+
+**k5 replicates tighter than k10 on Taobao and no better on Yelp.** Taobao k5 spreads 0.0013
+across seeds against k10's 0.0041, with a 0.0010 val spread; Yelp k5 spreads 0.0061 against
+k10's 0.0057, essentially all of it seed 1.
+
+**Yelp seed 1 carries the arm's only large loss and it is not a truncation.** It selected at
+ep25 and stopped at ep35, against 90 and 121 epochs at the other two seeds, with best val
+0.7133 -- 0.0089 below both. Patience fired normally at 10/10 and its per-epoch cost matches
+seed 42's on the same card (466 s against 457 s), so the short run is the draw rather than a
+wall or a hang.
 
 ## Not in this tree
 
