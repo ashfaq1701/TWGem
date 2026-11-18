@@ -1,6 +1,6 @@
 # Euclidean geometry: the paper runs
 
-Three arms, three seeds each (5, 42, 1), one log per cell. Archive layout:
+Two arms, three seeds each (5, 42, 1), one log per cell. Archive layout:
 
     euclidean/<arm>/<dataset>/seed_<S>.log
 
@@ -8,10 +8,10 @@ Only runs that closed `rc=0` are copied here, from `logs/` once finished. Record
 test@val-checkpoint and max test: on this suite val flickers walk the checkpointed number
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
-Populated 2026-11-15, extended 2026-11-18 to **81 of the 84 cells** -- default 54, recurrence
-21, k5 6. **The default arm is complete at 54 of 54, the k5 arm at 6 of 6, and the recurrence
-arm's DyGLib and tgbl-coin blocks at 21 of 21.** The three open cells are recurrence tgbl-flight
-at each seed, still running; they are copied in as they close.
+Populated 2026-11-15, extended 2026-11-18 to **75 of the 78 cells** -- default 54, recurrence 21.
+**The default arm is complete at 54 of 54 and the recurrence arm's DyGLib and tgbl-coin blocks at
+21 of 21.** The three open cells are recurrence tgbl-flight at each seed, still running; they are
+copied in as they close.
 
 ## default -- TWGem
 
@@ -36,7 +36,21 @@ carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 | TGB | tgbl-review, tgbl-coin, tgbl-comment, tgbl-flight |
 | DyGLib | wikipedia, reddit, mooc, lastfm, uci, Flights |
 
-### Closed cells (2026-11-15 19:00)
+**Taobao runs `--k-train 5`**, which `default_conf_variations.txt` now carries on its line, so it
+is a documented per-dataset flag like `--is-bipartite` and not an undocumented departure from the
+arm. It is the only dataset in the suite whose conf line sets a k. Measured against k_train 10 at
+the same three seeds: +0.0074, +0.0082 and +0.0028, mean 0.6512 against 0.6451, and it replicates
+tighter as well (spread 0.0013 against 0.0041). The three Taobao logs here are therefore the k5
+sweep's, jobs `11690736` / `11738156` / `11738157` from `logs/k5_side/seed_<S>/Taobao.log`: their
+headers read `experiment=k5_side` and `k_train=5`, name `logs/paper_euclidean` as their baseline,
+and come from `scripts/run_k5s.sh` / `run_k5b.sh` / `run_k5t2.sh` rather than `run_pe.sh`. Code,
+pin and evaluation are identical to the rest of the arm. Seeds 42 and 1 were moved to A40 on
+2026-11-17 (`11696685`/`11696687` cancelled unstarted, resubmitted on
+`--partition=gpu --gres=gpu:A40:1`) after sitting on `QOSMaxGRESPerUser`; seed 5 had already run
+this cell on `artemis-a40-02`, so all three are A40 and their per-epoch times do not compare with
+an RTX cell's.
+
+### Closed cells (2026-11-15 19:00, Taobao 2026-11-18)
 
 | dataset | seed | test@val-ckpt | max test | best val | sel/ran |
 |---|---|---|---|---|---|
@@ -55,9 +69,9 @@ carries the live job id per cell and is what `scripts/pe_status.sh` reads.
 | ML-20M | 5 | 0.2855 | 0.2855 | 0.3458 | 1/11 |
 | ML-20M | 42 | 0.2834 | 0.2834 | 0.3456 | 1/11 |
 | ML-20M | 1 | 0.2830 | 0.2830 | 0.3447 | 1/11 |
-| Taobao | 5 | 0.6440 | 0.6450 | 0.6677 | 24/34 |
-| Taobao | 42 | 0.6436 | 0.6452 | 0.6685 | 30/40 |
-| Taobao | 1 | 0.6477 | 0.6483 | 0.6708 | 26/36 |
+| Taobao | 5 | 0.6514 | 0.6514 | 0.6718 | 38/48 |
+| Taobao | 42 | 0.6518 | 0.6518 | 0.6723 | 36/46 |
+| Taobao | 1 | 0.6505 | 0.6505 | 0.6713 | 38/48 |
 | Yelp | 5 | 0.6849 | 0.6854 | 0.7230 | 40/50 |
 | Yelp | 42 | 0.6856 | 0.6869 | 0.7247 | 49/59 |
 | Yelp | 1 | 0.6906 | 0.6906 | 0.7288 | 83/93 |
@@ -106,9 +120,9 @@ against a 64 GB request, so this is not a memory failure. The run is therefore r
 `rc=0`-only archive rule is waived for this one log.
 
 Replication across all three seeds, as max-min of test MRR, ascending: tgbl-flight 0.0010,
-tgbl-review 0.0014, WikiLink 0.0016, Flights 0.0016, reddit 0.0019, wikipedia 0.0019, ML-20M
-0.0025, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, tgbl-comment 0.0039, lastfm 0.0040,
-Taobao 0.0041, Yelp 0.0057, mooc 0.0069, YouTube 0.0128, GoogleLocal 0.0158, **uci 0.0203**.
+Taobao 0.0013, tgbl-review 0.0014, WikiLink 0.0016, Flights 0.0016, reddit 0.0019, wikipedia
+0.0019, ML-20M 0.0025, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, tgbl-comment 0.0039,
+lastfm 0.0040, Yelp 0.0057, mooc 0.0069, YouTube 0.0128, GoogleLocal 0.0158, **uci 0.0203**.
 **Fifteen of eighteen datasets replicate inside 0.0070 and the median spread is 0.0032.** uci
 is the loosest cell in the arm and the smallest dataset in it (110-310 s a run); GoogleLocal's
 0.0158 is an artefact of the epoch cap, two of its three seeds having been stopped at 197-199
@@ -243,100 +257,15 @@ default coin has never run on A40 and this arm's coin has never run on RTX. **tg
 off A40 at every seed**: at 7,110 s an epoch on RTX it would cost more there than the rest of
 the sweep combined.
 
-## k5_jobs -- TWGem at k_train 5
-
-Code identical to the default arm (`78bbf8f`, clean tree, conf line read from the file); one
-flag differs, `--k-train 5` against the arm's 10. Evaluation is untouched, so these compare
-cell for cell with the default arm's Yelp and Taobao.
-
-2 datasets x 3 seeds, 6 jobs. Seed 5 ran on `scripts/run_k5s.sh`; seeds 42 and 1 on
-`scripts/run_k5b.sh`, which differs only in header text (per-seed baseline path, and it no
-longer calls itself a side run), except the two relaunched Taobao cells, which run
-`scripts/run_k5t2.sh` -- a copy of `run_k5b.sh` identical below its comment line. Logs in
-`logs/k5_side/seed_<S>`, tracked by
-`logs/k5_side/MANIFEST.tsv`; `scripts/pe_status.sh logs/k5_side` prints the arm.
-
-| cell | seed 5 | seed 42 | seed 1 |
-|---|---|---|---|
-| Yelp | `11690735` | `11696684` | `11696686` |
-| Taobao | `11690736` | `11738156` | `11738157` |
-
-**Taobao seeds 42 and 1 moved to A40** on 2026-11-17: `11696685`/`11696687` cancelled, neither
-having started, and resubmitted on `--partition=gpu --gres=gpu:A40:1` as `11738156`/`11738157`.
-They had sat `(QOSMaxGRESPerUser)` behind our own 2-GPU ceilings in `long` and `verylong`
-while five of our RTX cards were held by other cells. Seed 5 ran this same cell on
-`artemis-a40-02` and closed `rc=0` in 22 h 48 m over 48 epochs, so the move has a same-cell
-precedent: train 458 s an epoch, eval 533 s ordinary and 1,605 s mean on a new-best epoch.
-A repartition alone could not do it -- the cancelled jobs requested `gres/gpu:RTX:1` and Slurm
-will not change a pending job's GPU type -- so cancel and resubmit was the only route.
-
-Taobao therefore runs on A40 at all three seeds. Yelp ran seed 5 on A40 (`artemis-a40-11`) and
-seeds 42 and 1 on `artemis-rtx-00`, one after the other in the same card. Per-epoch times do not
-compare across cards; the MRRs do.
-
-### Closed cells (2026-11-15 02:49), seed 5
-
-| cell | k5 test | best val | sel/ran | k10 s5 | k10 s42 | k10 s1 | delta vs best k10 |
-|---|---|---|---|---|---|---|---|
-| Taobao | 0.6514 | 0.6718 | 38/48 | 0.6440 | 0.6436 | 0.6477 | **+0.0037** |
-| Yelp | 0.6862 | 0.7226 | 80/90 | 0.6849 | 0.6856 | 0.6906 | **-0.0044** |
-
-**The margin narrowed when the third k10 seed closed.** Taobao k10 seed 1 came in at 0.6477,
-above both earlier k10 seeds, so k5 leads the best k10 cell by 0.0037 rather than the 0.0074
-it led the first two by, and on val by 0.0010 (0.6718 against 0.6708) rather than clearly
-above every k10 val. Taobao k10 also carries `r_max` 11.80 / 4.29 / 18.97 across its three
-seeds -- a factor of four -- and the k5 margin sits inside that spread.
-
-**Yelp has since reversed outright.** k10 seed 1 closed at 0.6906 (val 0.7288, sel 83/93), above
-both earlier k10 seeds and above k5's 0.6862, so k5 **loses** Yelp by 0.0044 against the best
-k10 cell and by 0.0008 against the three-seed k10 mean of 0.6870. Its val was already below
-every k10 val (0.7226 against 0.7230 / 0.7247 / 0.7288), which is why the earlier +0.0006 was
-not evidence: it lived entirely in the val->test gap and the gap closed. One k5 seed against
-three k10 seeds, so this is not a verdict on k5 either -- it is the reason the other two k5
-seeds are worth running.
-
-Both cells closed on clean plateaus rather than escapes. Taobao held a 0.0021 val band for the
-ten epochs after its ep38 checkpoint with train loss moving 0.0004/epoch, and its `r_max`
-**contracted** 12.41 -> 9.28 over ep31-48, the first fall that cell's radius has shown. Yelp
-held 0.7208-0.7219 over its last four epochs against a 0.7226 best.
-
-Reporting Taobao at k=5 and the rest at k=10 would be a per-dataset hyperparameter, so the
-arm is carried at full seed coverage rather than as a one-seed probe, and the decision is made
-on three seeds against three. All four remaining cells closed `rc=0` between 2026-11-17 18:36
-and 2026-11-18 01:49.
-
-### Closed cells (2026-11-18 01:49) -- the arm is complete at 6 of 6
-
-| cell | seed | k5 test | max test | best val | sel/ran | k10 same seed | delta |
-|---|---|---|---|---|---|---|---|
-| Taobao | 5 | 0.6514 | 0.6514 | 0.6718 | 38/48 | 0.6440 | **+0.0074** |
-| Taobao | 42 | 0.6518 | 0.6518 | 0.6723 | 36/46 | 0.6436 | **+0.0082** |
-| Taobao | 1 | 0.6505 | 0.6505 | 0.6713 | 38/48 | 0.6477 | **+0.0028** |
-| Yelp | 5 | 0.6862 | 0.6862 | 0.7226 | 80/90 | 0.6849 | +0.0013 |
-| Yelp | 42 | 0.6851 | 0.6851 | 0.7222 | 111/121 | 0.6856 | -0.0005 |
-| Yelp | 1 | 0.6801 | 0.6801 | 0.7133 | 25/35 | 0.6906 | **-0.0105** |
-
-Max test equals the reported number on all six cells.
-
-**Three-seed means: Taobao k5 0.6512 against k10 0.6451, +0.0061; Yelp k5 0.6838 against k10
-0.6870, -0.0032.** The one-seed read holds up under full coverage -- k5 wins Taobao at every
-seed and loses Yelp on the mean -- so k5 is a per-dataset gain, not a suite-level one, and
-reporting Taobao at k5 with the rest at k10 would still be a per-dataset hyperparameter.
-
-**k5 replicates tighter than k10 on Taobao and no better on Yelp.** Taobao k5 spreads 0.0013
-across seeds against k10's 0.0041, with a 0.0010 val spread; Yelp k5 spreads 0.0061 against
-k10's 0.0057, essentially all of it seed 1.
-
-**Yelp seed 1 carries the arm's only large loss and it is not a truncation.** It selected at
-ep25 and stopped at ep35, against 90 and 121 epochs at the other two seeds, with best val
-0.7133 -- 0.0089 below both. Patience fired normally at 10/10 and its per-epoch cost matches
-seed 42's on the same card (466 s against 457 s), so the short run is the draw rather than a
-wall or a hang.
-
 ## Not in this tree
 
-- **k5 beyond Yelp and Taobao**: no other dataset has a k5 cell. The arm exists because those
-  two are the sweep's two largest deficits against CRAFT, not as a general k sweep.
+- **a separate k5 arm**: there is none any more. Taobao's k5 cells became the default arm's
+  Taobao when `--k-train 5` went into `default_conf_variations.txt`, and the Yelp k5 cells were
+  deleted. Yelp's measured k5 numbers, for the record: 0.6862 / 0.6851 / 0.6801 at seeds 5 / 42 /
+  1 against k10's 0.6849 / 0.6856 / 0.6906, i.e. +0.0013, -0.0005 and -0.0105, mean 0.6838 against
+  0.6870. k5 does not help Yelp, nearly all of the loss is seed 1 (selected ep25, stopped ep35
+  against 90 and 121 epochs elsewhere, best val 0.7133 against 0.7222/0.7226), and the other two
+  seeds are a tie. No dataset other than Yelp and Taobao ever had a k5 cell.
 - **tgbl-wiki**: no arm here. It exists only in `experiment_logs/craft_reproduction`.
 - **Patent**: run and archived at both arms' default, but CRAFT does not report it, so it
   carries no comparison and stays out of the paper tables.
