@@ -54,6 +54,8 @@ def main() -> None:
     encoder = FrozenEncoder.from_checkpoint(
         args.checkpoint, stream, device=device, use_gpu_tempest=args.use_gpu_tempest,
         seed=args.seed, num_walks_per_node=args.num_walks_per_node)
+    seen = np.unique(np.concatenate([loaded.train.sources, loaded.train.destinations]))
+    encoder.model.bag_weights.mark_seen(torch.from_numpy(seen).long())
     hash_before = encoder.state_hash()
 
     features = {}

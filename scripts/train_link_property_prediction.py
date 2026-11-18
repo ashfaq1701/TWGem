@@ -180,6 +180,9 @@ def main() -> Dict[str, Any]:
 
     # ─── Instantiate Trainer ───────────────────────────────────────
     trainer = Trainer(config=config, device=device)
+    seen = np.unique(np.concatenate([loaded.train.sources, loaded.train.destinations]))
+    trainer.model.bag_weights.mark_seen(torch.from_numpy(seen).long())
+    print(f"\n  seen nodes (train endpoints): {len(seen):,} of {num_nodes:,}")
 
     print("\n=== Parameter counts ===")
     n_total = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)

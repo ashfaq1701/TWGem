@@ -51,10 +51,24 @@ class BagWeights(nn.Module):
         layers.append(nn.Linear(self.hidden, 1))
         self.net = nn.Sequential(*layers)
 
+        seen = torch.ones(E.num_embeddings, dtype=torch.bool)                # [N+1] all seen
+        seen[E.padding_idx] = False
+        self.register_buffer("seen", seen, persistent=False)                 # not checkpointed
+
+    @torch.no_grad()
+    def mark_seen(self, nodes: torch.Tensor) -> None:
+        """Only these nodes (train-edge endpoints) have trained rows; the rest are masked."""
+        self.seen.zero_()
+        self.seen[nodes.to(self.seen.device)] = True
+        self.seen[self.E.padding_idx] = False
+
     def _bag_nodes(self, tokens: WalkTokens) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Token ids and validity [Q, T]; padding takes the sentinel row, a cold query its seed."""
+        """Token ids and validity [Q, T]; padding and unseen nodes take the sentinel row, a cold
+        query its seed (a random row if that seed is unseen too)."""
         valid = tokens.mask.flatten(1).clone()                               # [Q, T]
         nodes = tokens.nodes.flatten(1).masked_fill(~valid, self.E.padding_idx)
+        valid &= self.seen[nodes]                                            # padding is never seen
+        nodes = nodes.masked_fill(~valid, self.E.padding_idx)                # [Q, T]
         cold = ~valid.any(dim=-1)                                            # [Q]
         if bool(cold.any()):
             nodes[cold, 0] = tokens.seeds[cold]
