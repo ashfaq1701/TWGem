@@ -1,0 +1,201 @@
+# SGNN-HN reproduction with CORRECTED TGB test negatives -- tgbl-review, seed 3
+# repo: ashfaq1701/CRAFT fork at /mnt/nfs2/inf/ms2420/CRAFT_fork
+#   branch fix/tgb-test-negative-shift  commit e77bf60  worktree /mnt/nfs2/inf/ms2420/craft_runs/wt-shift
+# slurm lane: sgnnhn_review  (--num_runs 3 --seed 1  (this file = Run 3 of 3))
+# lane completion marker: 2026-11-18 16:30:23 rc=0 53812s   [covers seeds 1, 2 and 3 in one process]
+#   slurm job 11760185, COMPLETED 0:0, elapsed 14:56:53 on artemis-a40-00.
+# CRAFT's own per-run logger file: /mnt/nfs2/inf/ms2420/craft_runs/wt-shift/logs/tgbl-review/SGNNHN/sgnnhn_SGNNHN_seed1_batchsize200_num_neighbors120_dropout0.1_sample_neighbor_strategyrecent_numlayers2_vsgnnhn/1794965713.0321536.log
+# command: /mnt/nfs2/inf/ms2420/CRAFT_fork/venv/bin/python train_link_prediction.py --dataset_name tgbl-review --model_name SGNNHN --gpu 0 --dataset_path ./data/ --batch_size 200 --embedding_size 128 --output_dim 128 --num_neighbors 120 --dropout 0.1 --step 1 --scale 12 --loss BPR --learning_rate 0.0001 --num_epochs 200 --patience 15 --num_runs 3 --seed 1 --shuffle --version sgnnhn
+#
+# THE CONFIGURATION IS RECONSTRUCTED, NOT RECORDED. Neither the CRAFT repo nor either paper
+#   gives SGNN-HN's hyperparameters: load_link_prediction_best_configs has no SGNNHN branch,
+#   the README documents CRAFT only, and Table 6 is CRAFT's. Fixed across all methods by the
+#   papers: batch 200, lr 1e-4, embedding 128, 3 runs. num_neighbors 120 is CRAFT's own
+#   tgbl-review value reused as the session length -- an ASSUMPTION. loss BPR is forced:
+#   BCELoss asserts in this fork's eval path (job 11758651). See the directory README.
+#
+# THIS RUN'S TEST METRICS (computed ONCE, after early stopping restored the best-val
+#   checkpoint; --test_interval_epochs is declared and never read, so there is no mid-run
+#   test metric anywhere in this file):
+#   INFO:root:test average_precision, 0.49219076
+#   INFO:root:test roc_auc, 0.48933758
+#   INFO:root:test val_loss, 0.92417386
+#   INFO:root:test mrr, 0.04535289
+#   epochs run 16, best val average_precision 0.48937267 at ep1, run cost 12495.47 seconds.
+#
+# HOW THIS FILE WAS MADE, so it can be audited or regenerated:
+#   source stdout: /mnt/nfs2/inf/ms2420/craft_runs/out/sgnnhn_review/tgbl-review.log
+#     (UNMODIFIED, kept outside git; its own provenance header is reproduced above)
+#   that stdout holds all three seeds sequentially; split at the '********** Run N starts.'
+#     markers. Run 1 = seed 1, Run 2 = seed 2, Run 3 = seed 3.
+#   tqdm progress bars were collapsed to the final rendered state of each line
+#   (sed 's/.*\r//'); INFO-line counts are identical before and after on this slice.
+#   the lane's 'metrics over 3 runs' aggregate block is appended after a blank line.
+#
+INFO:root:********** Run 3 starts. **********
+INFO:root:configuration is Namespace(dataset_name='tgbl-review', batch_size=200, multi_negs_batch_size=20, model_name='SGNNHN', gpu=0, output_dim=128, embedding_size=128, num_neighbors=120, save_model_path='./saved_models/', dataset_path='./data/', sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, edge_bank_memory_mode='unlimited_memory', time_window_mode='fixed_proportion', patch_size=1, channel_embedding_dim=50, max_input_sequence_length=64, learning_rate=0.0001, dropout=0.1, scale=12.0, num_epochs=200, optimizer='Adam', weight_decay=0.0, patience=15, val_ratio=0.15, test_ratio=0.15, num_runs=3, seed=1, test_interval_epochs=10, is_bipartite=False, negative_sample_strategy='random', load_best_configs=False, use_edge_feat=False, load_pretrained=False, use_node_feat=False, use_bn=False, use_bias=False, use_act=False, act_type='ReLU', use_feat=False, time_enc=False, use_mixer=False, use_positional=False, use_neighbor=False, use_layernorm=False, num_layers=2, num_mixer_layers=2, merge='cat', version='sgnnhn', hidden_dropout=0.5, hidden_act='gelu', loss='BPR', inner_size=256, attn_dropout_prob=0.5, layer_norm_eps=1e-12, initializer_range=0.02, shuffle=True, use_pos=False, step=1, use_mean=False, output_cat_time_intervals=False, output_cat_repeat_times=False, input_cat_time_intervals=False, num_output_layer=1, collision_check=False, emb_dropout_prob=0.1, use_mrr_val=False, skip_connection=False, device='cuda:0', save_model_name='SGNNHN_seed2_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn', user_size=np.int64(352637), item_size=np.int64(352637), node_size=np.int64(352637), dst_min_idx=1, src_min_idx=1)
+INFO:root:['train_link_prediction.py', '--dataset_name', 'tgbl-review', '--model_name', 'SGNNHN', '--gpu', '0', '--dataset_path', './data/', '--batch_size', '200', '--embedding_size', '128', '--output_dim', '128', '--num_neighbors', '120', '--dropout', '0.1', '--step', '1', '--scale', '12', '--loss', 'BPR', '--learning_rate', '0.0001', '--num_epochs', '200', '--patience', '15', '--num_runs', '3', '--seed', '1', '--shuffle', '--version', 'sgnnhn']
+Using loss_type: BPR
+INFO:root:model -> Sequential(
+  (0): SGNNHN(
+    (item_embedding): Embedding(352638, 128, padding_idx=0)
+    (pos_embedding): Embedding(120, 128)
+    (loss_fct): CrossEntropyLoss()
+    (gnncell): SRGNNCell(
+      (incomming_conv): SRGNNConv()
+      (outcomming_conv): SRGNNConv()
+      (lin_ih): Linear(in_features=256, out_features=384, bias=True)
+      (lin_hh): Linear(in_features=128, out_features=384, bias=True)
+    )
+    (linear_one): Linear(in_features=128, out_features=128, bias=True)
+    (linear_two): Linear(in_features=128, out_features=128, bias=True)
+    (linear_three): Linear(in_features=128, out_features=128, bias=True)
+    (linear_four): Linear(in_features=128, out_features=1, bias=False)
+    (linear_transform): Linear(in_features=256, out_features=128, bias=True)
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=256, out_features=128, bias=True)
+    (fc2): Linear(in_features=128, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: SGNNHN, #parameters: 181799428 B, 177538.50390625 KB, 173.37744522094727 MB.
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.35005350
+INFO:root:train average_precision, 0.85572933
+INFO:root:train roc_auc, 0.83233251
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:07<00:00, 28.62it/s]
+INFO:root:validate average_precision, 0.48937267
+INFO:root:validate roc_auc, 0.48661871
+INFO:root:validate val_loss, 0.92984836
+INFO:root:save model ./saved_models//tgbl-review/SGNNHN/SGNNHN_seed3_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn/SGNNHN_seed3_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn.pkl
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.29308167
+INFO:root:train average_precision, 0.88351696
+INFO:root:train roc_auc, 0.87062429
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:14<00:00, 27.19it/s]
+INFO:root:validate average_precision, 0.40884198
+INFO:root:validate roc_auc, 0.34443861
+INFO:root:validate val_loss, 1.22087766
+INFO:root:Epoch: 3, learning rate: 0.0001, train loss: 0.28518024
+INFO:root:train average_precision, 0.88343485
+INFO:root:train roc_auc, 0.87243174
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:17<00:00, 26.54it/s]
+INFO:root:validate average_precision, 0.38084728
+INFO:root:validate roc_auc, 0.27827389
+INFO:root:validate val_loss, 1.49590507
+INFO:root:Epoch: 4, learning rate: 0.0001, train loss: 0.27935399
+INFO:root:train average_precision, 0.87982185
+INFO:root:train roc_auc, 0.86869729
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:17<00:00, 26.57it/s]
+INFO:root:validate average_precision, 0.37906497
+INFO:root:validate roc_auc, 0.27635453
+INFO:root:validate val_loss, 1.44343171
+INFO:root:Epoch: 5, learning rate: 0.0001, train loss: 0.26774530
+INFO:root:train average_precision, 0.86956342
+INFO:root:train roc_auc, 0.85547113
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:10<00:00, 28.03it/s]
+INFO:root:validate average_precision, 0.37809730
+INFO:root:validate roc_auc, 0.27604333
+INFO:root:validate val_loss, 1.44142259
+INFO:root:Epoch: 6, learning rate: 0.0001, train loss: 0.24653461
+INFO:root:train average_precision, 0.86878602
+INFO:root:train roc_auc, 0.85587054
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:15<00:00, 26.97it/s]
+INFO:root:validate average_precision, 0.37687819
+INFO:root:validate roc_auc, 0.27563286
+INFO:root:validate val_loss, 1.48160899
+INFO:root:Epoch: 7, learning rate: 0.0001, train loss: 0.22928520
+INFO:root:train average_precision, 0.87143922
+INFO:root:train roc_auc, 0.86296414
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:15<00:00, 26.97it/s]
+INFO:root:validate average_precision, 0.37552107
+INFO:root:validate roc_auc, 0.27050378
+INFO:root:validate val_loss, 1.56279547
+INFO:root:Epoch: 8, learning rate: 0.0001, train loss: 0.21582720
+INFO:root:train average_precision, 0.87513449
+INFO:root:train roc_auc, 0.87035972
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:15<00:00, 26.89it/s]
+INFO:root:validate average_precision, 0.37971785
+INFO:root:validate roc_auc, 0.28423889
+INFO:root:validate val_loss, 1.43645295
+INFO:root:Epoch: 9, learning rate: 0.0001, train loss: 0.20555732
+INFO:root:train average_precision, 0.87449531
+INFO:root:train roc_auc, 0.87277379
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:16<00:00, 26.72it/s]
+INFO:root:validate average_precision, 0.38886286
+INFO:root:validate roc_auc, 0.30892362
+INFO:root:validate val_loss, 1.30457557
+INFO:root:Epoch: 10, learning rate: 0.0001, train loss: 0.19649353
+INFO:root:train average_precision, 0.87364236
+INFO:root:train roc_auc, 0.87410777
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:24<00:00, 25.35it/s]
+INFO:root:validate average_precision, 0.38704613
+INFO:root:validate roc_auc, 0.30683269
+INFO:root:validate val_loss, 1.32347843
+INFO:root:Epoch: 11, learning rate: 0.0001, train loss: 0.18758242
+INFO:root:train average_precision, 0.87430786
+INFO:root:train roc_auc, 0.87665578
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:07<00:00, 28.67it/s]
+INFO:root:validate average_precision, 0.38166572
+INFO:root:validate roc_auc, 0.29361069
+INFO:root:validate val_loss, 1.38222568
+INFO:root:Epoch: 12, learning rate: 0.0001, train loss: 0.18010945
+INFO:root:train average_precision, 0.87658730
+INFO:root:train roc_auc, 0.87981809
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:08<00:00, 28.53it/s]
+INFO:root:validate average_precision, 0.38618434
+INFO:root:validate roc_auc, 0.30618105
+INFO:root:validate val_loss, 1.32931062
+INFO:root:Epoch: 13, learning rate: 0.0001, train loss: 0.17330996
+INFO:root:train average_precision, 0.87551361
+INFO:root:train roc_auc, 0.87998796
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:16<00:00, 26.79it/s]
+INFO:root:validate average_precision, 0.38117161
+INFO:root:validate roc_auc, 0.29531109
+INFO:root:validate val_loss, 1.39736704
+INFO:root:Epoch: 14, learning rate: 0.0001, train loss: 0.16696177
+INFO:root:train average_precision, 0.87556006
+INFO:root:train roc_auc, 0.88065127
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:17<00:00, 26.67it/s]
+INFO:root:validate average_precision, 0.38463580
+INFO:root:validate roc_auc, 0.30520720
+INFO:root:validate val_loss, 1.37446180
+INFO:root:Epoch: 15, learning rate: 0.0001, train loss: 0.16045593
+INFO:root:train average_precision, 0.87526514
+INFO:root:train roc_auc, 0.88103191
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:12<00:00, 27.52it/s]
+INFO:root:validate average_precision, 0.39162695
+INFO:root:validate roc_auc, 0.31942112
+INFO:root:validate val_loss, 1.28130985
+INFO:root:Epoch: 16, learning rate: 0.0001, train loss: 0.15533652
+INFO:root:train average_precision, 0.87353437
+INFO:root:train roc_auc, 0.87978220
+100%|███████████████████████████████████████████████████████████████████████████████| 3654/3654 [02:15<00:00, 26.92it/s]
+INFO:root:validate average_precision, 0.38618231
+INFO:root:validate roc_auc, 0.30778383
+INFO:root:validate val_loss, 1.35134698
+INFO:root:load model ./saved_models//tgbl-review/SGNNHN/SGNNHN_seed3_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn/SGNNHN_seed3_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn.pkl
+INFO:root:get final performance on dataset tgbl-review...
+100%|███████████████████████████████████████████████████████████████████████████████| 3645/3645 [02:18<00:00, 26.36it/s]
+INFO:root:load model ./saved_models//tgbl-review/SGNNHN/SGNNHN_seed3_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn/SGNNHN_seed3_batchsize200_num_neighbors120_dropout0.1_numlayers2_vsgnnhn.pkl
+INFO:root:test average_precision, 0.49219076
+INFO:root:test roc_auc, 0.48933758
+INFO:root:test val_loss, 0.92417386
+100%|████████████████████████████████████████████████████████████████████████████| 36446/36446 [03:30<00:00, 172.97it/s]
+INFO:root:test average_precision, 0.49219076
+INFO:root:test roc_auc, 0.48933758
+INFO:root:test val_loss, 0.92417386
+INFO:root:test mrr, 0.04535289
+INFO:root:Run 3 cost 12495.47 seconds.
+
+# ---- APPENDIX: the 3-run aggregate this lane printed. It covers seeds 1, 2 AND 3
+# ---- together and is the only place the +-std appears.
+INFO:root:metrics over 3 runs:
+INFO:root:test average_precision, [np.float64(0.5411235041396915), np.float64(0.5155371182825459), np.float64(0.4921907585216278)]
+INFO:root:average test average_precision, 0.51628379 ± 0.02447492
+INFO:root:test roc_auc, [np.float64(0.5452220514029867), np.float64(0.5253828409746857), np.float64(0.4893375843210681)]
+INFO:root:average test roc_auc, 0.51998083 ± 0.02833116
+INFO:root:test val_loss, [np.float64(0.7835684794293837), np.float64(0.7855217692946864), np.float64(0.9241738569752833)]
+INFO:root:average test val_loss, 0.83108804 ± 0.08062060
+INFO:root:test mrr, [np.float32(0.0512844), np.float32(0.049474236), np.float32(0.045352895)]
+INFO:root:average test mrr, 0.04870385 ± 0.00303987
+/mnt/nfs2/inf/ms2420/craft_runs/wt-shift/logs/tgbl-review/SGNNHN/sgnnhn_SGNNHN_seed1_batchsize200_num_neighbors120_dropout0.1_sample_neighbor_strategyrecent_numlayers2_vsgnnhn/1794965713.0321536.log

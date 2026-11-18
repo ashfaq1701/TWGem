@@ -49,7 +49,7 @@ learning rate (1e-4), the embedding size (128 for large datasets) and 3 runs.
 | `--learning_rate` | 1e-4 | paper, fixed across all methods |
 | `--output_dim` | 128 | **forced by the code**, see below |
 | `--num_neighbors` | 120 | **ASSUMPTION** -- CRAFT's Table 6 tgbl-review row, reused as SGNN-HN's `max_seq_length` |
-| `--loss` | BCE | argparse default; **unmeasured fork**, see below |
+| `--loss` | BPR | **forced by the code** -- BCE crashes in eval, see below |
 | `--dropout` `--step` `--scale` | 0.1 / 1 / 12 | argparse defaults |
 | `--num_epochs` `--patience` | 200 / 15 | argparse defaults, same as our CRAFT runs |
 | `--num_runs` `--seed` | 3 / 1 | seeds 1,2,3, matching `craft_reproduction/s_{1,2,3}` |
@@ -62,11 +62,16 @@ input_dim2=args.output_dim, ...))` and the training loop applies `model[1]`. At 
 `output_dim=172` with `embedding_size=128`, `fc1 = Linear(344, 172)` receives 256 features and
 raises.
 
-**`--loss` is chosen outside the model.** `SGNNHN` stores `loss_type` and never reads it; the
-loss comes from `get_loss_fn(args)`, which accepts only `BPR` or `BCE`. BCE is the default and
-is what we ran first. BPR is what CRAFT used for itself and is the stronger ranking loss, so if
-we publish a corrected SGNN-HN number we should run both and report the better one, or a
-reviewer will say we under-tuned the baseline.
+**`--loss` is chosen outside the model, and only BPR runs.** `SGNNHN` stores `loss_type` and
+never reads it; the loss comes from `get_loss_fn(args)`, which accepts only `BPR` or `BCE`. BCE
+is the argparse default and the first job (`11758651`) died on it after 902 s:
+`Loss.cu:90: Assertion input_val >= zero && input_val <= one failed` at
+`evaluate_models_utils.py:362`. The cause is that training sigmoids its scores through
+`MergeLayer` while the eval branch calls `model[0].predict` with no sigmoid and then
+`loss_func(pos, neg)` -- the `BPRLoss(pos_score, neg_score)` signature -- so `BCELoss` receives
+out-of-range inputs and the negatives as its target. BPR is therefore the only loss this fork
+admits for SGNN-HN, not a tuning choice, and it is also what CRAFT used for itself. The failed
+run is kept outside git as `craft_runs/out/sgnnhn_review/tgbl-review.bce-crash.log`.
 
 **`--scale` cannot change the metric.** `predict` returns `(seq_output . item_emb) * self.scale`,
 a uniform positive factor, so it leaves the ranking and therefore MRR untouched.
@@ -81,8 +86,16 @@ CRAFT run on this cell exactly.
 Training optimises through `MergeLayer` -- an MLP on the concatenated source and destination
 embeddings -- while evaluation scores with a dot product in `SGNNHN.predict` and ignores
 `MergeLayer` entirely. So the head that is trained is not the head that is tested. This is
-CRAFT's integration, not something we introduced, and it is worth a sentence if the number
-comes out low.
+CRAFT's integration, not something we introduced.
+
+**The original does not do this.** Upstream commit `81590a7` states the file is "adopted from
+RecBole-GNN". There, `loss_type` is `'BPR'` or `'CE'` and **both** training paths score with the
+same mean-centred, L2-normalised dot product times `scale` that `predict` and
+`full_sort_predict` use, so training and ranking share one functional form; the CE path takes
+cross-entropy over the whole item catalogue, which is how the SGNN-HN paper trains. This fork
+has no CE path at all, and its BPR path routes through `MergeLayer`. Both differences are in
+CRAFT's integration layer, not in our command line, and together they are the most likely
+explanation of the number below -- say so when reporting it.
 
 ## The command
 
@@ -92,11 +105,11 @@ Run from `/mnt/nfs2/inf/ms2420/craft_runs/wt-shift`:
 /mnt/nfs2/inf/ms2420/CRAFT_fork/venv/bin/python train_link_prediction.py \
   --dataset_name tgbl-review --model_name SGNNHN --gpu 0 --dataset_path ./data/ \
   --batch_size 200 --embedding_size 128 --output_dim 128 --num_neighbors 120 \
-  --dropout 0.1 --step 1 --scale 12 --loss BCE --learning_rate 0.0001 \
+  --dropout 0.1 --step 1 --scale 12 --loss BPR --learning_rate 0.0001 \
   --num_epochs 200 --patience 15 --num_runs 3 --seed 1 --shuffle --version sgnnhn
 ```
 
-Driver: `/mnt/nfs2/inf/ms2420/craft_runs/sgnnhn_review_a40_2.sbatch` (A40, partition `gpu`,
+Driver: `/mnt/nfs2/inf/ms2420/craft_runs/sgnnhn_review_a40_3.sbatch` (A40, partition `gpu`,
 4 CPUs, 16 G). The memory figure is measured, not guessed: a review-only CRAFT job peaked at
 `MaxRSS 3.74 GB` (job `11592561`), and an earlier 96 G request could not be scheduled on any
 A40 node because the only two with a free card had 20.6 G and 7.2 G unallocated.
@@ -119,30 +132,57 @@ and this run's test metrics block; then the body, with tqdm redraws collapsed by
 
 Only `rc=0` runs are archived.
 
-## Status
+## Status: closed 2026-11-18, three seeds
 
-`s_1`, `s_2` and `s_3` are empty. Job `11758651` is queued on A40 for all three seeds; CRAFT
-cost 3,016 s a seed on RTX for this cell, so expect a few hours once it starts.
+Job `11760185` ran all three seeds in one process on `artemis-a40-00`, COMPLETED `0:0` in
+14:56:53 (53,812 s), and `s_1`, `s_2`, `s_3` hold one split log each.
 
-References for the cell once it lands:
+| seed | test MRR | test AP | test ROC-AUC | epochs | best val AP | at ep | cost |
+|---|---|---|---|---|---|---|---|
+| 1 | 0.05128 | 0.54112 | 0.54522 | 26 | 0.55620 | 11 | 21,503 s |
+| 2 | 0.04947 | 0.51554 | 0.52538 | 24 | 0.50019 | 9 | 19,629 s |
+| 3 | 0.04535 | 0.49219 | 0.48934 | 16 | 0.48937 | **1** | 12,495 s |
+| **mean** | **0.04870 +- 0.00304** | 0.51628 +- 0.02447 | 0.51998 +- 0.02833 | | | | |
+
+**This is a collapse, not a weak result, and it must not be reported as a failed reproduction
+of 35.62.** 0.0487 is where uniform-random scoring lands on this cell: tgbl-review serves ~100
+negatives per positive, and random MRR there is about 0.052. Test AP 0.516 and ROC-AUC 0.520
+against one random negative say the same thing from the other side. The run is a baseline at
+a RECONSTRUCTED config, and two things in CRAFT's integration are the prime suspects before any
+hyperparameter is: the train/eval scoring-form mismatch and the missing CE path, both above.
+Seed 3 shows the degenerate version -- best val at epoch 1, then sixteen epochs downhill.
+
+What a defensible SGNN-HN baseline would need next, in order: the CE objective the original
+trains with, or at minimum BPR on the same dot product the metric reads; then a session length
+chosen for this dataset rather than borrowed from CRAFT. Neither was run.
+
+References for the cell:
 
 | | tgbl-review MRR (%) |
 |---|---|
 | CRAFT paper, SGNN-HN (uncorrected) | 35.62 +- 0.53 |
 | CRAFT paper, CRAFT (uncorrected) | 41.77 +- 0.06 |
 | our CRAFT, corrected, 3 seeds | **22.71 +- 0.23** |
-| our SGNN-HN, corrected | pending |
+| our SGNN-HN, corrected, 3 seeds | **4.87 +- 0.30** (see the caveat above) |
 
 No independent third-party rerun of SGNN-HN exists for this dataset: MambaTG
 (arXiv 2611.07569) reruns tgbl-coin 66.25, tgbl-flight 81.86 and tgbl-comment 40.38 against
 CRAFT's 78.46 / 89.03 / 55.24, but does not report tgbl-review.
 
-**Open question that decides whether this arm is needed at all.** The paper's own §5.1 says
-"The results for all baselines on the TGB-Seq and TGB datasets are directly taken from previous
-studies [40, 41]", where [40] is the TGB-Seq paper and [41] is Le Yu's DyGLib-TGB report. Taken
-literally, SGNN-HN's four TGB numbers were not produced by the broken loader and nothing needs
-re-running. The counter-evidence is that Table 3 also reports SGNN-HN on the six DyGLib
-datasets, and SGNN-HN appears in neither [41] nor DyGLib [42], so the authors demonstrably ran
-it themselves somewhere and that blanket sentence is loose. That is an argument from absence
-and has not been checked against [40] or [41] directly; neither is on disk. Confirm that
-neither reports SGNN-HN on tgbl-review/coin/comment/flight before writing any claim about it.
+**Settled 2026-11-18: the arm is needed.** The paper's §5.1 says "The results for all baselines
+on the TGB-Seq and TGB datasets are directly taken from previous studies [40, 41]", which taken
+literally would mean SGNN-HN's four TGB numbers never touched the broken loader. Both sources
+were checked directly:
+
+- **[40], TGB-Seq (arXiv 2502.02975).** SGNN-HN appears only in its Table 3, on ML-20M, Taobao,
+  Yelp, GoogleLocal, wikipedia and reddit. No `tgbl-*` dataset. It also gives no SGNN-HN
+  hyperparameters; its only fixed settings are "a learning rate of 0.0001 across all methods and
+  datasets" and batch 200/400.
+- **[41], Le Yu, "An Empirical Evaluation of Temporal Graph Benchmark" (arXiv 2307.12510).**
+  Its eleven methods are JODIE, DyRep, TGAT, TGN, CAWN, EdgeBank, TCL, GraphMixer, DyGFormer,
+  Persistent Forecast and Moving Average. SGNN-HN does not appear anywhere in the paper.
+
+So SGNN-HN's tgbl-review/coin/comment/flight numbers exist in no prior study and were produced
+by the CRAFT authors with this code, i.e. through the unshifted `test_ns`. The §5.1 sentence is
+loose, as the DyGLib rows already suggested. Our own corrected number is not yet a usable
+replacement for them -- see the Status caveat -- but the premise of the arm holds.
