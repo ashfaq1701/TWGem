@@ -8,10 +8,9 @@ Only runs that closed `rc=0` are copied here, from `logs/` once finished. Record
 test@val-checkpoint and max test: on this suite val flickers walk the checkpointed number
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
-Populated 2026-11-15, **75 of the 78 cells** -- default 54, recurrence 21. **The default arm is
-complete at 54 of 54 and the recurrence arm's DyGLib and tgbl-coin blocks at 21 of 21.** The
-three open cells are recurrence tgbl-flight at each seed, still running; they are copied in as
-they close. Every closed cell ran `rc=0`, bar the one waived `rc=135` below.
+Populated 2026-11-15, completed 2026-11-19 at **78 of 78 cells** -- default 54, recurrence 24.
+**Both arms are closed.** Every dataset ran all three seeds to `rc=0`, bar the one waived
+`rc=135` below.
 
 **The six DyGLib cells in both arms run `--num-walks-per-node 30`.** They were re-run at wpn 30
 on 2026-11-18/19 and these logs replaced the wpn 10 ones, which are one revision back in git
@@ -206,7 +205,7 @@ tempest_rw 1.0.7 is required to reproduce this arm: 1.0.6 has no
 `get_pair_co_occurrence_counts`. Master's `requirements.txt` went back to `>=1.0.6` at
 `ba17bda`, so reproduce from `feature/twgem-r-do-not-remove`, not from master.
 
-### Closed cells (2026-11-15 19:00, DyGLib at wpn 30 2026-11-19)
+### Closed cells (2026-11-15 19:00, DyGLib at wpn 30 and tgbl-flight 2026-11-19)
 
 `mix` is the gate's final logged value, `default` the same cell in the default arm at the same
 seed. Walks are bit-identical between the two arms at a fixed seed, so each delta is the
@@ -235,12 +234,15 @@ recurrence term alone.
 | tgbl-coin | 5 | 0.7732 | 0.7732 | 0.7566 | 5/15 | 0.0821 | 0.7502 | +0.0230 |
 | tgbl-coin | 42 | 0.7723 | 0.7723 | 0.7556 | 6/16 | 0.1243 | 0.7485 | +0.0238 |
 | tgbl-coin | 1 | 0.7714 | 0.7714 | 0.7549 | 5/15 | 0.0337 | 0.7517 | +0.0197 |
+| tgbl-flight | 5 | 0.8664 | 0.8664 | 0.8762 | 1/11 | 0.1722 | 0.8126 | +0.0538 |
+| tgbl-flight | 42 | 0.8655 | 0.8655 | 0.8758 | 1/11 | 0.1764 | 0.8133 | +0.0522 |
+| tgbl-flight | 1 | 0.8659 | 0.8659 | 0.8758 | 1/11 | 0.1761 | 0.8136 | +0.0523 |
 
-**21 of 24 cells; only tgbl-flight is open.** Summed over the 21 the arm is **+0.5471** ahead of
-the default arm and the total is even across seeds: +0.1877 at seed 5, +0.1787 at seed 42,
-+0.1807 at seed 1, seven cells each.
+**24 of 24 cells -- the recurrence arm is closed.** Summed over all 24 the arm is **+0.7054**
+ahead of the default arm and the total is even across seeds: +0.2415 at seed 5, +0.2309 at
+seed 42, +0.2330 at seed 1, eight cells each.
 
-**20 of 21 deltas are positive and one is not: mooc seed 1 at -0.0016.** That is the first cell
+**23 of 24 deltas are positive and one is not: mooc seed 1 at -0.0016.** That is the first cell
 this arm has lost anywhere, and it arrived with wpn 30 -- at wpn 10 mooc paid +0.0073 / +0.0127 /
 +0.0058. The dataset mean is now +0.0004, i.e. recurrence and walk breadth are substitutes on
 mooc and breadth has taken the whole of what the gate was supplying. lastfm shows the same
@@ -249,7 +251,7 @@ and uci (+0.0560 -> +0.0500). Only Flights moved the other way (+0.0316 -> +0.03
 
 **The arm replicates tightly.** Five of six DyGLib cells agree within 0.0043 across three seeds
 (reddit 0.0005, Flights 0.0012, wikipedia 0.0023, lastfm 0.0029, mooc 0.0043) and uci spreads
-0.0085.
+0.0085; tgbl-flight is the tightest cell in either arm at 0.0009.
 
 **`mix` is a property of the dataset on three cells and not on the other three.** reddit
 0.0640-0.0653, Flights 0.0058-0.0060 and lastfm 0.0147-0.0148 land on the same value to three
@@ -282,7 +284,13 @@ an order of magnitude wider than any DyGLib cell. So the gain is stable even whe
 settled value is not, which argues the recurrence channel matters less by its final weight than
 by having been available during the first few epochs.
 
-Open: tgbl-flight at all three seeds.
+**tgbl-flight is the arm's largest and cleanest gain: +0.0527 on the mean** (0.8659 against
+0.8132), the three seeds inside 0.0009 on both sides. All three select at **epoch 1 of 11** and
+then decline for ten straight epochs while `mix` falls 0.64 -> 0.17 and `r_mean` grows
+near-linearly 1.13 -> 2.8, so the whole of the gain is in the first pass, before the geometry
+inflates -- the same one-epoch pattern the TGB notes in CLAUDE.md describe for this suite. The
+three cells cost 206,835 s, 221,728 s and 252,574 s of wall clock on RTX (2.4-2.9 days each),
+the most expensive cells in either arm.
 
 ### Hardware moves in this arm
 
