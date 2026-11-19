@@ -1,18 +1,21 @@
-# TWGem-R: recurrence-mix. arm=rcm pin=016b821 branch=feature/recurrence-mix seed=42
+# ARCHIVED -- TWGem-R. Flights, wpn 30, seed 42. pin=7884d4e branch=feature/twgem-r-do-not-remove
 #   logits = (1-m)*layer_norm(-log d) + m*layer_norm(log1p(pair count before t)), m=sigmoid(mix_logit), init 0.5.
-#   Baseline is logs/paper_euclidean/seed_42/Flights.log at master 78bbf8f, same seed, same conf line.
-# conf line: Flights: --eval-batch-size 200   k_train=10
-# experiment=rcm cell=seed_42  dataset=Flights suite=dyglib arm=rcm seed=42
-# code=/mnt/nfs2/inf/ms2420/tempest-wt-rcm commit=016b821 tree=clean tempest=1.0.7
-# host=artemis-a40-11.local job=11698293 gpu=NVIDIA A40
-# started=2026-11-15 17:01:57
-# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --k-train 10 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --use-gpu --use-gpu-tempest
+# Every knob is the argparse default except --num-walks-per-node 30, --use-recurrence-count and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: Flights: --eval-batch-size 200
+# experiment=rcm_dyg_wpn30 cell=seed_42 dataset=Flights suite=dyglib seed=42 wpn=30 arm=rcm
+# Baselines: experiment_logs/geometries/euclidean/default/flights/seed_42.log (same wpn, no recurrence) and
+#   the wpn 10 predecessor of this cell, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-rw5 commit=7884d4e tree=clean
+# host=artemis-a40-10.local job=11763782 gpu=NVIDIA A40
+# started=2026-11-19 02:35:49
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --num-walks-per-node 30 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --use-gpu --use-gpu-tempest
 
 === tempest-embedding training ===
 dataset: Flights
 device:  cuda
 seed:    42
-loaded (dyglib) in 1.2s
+loaded (dyglib) in 2.0s
   num_nodes:     13,170
   T_train:       90
   neg_pool:      12,569 train nodes (training negatives)
@@ -29,7 +32,7 @@ loaded (dyglib) in 1.2s
   d_emb: 128
   hidden_dim: 32
   n_layers_pooler: 2
-  num_walks_per_node: 10
+  num_walks_per_node: 30
   max_walk_len: 5
   walk_bias: ExponentialWeight
   start_bias: ExponentialWeight
@@ -50,25 +53,24 @@ loaded (dyglib) in 1.2s
 
 === Training ===
   Ingested full graph into Tempest: 1,927,145 edges (once; per-query cutoff enforces causality)
-epoch 1/200  link=0.6723  lr=1e-03  train 72.3s  r_mean=1.129  r_max=1.729  mix=0.5261  val 0.8381  test 0.8393 (new best)  eval 146.0s
-epoch 2/200  link=0.5442  lr=1e-03  train 70.2s  r_mean=1.274  r_max=2.044  mix=0.3121  val 0.8401  test 0.8361 (new best)  eval 146.6s
-epoch 3/200  link=0.4756  lr=1e-03  train 69.6s  r_mean=1.352  r_max=2.127  mix=0.1924  val 0.8362  patience 1/10  eval 71.8s
-epoch 4/200  link=0.4505  lr=1e-03  train 69.8s  r_mean=1.413  r_max=2.339  mix=0.1246  val 0.8300  patience 2/10  eval 71.7s
-epoch 5/200  link=0.4370  lr=1e-03  train 68.2s  r_mean=1.467  r_max=2.484  mix=0.0822  val 0.8226  patience 3/10  eval 79.0s
-epoch 6/200  link=0.4287  lr=1e-03  train 66.8s  r_mean=1.517  r_max=2.542  mix=0.0544  val 0.8146  patience 4/10  eval 71.1s
-epoch 7/200  link=0.4229  lr=1e-03  train 67.3s  r_mean=1.564  r_max=2.733  mix=0.0359  val 0.8068  patience 5/10  eval 69.9s
-epoch 8/200  link=0.4190  lr=1e-03  train 71.2s  r_mean=1.609  r_max=2.749  mix=0.0236  val 0.7988  patience 6/10  eval 69.7s
-epoch 9/200  link=0.4159  lr=1e-03  train 69.5s  r_mean=1.653  r_max=2.769  mix=0.0154  val 0.7906  patience 7/10  eval 69.5s
-epoch 10/200  link=0.4134  lr=1e-03  train 70.0s  r_mean=1.695  r_max=2.957  mix=0.0100  val 0.7849  patience 8/10  eval 69.5s
-epoch 11/200  link=0.4113  lr=1e-03  train 70.3s  r_mean=1.736  r_max=3.053  mix=0.0065  val 0.7780  patience 9/10  eval 69.8s
-epoch 12/200  link=0.4096  lr=1e-03  train 69.7s  r_mean=1.776  r_max=3.073  mix=0.0042  val 0.7707  patience 10/10  eval 69.3s
-  restored best weights from epoch 2 (val 0.8401, test 0.8361)
+epoch 1/200  link=0.6575  lr=1e-03  r_mean=1.095  r_max=1.689  mix=0.4803  val 0.8393  test 0.8406 (new best)  train_time 204.9s  val_time 194.7s  test_time 197.2s
+epoch 2/200  link=0.5417  lr=1e-03  r_mean=1.263  r_max=2.211  mix=0.2821  val 0.8392  patience 1/10  train_time 189.9s  val_time 188.7s
+epoch 3/200  link=0.4729  lr=1e-03  r_mean=1.352  r_max=2.247  mix=0.1737  val 0.8356  patience 2/10  train_time 192.6s  val_time 191.6s
+epoch 4/200  link=0.4484  lr=1e-03  r_mean=1.416  r_max=2.443  mix=0.1125  val 0.8294  patience 3/10  train_time 194.2s  val_time 197.4s
+epoch 5/200  link=0.4356  lr=1e-03  r_mean=1.471  r_max=2.540  mix=0.0742  val 0.8223  patience 4/10  train_time 189.2s  val_time 199.9s
+epoch 6/200  link=0.4278  lr=1e-03  r_mean=1.523  r_max=2.584  mix=0.0491  val 0.8147  patience 5/10  train_time 185.7s  val_time 193.2s
+epoch 7/200  link=0.4222  lr=1e-03  r_mean=1.571  r_max=2.761  mix=0.0324  val 0.8068  patience 6/10  train_time 185.8s  val_time 187.6s
+epoch 8/200  link=0.4185  lr=1e-03  r_mean=1.617  r_max=2.761  mix=0.0213  val 0.7986  patience 7/10  train_time 184.6s  val_time 194.1s
+epoch 9/200  link=0.4156  lr=1e-03  r_mean=1.661  r_max=2.796  mix=0.0139  val 0.7908  patience 8/10  train_time 185.0s  val_time 184.3s
+epoch 10/200  link=0.4130  lr=1e-03  r_mean=1.704  r_max=3.019  mix=0.0090  val 0.7853  patience 9/10  train_time 185.2s  val_time 190.2s
+epoch 11/200  link=0.4110  lr=1e-03  r_mean=1.745  r_max=3.070  mix=0.0058  val 0.7788  patience 10/10  train_time 185.1s  val_time 189.7s
+  restored best weights from epoch 1 (val 0.8393, test 0.8406)
 
 === Final results ===
   dataset:           Flights
   seed:              42
-  best_epoch:        2
-  epochs_run:        12
-  best_val_mrr:      0.8401
-  best_test_mrr:     0.8361
-=== rc=0 finished=2026-11-15 17:32:49 ===
+  best_epoch:        1
+  epochs_run:        11
+  best_val_mrr:      0.8393
+  best_test_mrr:     0.8406
+=== rc=0 finished=2026-11-19 03:49:18 ===

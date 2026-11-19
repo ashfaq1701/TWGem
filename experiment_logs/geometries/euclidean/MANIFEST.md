@@ -8,15 +8,25 @@ Only runs that closed `rc=0` are copied here, from `logs/` once finished. Record
 test@val-checkpoint and max test: on this suite val flickers walk the checkpointed number
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
-Populated 2026-11-15, extended 2026-11-18 to **75 of the 78 cells** -- default 54, recurrence 21.
-**The default arm is complete at 54 of 54 and the recurrence arm's DyGLib and tgbl-coin blocks at
-21 of 21.** The three open cells are recurrence tgbl-flight at each seed, still running; they are
-copied in as they close.
+Populated 2026-11-15, **75 of the 78 cells** -- default 54, recurrence 21. **The default arm is
+complete at 54 of 54 and the recurrence arm's DyGLib and tgbl-coin blocks at 21 of 21.** The
+three open cells are recurrence tgbl-flight at each seed, still running; they are copied in as
+they close. Every closed cell ran `rc=0`, bar the one waived `rc=135` below.
+
+**The six DyGLib cells in both arms run `--num-walks-per-node 30`.** They were re-run at wpn 30
+on 2026-11-18/19 and these logs replaced the wpn 10 ones, which are one revision back in git
+history. `default_conf_variations.txt` carries wpn 30 on those six lines, so both arm
+definitions below still hold literally. The twelve non-DyGLib datasets stay at the argparse
+default wpn 10.
 
 ## default -- TWGem
 
-Master `78bbf8f`. Every knob is the argparse default except the per-dataset flags in
-`default_conf_variations.txt`, reproduced verbatim on each log's command line.
+Master `78bbf8f`, and **`5711eee` for the six DyGLib cells**. The only difference between those
+two pins inside `link_property_prediction/` is the epoch line's timing split
+(`train_time`/`val_time`/`test_time` instead of `train`/`eval`), so the model and the data path
+are identical and a wpn 10 cell compares with a wpn 30 one on one variable. Every knob is the
+argparse default except the per-dataset flags in `default_conf_variations.txt`, reproduced
+verbatim on each log's command line.
 Defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
 eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
 
@@ -50,7 +60,19 @@ pin and evaluation are identical to the rest of the arm. Seeds 42 and 1 were mov
 this cell on `artemis-a40-02`, so all three are A40 and their per-epoch times do not compare with
 an RTX cell's.
 
-### Closed cells (2026-11-15 19:00, Taobao 2026-11-18)
+**The six DyGLib datasets run `--num-walks-per-node 30`**, carried on their conf lines the same
+way, so they too are documented per-dataset flags rather than a departure from the arm. Measured
+against wpn 10 at the same three seeds, as three-seed mean of test@val-ckpt: mooc 0.4038 against
+0.3733 (**+0.0305**), lastfm 0.4784 against 0.4516 (**+0.0268**), uci 0.7079 against 0.7009
+(+0.0071), wikipedia 0.8806 against 0.8793 (+0.0013), reddit 0.8637 against 0.8630 (+0.0007),
+Flights 0.8048 against 0.8043 (+0.0005). **It never loses a cell and the gain is concentrated in
+the two weakest datasets**: mooc and lastfm carry 86% of the +0.0669 summed over the six, and the
+other four move less than their own three-seed spread. The gain orders inversely with baseline
+MRR across all six, which is a regularity over six cells and not a tested mechanism. Cost is
+2.1-3.0x the wpn 10 wall clock on the same node and dataset. Jobs `11763778`-`11763780`, one seed
+each, from `scripts/run_dwa30.sh`; their headers read `experiment=dyg_wpn30` and `wpn=30`.
+
+### Closed cells (2026-11-15 19:00, Taobao 2026-11-18, DyGLib at wpn 30 2026-11-19)
 
 | dataset | seed | test@val-ckpt | max test | best val | sel/ran |
 |---|---|---|---|---|---|
@@ -90,24 +112,24 @@ an RTX cell's.
 | tgbl-flight | 5 | 0.8126 | 0.8126 | 0.8344 | 2/12 |
 | tgbl-flight | 42 | 0.8133 | 0.8133 | 0.8347 | 2/12 |
 | tgbl-flight | 1 | 0.8136 | 0.8136 | 0.8351 | 2/12 |
-| wikipedia | 5 | 0.8784 | 0.8800 | 0.9001 | 13/23 |
-| wikipedia | 42 | 0.8803 | 0.8811 | 0.9018 | 11/21 |
-| wikipedia | 1 | 0.8792 | 0.8792 | 0.9008 | 8/18 |
-| reddit | 5 | 0.8618 | 0.8632 | 0.8764 | 11/21 |
-| reddit | 42 | 0.8635 | 0.8644 | 0.8770 | 12/22 |
-| reddit | 1 | 0.8637 | 0.8656 | 0.8769 | 13/23 |
-| mooc | 5 | 0.3757 | 0.3757 | 0.3840 | 13/23 |
-| mooc | 42 | 0.3688 | 0.3714 | 0.3786 | 11/21 |
-| mooc | 1 | 0.3754 | 0.3763 | 0.3822 | 13/23 |
-| lastfm | 5 | 0.4495 | 0.4549 | 0.4490 | 7/17 |
-| lastfm | 42 | 0.4535 | 0.4643 | 0.4489 | 11/21 |
-| lastfm | 1 | 0.4519 | 0.4605 | 0.4488 | 4/14 |
-| uci | 5 | 0.7123 | 0.7123 | 0.6700 | 5/15 |
-| uci | 42 | 0.6983 | 0.7045 | 0.6690 | 8/18 |
-| uci | 1 | 0.6920 | 0.6965 | 0.6660 | 5/15 |
-| Flights | 5 | 0.8042 | 0.8042 | 0.8182 | 3/13 |
-| Flights | 42 | 0.8051 | 0.8051 | 0.8179 | 3/13 |
-| Flights | 1 | 0.8035 | 0.8036 | 0.8177 | 4/14 |
+| wikipedia | 5 | 0.8794 | 0.8808 | 0.9009 | 13/23 |
+| wikipedia | 42 | 0.8815 | 0.8817 | 0.9026 | 8/18 |
+| wikipedia | 1 | 0.8808 | 0.8808 | 0.9012 | 8/18 |
+| reddit | 5 | 0.8629 | 0.8644 | 0.8769 | 11/21 |
+| reddit | 42 | 0.8643 | 0.8654 | 0.8769 | 12/22 |
+| reddit | 1 | 0.8639 | 0.8659 | 0.8777 | 14/24 |
+| mooc | 5 | 0.4007 | 0.4007 | 0.4137 | 11/21 |
+| mooc | 42 | 0.4050 | 0.4081 | 0.4153 | 10/20 |
+| mooc | 1 | 0.4058 | 0.4070 | 0.4160 | 11/21 |
+| lastfm | 5 | 0.4766 | 0.4766 | 0.4740 | 3/13 |
+| lastfm | 42 | 0.4805 | 0.4844 | 0.4728 | 3/13 |
+| lastfm | 1 | 0.4781 | 0.4821 | 0.4759 | 4/14 |
+| uci | 5 | 0.7138 | 0.7188 | 0.6773 | 6/16 |
+| uci | 42 | 0.7082 | 0.7141 | 0.6733 | 8/18 |
+| uci | 1 | 0.7018 | 0.7018 | 0.6767 | 7/17 |
+| Flights | 5 | 0.8052 | 0.8052 | 0.8187 | 3/13 |
+| Flights | 42 | 0.8053 | 0.8053 | 0.8183 | 3/13 |
+| Flights | 1 | 0.8039 | 0.8040 | 0.8180 | 4/14 |
 
 **54 of 54 cells -- the default arm is closed.** All 18 datasets ran all three seeds to
 `rc=0`, bar the one waived `rc=135` below.
@@ -120,14 +142,16 @@ against a 64 GB request, so this is not a memory failure. The run is therefore r
 `rc=0`-only archive rule is waived for this one log.
 
 Replication across all three seeds, as max-min of test MRR, ascending: tgbl-flight 0.0010,
-Taobao 0.0013, tgbl-review 0.0014, WikiLink 0.0016, Flights 0.0016, reddit 0.0019, wikipedia
-0.0019, ML-20M 0.0025, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, tgbl-comment 0.0039,
-lastfm 0.0040, Yelp 0.0057, mooc 0.0069, YouTube 0.0128, GoogleLocal 0.0158, **uci 0.0203**.
-**Fifteen of eighteen datasets replicate inside 0.0070 and the median spread is 0.0032.** uci
-is the loosest cell in the arm and the smallest dataset in it (110-310 s a run); GoogleLocal's
-0.0158 is an artefact of the epoch cap, two of its three seeds having been stopped at 197-199
-of 200 while still improving. tgbl-review selects at ep2-3 and Patent and ML-20M at ep1 in all
-three seeds.
+Taobao 0.0013, Flights 0.0014, reddit 0.0014, tgbl-review 0.0014, WikiLink 0.0016, wikipedia
+0.0021, ML-20M 0.0025, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, lastfm 0.0039,
+tgbl-comment 0.0039, mooc 0.0051, Yelp 0.0057, **uci 0.0120**, YouTube 0.0128, GoogleLocal
+0.0158. **Fifteen of eighteen datasets replicate inside 0.0070 and the median spread is 0.0032.**
+uci is the loosest DyGLib cell and the smallest dataset in the arm (110-905 s a run);
+GoogleLocal's 0.0158 is an artefact of the epoch cap, two of its three seeds having been stopped
+at 197-199 of 200 while still improving. tgbl-review selects at ep2-3 and Patent and ML-20M at
+ep1 in all three seeds. **wpn 30 did not cost replication**: five of the six DyGLib spreads
+tightened (uci 0.0203 -> 0.0120, mooc 0.0069 -> 0.0051, reddit 0.0019 -> 0.0014, Flights
+0.0016 -> 0.0014, lastfm 0.0040 -> 0.0039) and wikipedia moved 0.0019 -> 0.0021.
 
 **GoogleLocal is an epoch-cap floor at two of three seeds** -- sel 199/200 and 197/200, both
 still improving when the 200-epoch cap stopped them. WikiLink seed 5 is not: it selected at
@@ -137,11 +161,14 @@ rather than learning.
 
 ## recurrence -- TWGem-R
 
-Branch `feature/recurrence-mix`, pin `016b821` (master merged in); the code is preserved on
-**`feature/twgem-r-do-not-remove`** and fixed by the annotated tag **`twgem-r-results`**, both
-at `f793d56`, which is master carrying the channel plus this archive. Cite the tag: a branch
-can move or be deleted, the tag cannot. **`ba17bda` removed the channel from master** -- these
-logs stay here, the code does not.
+Branch `feature/recurrence-mix`, pin `016b821` (master merged in) for tgbl-coin and tgbl-flight;
+**the six DyGLib cells ran at `7884d4e`**, the tip of `feature/twgem-r-do-not-remove`, which is
+`016b821`'s lineage plus a per-phase timing cherry-pick that does not touch the model. The code
+is preserved on that branch and fixed by the annotated tag **`twgem-r-results`** at `f793d56`,
+which is master carrying the channel plus this archive as it stood on 2026-11-15; the wpn 30
+logs post-date the tag, so the tag fixes the code to reproduce with and not this log set. Cite
+the tag: a branch can move or be deleted, the tag cannot. **`ba17bda` removed the channel from
+master** -- these logs stay here, the code does not.
 
 One change against the default arm: the scorer mixes the geometry logit with a recurrence
 logit at a learned weight,
@@ -167,13 +194,19 @@ recurrence arm.
 |---|---|
 | tgbl-coin | 11695524 / 11699061 / 11699062 |
 | tgbl-flight | 11696255 / 11696377 / 11696379 |
-| DyGLib six | 11696356 / 11698293 / 11696358 |
+| DyGLib six, wpn 30 | 11763781 / 11763782 / 11763783 |
+
+The DyGLib six first ran at wpn 10 on `11696356` / `11698293` / `11696358`; those logs are one
+revision back in git history. The wpn 30 re-run is from `scripts/run_rwa30.sh` and its logs read
+`experiment=rcm_dyg_wpn30`. `016b821` and `7884d4e` differ only by the same epoch-line timing
+cherry-pick that separates the default arm's two pins, so wpn 10 and wpn 30 compare on one
+variable in this arm too.
 
 tempest_rw 1.0.7 is required to reproduce this arm: 1.0.6 has no
 `get_pair_co_occurrence_counts`. Master's `requirements.txt` went back to `>=1.0.6` at
 `ba17bda`, so reproduce from `feature/twgem-r-do-not-remove`, not from master.
 
-### Closed cells (2026-11-15 19:00)
+### Closed cells (2026-11-15 19:00, DyGLib at wpn 30 2026-11-19)
 
 `mix` is the gate's final logged value, `default` the same cell in the default arm at the same
 seed. Walks are bit-identical between the two arms at a fixed seed, so each delta is the
@@ -181,52 +214,67 @@ recurrence term alone.
 
 | dataset | seed | test@val-ckpt | max test | best val | sel/ran | mix | default | delta |
 |---|---|---|---|---|---|---|---|---|
-| reddit | 5 | 0.8937 | 0.8937 | 0.8928 | 2/12 | 0.0666 | 0.8618 | +0.0319 |
-| reddit | 42 | 0.8936 | 0.8936 | 0.8924 | 2/12 | 0.0655 | 0.8635 | +0.0301 |
-| reddit | 1 | 0.8941 | 0.8941 | 0.8929 | 2/12 | 0.0666 | 0.8637 | +0.0304 |
-| wikipedia | 5 | 0.8920 | 0.8920 | 0.9067 | 8/18 | 0.1571 | 0.8784 | +0.0136 |
-| wikipedia | 42 | 0.8938 | 0.8938 | 0.9079 | 7/17 | 0.1688 | 0.8803 | +0.0135 |
-| wikipedia | 1 | 0.8915 | 0.8915 | 0.9078 | 8/18 | 0.1582 | 0.8792 | +0.0123 |
-| uci | 5 | 0.7616 | 0.7656 | 0.7076 | 10/20 | 0.3295 | 0.7123 | +0.0493 |
-| uci | 42 | 0.7541 | 0.7541 | 0.7064 | 10/20 | 0.3352 | 0.6983 | +0.0558 |
-| uci | 1 | 0.7549 | 0.7549 | 0.7062 | 7/17 | 0.3649 | 0.6920 | +0.0629 |
-| lastfm | 5 | 0.4956 | 0.5010 | 0.4754 | 2/12 | 0.0247 | 0.4495 | +0.0461 |
-| lastfm | 42 | 0.4971 | 0.5030 | 0.4748 | 2/12 | 0.0249 | 0.4535 | +0.0436 |
-| lastfm | 1 | 0.4951 | 0.5004 | 0.4743 | 2/12 | 0.0244 | 0.4519 | +0.0432 |
-| Flights | 5 | 0.8354 | 0.8387 | 0.8400 | 2/12 | 0.0041 | 0.8042 | +0.0312 |
-| Flights | 42 | 0.8361 | 0.8393 | 0.8401 | 2/12 | 0.0042 | 0.8051 | +0.0310 |
-| Flights | 1 | 0.8362 | 0.8390 | 0.8406 | 2/12 | 0.0041 | 0.8035 | +0.0327 |
-| mooc | 5 | 0.3830 | 0.3830 | 0.3915 | 7/17 | 0.0466 | 0.3757 | +0.0073 |
-| mooc | 42 | 0.3815 | 0.3817 | 0.3882 | 9/19 | 0.0369 | 0.3688 | +0.0127 |
-| mooc | 1 | 0.3812 | 0.3843 | 0.3915 | 10/20 | 0.0326 | 0.3754 | +0.0058 |
+| reddit | 5 | 0.8935 | 0.8936 | 0.8929 | 2/12 | 0.0649 | 0.8629 | +0.0306 |
+| reddit | 42 | 0.8935 | 0.8935 | 0.8929 | 2/12 | 0.0640 | 0.8643 | +0.0292 |
+| reddit | 1 | 0.8940 | 0.8940 | 0.8930 | 2/12 | 0.0653 | 0.8639 | +0.0301 |
+| wikipedia | 5 | 0.8910 | 0.8923 | 0.9068 | 12/22 | 0.1242 | 0.8794 | +0.0116 |
+| wikipedia | 42 | 0.8933 | 0.8942 | 0.9085 | 8/18 | 0.1584 | 0.8815 | +0.0118 |
+| wikipedia | 1 | 0.8914 | 0.8917 | 0.9078 | 8/18 | 0.1576 | 0.8808 | +0.0106 |
+| uci | 5 | 0.7633 | 0.7636 | 0.7106 | 12/22 | 0.3081 | 0.7138 | +0.0495 |
+| uci | 42 | 0.7548 | 0.7608 | 0.7075 | 17/27 | 0.2708 | 0.7082 | +0.0466 |
+| uci | 1 | 0.7557 | 0.7557 | 0.7099 | 7/17 | 0.3602 | 0.7018 | +0.0539 |
+| lastfm | 5 | 0.5116 | 0.5147 | 0.4981 | 2/12 | 0.0148 | 0.4766 | +0.0350 |
+| lastfm | 42 | 0.5111 | 0.5190 | 0.4951 | 2/12 | 0.0148 | 0.4805 | +0.0306 |
+| lastfm | 1 | 0.5087 | 0.5168 | 0.4965 | 2/12 | 0.0147 | 0.4781 | +0.0306 |
+| Flights | 5 | 0.8418 | 0.8418 | 0.8406 | 1/11 | 0.0060 | 0.8052 | +0.0366 |
+| Flights | 42 | 0.8406 | 0.8406 | 0.8393 | 1/11 | 0.0058 | 0.8053 | +0.0353 |
+| Flights | 1 | 0.8413 | 0.8413 | 0.8403 | 1/11 | 0.0059 | 0.8039 | +0.0374 |
+| mooc | 5 | 0.4021 | 0.4050 | 0.4171 | 7/17 | 0.0496 | 0.4007 | +0.0014 |
+| mooc | 42 | 0.4064 | 0.4064 | 0.4191 | 11/21 | 0.0301 | 0.4050 | +0.0014 |
+| mooc | 1 | 0.4042 | 0.4080 | 0.4217 | 21/31 | 0.0092 | 0.4058 | **-0.0016** |
 | tgbl-coin | 5 | 0.7732 | 0.7732 | 0.7566 | 5/15 | 0.0821 | 0.7502 | +0.0230 |
 | tgbl-coin | 42 | 0.7723 | 0.7723 | 0.7556 | 6/16 | 0.1243 | 0.7485 | +0.0238 |
 | tgbl-coin | 1 | 0.7714 | 0.7714 | 0.7549 | 5/15 | 0.0337 | 0.7517 | +0.0197 |
 
-21 of 24 cells. **The DyGLib block is complete at 18 of 18 and tgbl-coin at 3 of 3**; only
-tgbl-flight is open. Now that the default arm has closed, **every one of the 21 deltas is
-measurable and every one is positive**, +0.6199 summed and remarkably even across seeds:
-+0.2024 at seed 5, +0.2105 at seed 42, +0.2070 at seed 1, seven cells each. The arm has not
-lost a single cell to the default arm anywhere it has been measured.
+**21 of 24 cells; only tgbl-flight is open.** Summed over the 21 the arm is **+0.5471** ahead of
+the default arm and the total is even across seeds: +0.1877 at seed 5, +0.1787 at seed 42,
++0.1807 at seed 1, seven cells each.
 
-**The arm replicates tightly and `mix` is a property of the dataset, not the draw.** Five of
-six DyGLib cells agree within 0.0023 across three seeds (reddit 0.0005, Flights 0.0008, mooc
-0.0018, lastfm 0.0020, wikipedia 0.0023), uci spreads 0.0075 -- and `mix` lands on the same
-per-dataset value to three or four decimals: reddit 0.0655-0.0666, Flights 0.0041-0.0042,
-lastfm 0.0244-0.0249, wikipedia 0.157-0.169, mooc 0.033-0.047, uci 0.330-0.365.
+**20 of 21 deltas are positive and one is not: mooc seed 1 at -0.0016.** That is the first cell
+this arm has lost anywhere, and it arrived with wpn 30 -- at wpn 10 mooc paid +0.0073 / +0.0127 /
++0.0058. The dataset mean is now +0.0004, i.e. recurrence and walk breadth are substitutes on
+mooc and breadth has taken the whole of what the gate was supplying. lastfm shows the same
+compression (+0.0443 at wpn 10, +0.0321 here), and so, mildly, do wikipedia (+0.0131 -> +0.0113)
+and uci (+0.0560 -> +0.0500). Only Flights moved the other way (+0.0316 -> +0.0364).
 
-Against CRAFT's own Table 3 the arm takes wikipedia (+0.95 over CRAFT-R 88.25 and +0.51 over
-DyGFormer 88.69, the best number in that column), uci (+1.05 over 75.11, +1.55 over DyGFormer
-76.61), reddit (+0.04 over 89.33) and Flights (+0.38 over 83.16, though DyGFormer 84.13 is
-still ahead); lastfm (-5.65) and mooc (-24.02) stay well short. tgbl-coin 0.7732 is +2.63 over
+**The arm replicates tightly.** Five of six DyGLib cells agree within 0.0043 across three seeds
+(reddit 0.0005, Flights 0.0012, wikipedia 0.0023, lastfm 0.0029, mooc 0.0043) and uci spreads
+0.0085.
+
+**`mix` is a property of the dataset on three cells and not on the other three.** reddit
+0.0640-0.0653, Flights 0.0058-0.0060 and lastfm 0.0147-0.0148 land on the same value to three
+or four decimals, as every DyGLib cell did at wpn 10. wikipedia (0.124-0.158), uci (0.271-0.360)
+and above all mooc (0.0092-0.0496, a 5x range) do not. mooc is also the cell whose seeds
+disagree on the sign of the delta, and its seed 1 ran 31 epochs against 17 and 21 -- so where
+the gate's settled value is unstable, so is the gain.
+
+Against CRAFT's own Table 3, on the three-seed mean of test@val-ckpt in MRR %, the arm takes
+wikipedia 89.19 (**+0.94** over CRAFT-R 88.25, **+0.50** over DyGFormer 88.69, the best number
+in that column), reddit 89.37 (**+0.04** over 89.33), Flights 84.12 (**+0.96** over 83.16, and
+now level with DyGFormer 84.13 at -0.01, where wpn 10 was -0.54) and uci 75.79 (**+0.68** over
+75.11, but **-0.82** against DyGFormer 76.61). lastfm 51.05 and mooc 40.42 stay well short, by
+roughly 4 and 22 points on the same basis. **Re-check every CRAFT and DyGFormer figure against
+the papers before these go in a table**: the baselines here are the ones recorded in this file
+earlier, the deltas above are recomputed from them, and lastfm's and mooc's baselines are
+derived from previously recorded deltas rather than read fresh. tgbl-coin 0.7732 is +2.63 over
 CRAFT reproduced with corrected test negatives (74.69) and +1.75 over GraphMixer 75.57, but
 -1.14 against SGNN-HN 78.46.
 
-**Every DyGLib cell settles `mix` far below the 0.5 init** -- 0.004 to 0.36, i.e. the gate
-keeps mostly geometry and uses the recurrence count as a small correction, and still gains
-0.6 to 6.3 points. tgbl-coin runs the other way, rising to 0.68 at ep1 before decaying to
-0.08, so the gate is dataset-adaptive rather than a constant that could be folded into the
-scorer.
+**Every DyGLib cell settles `mix` far below the 0.5 init** -- 0.006 to 0.36, i.e. the gate
+keeps mostly geometry and uses the recurrence count as a small correction, and the per-cell
+deltas run from -0.2 to +5.4 points. tgbl-coin runs the other way, rising to 0.68 at ep1 before
+decaying to 0.08, so the gate is dataset-adaptive rather than a constant that could be folded
+into the scorer.
 
 **tgbl-coin replicates to 0.0018 across three seeds** -- 0.7732 / 0.7723 / 0.7714, tighter
 than the default arm's own 0.0032 on the same cell -- while `mix` spreads 0.0337 to 0.1243,

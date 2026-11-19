@@ -1,25 +1,19 @@
-# PAPER RUN -- Euclidean geometry. arm=pe pin=78bbf8f seed=5
-#   dist(x,y) = ((x-y)**2).sum(-1).clamp_min(1e-12).sqrt(); scorer F.layer_norm(s, s.shape[-1:]).
-#   No temperature, no gain, no separate pooler lr. One --lr drives SparseAdam on E and Adam on the pooler.
-#   E carries a padding sentinel row (a02307d), so no real node drifts on SparseAdam momentum.
-# EVERY knob is the argparse default except the per-dataset flags documented in
-#   default_conf_variations.txt, which are reproduced verbatim on the command line below.
-#   defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
-#             eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
-# Seeds in this sweep: 5, 42, 1. One seed per job; DyGLib runs its six datasets in one job.
-# RECORD BOTH test@val-checkpoint AND max test. DO NOT CALL YOUTUBE BEFORE ep50.
+# ARCHIVED -- TWGem master arm. Flights, wpn 30, seed 5. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
 # conf line: Flights: --eval-batch-size 200
-# experiment=paper_euclidean cell=seed_5  dataset=Flights suite=dyglib arm=pe seed=5
-# code=/mnt/nfs2/inf/ms2420/tempest-wt-pe commit=78bbf8f tree=clean
-# host=artemis-rtx-03.local job=11689855 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
-# started=2026-11-14 04:54:05
-# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
+# experiment=dyg_wpn30 cell=seed_5 dataset=Flights suite=dyglib seed=5 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-rtx-02.local job=11763778 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-19 02:39:21
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
 
 === tempest-embedding training ===
 dataset: Flights
 device:  cuda
 seed:    5
-loaded (dyglib) in 1.6s
+loaded (dyglib) in 2.3s
   num_nodes:     13,170
   T_train:       90
   neg_pool:      12,569 train nodes (training negatives)
@@ -36,7 +30,7 @@ loaded (dyglib) in 1.6s
   d_emb: 128
   hidden_dim: 32
   n_layers_pooler: 2
-  num_walks_per_node: 10
+  num_walks_per_node: 30
   max_walk_len: 5
   walk_bias: ExponentialWeight
   start_bias: ExponentialWeight
@@ -56,26 +50,26 @@ loaded (dyglib) in 1.6s
 
 === Training ===
   Ingested full graph into Tempest: 1,927,145 edges (once; per-query cutoff enforces causality)
-epoch 1/200  link=0.7383  lr=1e-03  train 31.9s  r_mean=1.132  r_max=1.785  val 0.7566  test 0.7466 (new best)  eval 54.9s
-epoch 2/200  link=0.5069  lr=1e-03  train 32.0s  r_mean=1.247  r_max=2.233  val 0.8135  test 0.8007 (new best)  eval 55.1s
-epoch 3/200  link=0.4505  lr=1e-03  train 31.7s  r_mean=1.309  r_max=2.374  val 0.8182  test 0.8042 (new best)  eval 54.3s
-epoch 4/200  link=0.4354  lr=1e-03  train 31.7s  r_mean=1.361  r_max=2.590  val 0.8172  patience 1/10  eval 27.1s
-epoch 5/200  link=0.4278  lr=1e-03  train 31.6s  r_mean=1.412  r_max=2.517  val 0.8141  patience 2/10  eval 26.9s
-epoch 6/200  link=0.4227  lr=1e-03  train 31.9s  r_mean=1.459  r_max=2.777  val 0.8101  patience 3/10  eval 27.1s
-epoch 7/200  link=0.4190  lr=1e-03  train 32.1s  r_mean=1.506  r_max=2.765  val 0.8040  patience 4/10  eval 27.1s
-epoch 8/200  link=0.4168  lr=1e-03  train 31.7s  r_mean=1.551  r_max=2.861  val 0.7995  patience 5/10  eval 27.1s
-epoch 9/200  link=0.4146  lr=1e-03  train 31.8s  r_mean=1.595  r_max=2.844  val 0.7934  patience 6/10  eval 27.1s
-epoch 10/200  link=0.4128  lr=1e-03  train 32.0s  r_mean=1.638  r_max=2.948  val 0.7875  patience 7/10  eval 27.1s
-epoch 11/200  link=0.4108  lr=1e-03  train 31.9s  r_mean=1.680  r_max=2.991  val 0.7827  patience 8/10  eval 27.1s
-epoch 12/200  link=0.4095  lr=1e-03  train 31.8s  r_mean=1.721  r_max=3.112  val 0.7766  patience 9/10  eval 26.7s
-epoch 13/200  link=0.4083  lr=1e-03  train 32.2s  r_mean=1.761  r_max=2.988  val 0.7700  patience 10/10  eval 27.1s
-  restored best weights from epoch 3 (val 0.8182, test 0.8042)
+epoch 1/200  link=0.7100  lr=1e-03  r_mean=1.097  r_max=1.821  val 0.7672  test 0.7629 (new best)  train_time 200.9s  val_time 160.9s  test_time 174.5s
+epoch 2/200  link=0.5161  lr=1e-03  r_mean=1.236  r_max=2.154  val 0.8118  test 0.8004 (new best)  train_time 181.9s  val_time 166.9s  test_time 163.1s
+epoch 3/200  link=0.4521  lr=1e-03  r_mean=1.307  r_max=2.178  val 0.8187  test 0.8052 (new best)  train_time 187.9s  val_time 155.2s  test_time 171.7s
+epoch 4/200  link=0.4352  lr=1e-03  r_mean=1.363  r_max=2.416  val 0.8179  patience 1/10  train_time 185.9s  val_time 155.1s
+epoch 5/200  link=0.4274  lr=1e-03  r_mean=1.416  r_max=2.513  val 0.8146  patience 2/10  train_time 184.4s  val_time 155.4s
+epoch 6/200  link=0.4223  lr=1e-03  r_mean=1.465  r_max=2.845  val 0.8105  patience 3/10  train_time 188.3s  val_time 171.2s
+epoch 7/200  link=0.4186  lr=1e-03  r_mean=1.512  r_max=2.928  val 0.8033  patience 4/10  train_time 192.7s  val_time 171.0s
+epoch 8/200  link=0.4165  lr=1e-03  r_mean=1.558  r_max=3.026  val 0.7985  patience 5/10  train_time 192.7s  val_time 160.5s
+epoch 9/200  link=0.4143  lr=1e-03  r_mean=1.603  r_max=3.025  val 0.7908  patience 6/10  train_time 191.2s  val_time 169.8s
+epoch 10/200  link=0.4125  lr=1e-03  r_mean=1.647  r_max=3.154  val 0.7841  patience 7/10  train_time 191.4s  val_time 151.7s
+epoch 11/200  link=0.4106  lr=1e-03  r_mean=1.689  r_max=3.179  val 0.7799  patience 8/10  train_time 190.8s  val_time 165.0s
+epoch 12/200  link=0.4093  lr=1e-03  r_mean=1.731  r_max=3.284  val 0.7724  patience 9/10  train_time 188.3s  val_time 163.3s
+epoch 13/200  link=0.4081  lr=1e-03  r_mean=1.772  r_max=3.139  val 0.7669  patience 10/10  train_time 187.0s  val_time 164.4s
+  restored best weights from epoch 3 (val 0.8187, test 0.8052)
 
 === Final results ===
   dataset:           Flights
   seed:              5
   best_epoch:        3
   epochs_run:        13
-  best_val_mrr:      0.8182
-  best_test_mrr:     0.8042
-=== rc=0 finished=2026-11-14 05:08:25 ===
+  best_val_mrr:      0.8187
+  best_test_mrr:     0.8052
+=== rc=0 finished=2026-11-19 04:04:25 ===
