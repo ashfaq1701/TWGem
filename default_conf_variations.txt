@@ -5,7 +5,7 @@ YouTube:       -
 Flickr:        -
 Patent:        -
 ML-20M:        --is-bipartite
-Taobao:        --is-bipartite
+Taobao:        --is-bipartite --k-train 5
 Yelp:          --is-bipartite
 WikiLink:      -
 
