@@ -124,6 +124,12 @@ class Trainer:
 
         return float(link_loss.detach())
 
+    def _clock(self) -> float:
+        """Wall clock after a CUDA sync, so each phase's GPU work lands in its own timing."""
+        if self.device.type == "cuda":
+            torch.cuda.synchronize(self.device)
+        return time.perf_counter()
+
     @torch.no_grad()
     def _probe(self) -> str:
         """Mean and max row norm of E, for the epoch line."""
@@ -185,12 +191,12 @@ class Trainer:
         for ep in range(1, n_epochs + 1):
             self.model.train()
 
-            t0 = time.time()
+            t0 = self._clock()
             link_sum, n_batches = 0.0, 0
             for batch in train_batches_factory():
                 link_sum += self._train_step(batch)
                 n_batches += 1
-            train_dt = time.time() - t0
+            train_dt = self._clock() - t0
 
             line = (
                 f"epoch {ep}/{n_epochs}  "
@@ -204,9 +210,9 @@ class Trainer:
             test_dt: Optional[float] = None
 
             if val_evaluator is not None and val_batches_factory is not None:
-                t1 = time.time()
+                t1 = self._clock()
                 val_metric = self._eval(val_evaluator, val_batches_factory())
-                val_dt = time.time() - t1
+                val_dt = self._clock() - t1
                 per_epoch_val.append(val_metric)
 
                 if val_metric > best_val:
@@ -214,9 +220,9 @@ class Trainer:
                     best_snap = self._snapshot()
                     no_improve = 0
                     if test_evaluator is not None and test_batches_factory is not None:
-                        t2 = time.time()
+                        t2 = self._clock()
                         best_test = self._eval(test_evaluator, test_batches_factory())
-                        test_dt = time.time() - t2
+                        test_dt = self._clock() - t2
                         new_best_test.append(best_test)
                         line += f"  val {val_metric:.4f}  test {best_test:.4f} (new best)"
                     else:
@@ -240,6 +246,9 @@ class Trainer:
             print(
                 f"  restored best weights from epoch {best_epoch} "
                 f"(val {best_val:.4f}, test {best_test:.4f})")
+
+        if self.device.type == "cuda":
+            print(f"  peak_mem {torch.cuda.max_memory_allocated(self.device) / 2 ** 30:.2f}GB")
 
         return {
             "best_epoch": best_epoch,                                        # -1 if nothing selected
