@@ -12,16 +12,17 @@ Populated 2026-11-15, completed 2026-11-19 at **78 of 78 cells** -- default 54, 
 **Both arms are closed.** Every dataset ran all three seeds to `rc=0`, bar the one waived
 `rc=135` below.
 
-**The six DyGLib cells in both arms run `--num-walks-per-node 30`.** They were re-run at wpn 30
-on 2026-11-18/19 and these logs replaced the wpn 10 ones, which are one revision back in git
-history. `default_conf_variations.txt` carries wpn 30 on those six lines, so both arm
-definitions below still hold literally. The twelve non-DyGLib datasets stay at the argparse
+**The six DyGLib cells in both arms, and ML-20M in the default arm, run
+`--num-walks-per-node 30`.** The DyGLib six were re-run at wpn 30 on 2026-11-18/19 and ML-20M on
+2026-11-19/20; in both cases these logs replaced the wpn 10 ones, which are one revision back in
+git history. `default_conf_variations.txt` carries wpn 30 on those seven lines, so both arm
+definitions below still hold literally. The eleven remaining datasets stay at the argparse
 default wpn 10.
 
 ## default -- TWGem
 
-Master `78bbf8f`, and **`5711eee` for the six DyGLib cells**. The only difference between those
-two pins inside `link_property_prediction/` is the epoch line's timing split
+Master `78bbf8f`, **`5711eee` for the six DyGLib cells** and **`953af61` for ML-20M**. The only
+difference among those pins inside `link_property_prediction/` is the epoch line's timing split
 (`train_time`/`val_time`/`test_time` instead of `train`/`eval`), so the model and the data path
 are identical and a wpn 10 cell compares with a wpn 30 one on one variable. Every knob is the
 argparse default except the per-dataset flags in `default_conf_variations.txt`, reproduced
@@ -87,9 +88,9 @@ each, from `scripts/run_dwa30.sh`; their headers read `experiment=dyg_wpn30` and
 | Patent | 5 | 0.0417 | 0.0417 | 0.0793 | 1/11 |
 | Patent | 42 | 0.0418 | 0.0418 | 0.0748 | 1/11 |
 | Patent | 1 | 0.0387 | 0.0387 | 0.0755 | 1/11 |
-| ML-20M | 5 | 0.2855 | 0.2855 | 0.3458 | 1/11 |
-| ML-20M | 42 | 0.2834 | 0.2834 | 0.3456 | 1/11 |
-| ML-20M | 1 | 0.2830 | 0.2830 | 0.3447 | 1/11 |
+| ML-20M | 5 | 0.3022 | 0.3022 | 0.3737 | 2/12 |
+| ML-20M | 42 | 0.3015 | 0.3015 | 0.3731 | 2/12 |
+| ML-20M | 1 | 0.3023 | 0.3023 | 0.3737 | 2/12 |
 | Taobao | 5 | 0.6514 | 0.6514 | 0.6718 | 38/48 |
 | Taobao | 42 | 0.6518 | 0.6518 | 0.6723 | 36/46 |
 | Taobao | 1 | 0.6505 | 0.6505 | 0.6713 | 38/48 |
@@ -140,15 +141,16 @@ and the CUDA context both release. Slurm recorded the job COMPLETED 0:0 and MaxR
 against a 64 GB request, so this is not a memory failure. The run is therefore reported, and the
 `rc=0`-only archive rule is waived for this one log.
 
-Replication across all three seeds, as max-min of test MRR, ascending: tgbl-flight 0.0010,
-Taobao 0.0013, Flights 0.0014, reddit 0.0014, tgbl-review 0.0014, WikiLink 0.0016, wikipedia
-0.0021, ML-20M 0.0025, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, lastfm 0.0039,
+Replication across all three seeds, as max-min of test MRR, ascending: ML-20M 0.0008,
+tgbl-flight 0.0010, Taobao 0.0013, Flights 0.0014, reddit 0.0014, tgbl-review 0.0014,
+WikiLink 0.0016, wikipedia 0.0021, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, lastfm 0.0039,
 tgbl-comment 0.0039, mooc 0.0051, Yelp 0.0057, **uci 0.0120**, YouTube 0.0128, GoogleLocal
 0.0158. **Fifteen of eighteen datasets replicate inside 0.0070 and the median spread is 0.0032.**
 uci is the loosest DyGLib cell and the smallest dataset in the arm (110-905 s a run);
 GoogleLocal's 0.0158 is an artefact of the epoch cap, two of its three seeds having been stopped
-at 197-199 of 200 while still improving. tgbl-review selects at ep2-3 and Patent and ML-20M at
-ep1 in all three seeds. **wpn 30 did not cost replication**: five of the six DyGLib spreads
+at 197-199 of 200 while still improving. tgbl-review selects at ep2-3, Patent at ep1 and ML-20M at
+ep2 in all three seeds. **wpn 30 did not cost replication**: ML-20M tightened 0.0025 -> 0.0008
+and is now the arm's tightest cell; five of the six DyGLib spreads
 tightened (uci 0.0203 -> 0.0120, mooc 0.0069 -> 0.0051, reddit 0.0019 -> 0.0014, Flights
 0.0016 -> 0.0014, lastfm 0.0040 -> 0.0039) and wikipedia moved 0.0019 -> 0.0021.
 
