@@ -9,19 +9,21 @@ test@val-checkpoint and max test: on this suite val flickers walk the checkpoint
 down, so the printed `best_test_mrr` alone is not like-for-like across arms.
 
 Populated 2026-11-15, completed 2026-11-19 at **78 of 78 cells** -- default 54, recurrence 24.
-**Both arms are closed.** Every dataset ran all three seeds to `rc=0`, bar the one waived
-`rc=135` below.
+**Both arms are closed.** Every dataset ran all three seeds to `rc=0`.
 
-**The six DyGLib cells in both arms, and ML-20M in the default arm, run
-`--num-walks-per-node 30`.** The DyGLib six were re-run at wpn 30 on 2026-11-18/19 and ML-20M on
-2026-11-19/20; in both cases these logs replaced the wpn 10 ones, which are one revision back in
-git history. `default_conf_variations.txt` carries wpn 30 on those seven lines, so both arm
-definitions below still hold literally. The eleven remaining datasets stay at the argparse
-default wpn 10.
+**The six DyGLib cells in both arms, and ML-20M, tgbl-coin and tgbl-comment in the default
+arm, run `--num-walks-per-node 30`.** The DyGLib six were re-run at wpn 30 on 2026-11-18/19,
+ML-20M on 2026-11-19/20 and the two TGB cells on 2026-11-20/21; in every case these logs
+replaced the wpn 10 ones, which are one revision back in git history.
+`default_conf_variations.txt` carries wpn 30 on those nine lines, so both arm definitions
+below still hold literally. The nine remaining datasets stay at the argparse default wpn 10.
+**The two TGB cells also ran patience 5 rather than 10**, which the conf file does not carry,
+so they are the one place in this archive where a replaced cell moves two variables at once.
 
 ## default -- TWGem
 
-Master `78bbf8f`, **`5711eee` for the six DyGLib cells** and **`953af61` for ML-20M**. The only
+Master `78bbf8f`, **`5711eee` for the six DyGLib cells** and **`953af61` for ML-20M,
+tgbl-coin and tgbl-comment**. The only
 difference among those pins inside `link_property_prediction/` is the epoch line's timing split
 (`train_time`/`val_time`/`test_time` instead of `train`/`eval`), so the model and the data path
 are identical and a wpn 10 cell compares with a wpn 30 one on one variable. Every knob is the
@@ -72,6 +74,30 @@ MRR across all six, which is a regularity over six cells and not a tested mechan
 2.1-3.0x the wpn 10 wall clock on the same node and dataset. Jobs `11763778`-`11763780`, one seed
 each, from `scripts/run_dwa30.sh`; their headers read `experiment=dyg_wpn30` and `wpn=30`.
 
+**tgbl-coin and tgbl-comment run `--num-walks-per-node 30` too, and these two cells also moved
+patience 10 -> 5**, so they are the one place in this archive where a replaced cell carries two
+changes. Three-seed mean of test@val-ckpt: tgbl-comment 0.7843 against 0.7605 (**+0.0238**),
+tgbl-coin 0.7629 against 0.7501 (**+0.0128**). Six of six seeds gain and the smallest single
+delta is +0.0117, an order of magnitude above either dataset's three-seed spread, so neither
+sign is in doubt. Jobs `11770968`/`11778157` (comment) and `11778249` (coin), from
+`scripts/run_wpn30_pat5.sh`; headers read `experiment=seq_wpn30_pat5`, `wpn=30`, `pat=5`.
+
+**Both are FLOORS, and patience is why.** Patience decides only where a run stops, never its
+trajectory, so patience 10 on this same config would have continued each of the six runs five
+epochs further than patience 5 did -- it could select later and higher, and it cannot select
+lower. Read the two deltas as lower bounds on the wpn 30 gain, not as the gain itself. The
+cells ran 13/12/6 (comment) and 17/16/15 (coin) against wpn 10 selections at ep17/11/18 and
+ep14/17/14, so the truncation bites hardest on comment seeds 5 and 1, where the run stopped
+at or before the epoch the wpn 10 twin had selected at.
+
+**tgbl-comment seed 1 selected at epoch 1 of 6 after its val collapsed** 0.7460 -> 0.6928 at
+ep2 and never recovered, bottoming at 0.6642 while `link` kept falling -- fitting better and
+generalising worse, the standing pattern. It still reports 0.7833, within 0.0011 of the other
+two seeds, so the collapse cost nothing in the reported number and the cell is kept as run.
+Its one structural oddity is a non-monotone `r_max` (1.677 -> 1.395 at ep2, the only decrease
+across these six cells); that is one node's radius and a radius quantile would be needed to
+say whether the tail genuinely contracted.
+
 ### Closed cells (2026-11-15 19:00, Taobao 2026-11-18, DyGLib at wpn 30 2026-11-19)
 
 | dataset | seed | test@val-ckpt | max test | best val | sel/ran |
@@ -103,12 +129,12 @@ each, from `scripts/run_dwa30.sh`; their headers read `experiment=dyg_wpn30` and
 | tgbl-review | 5 | 0.3017 | 0.3040 | 0.2503 | 3/13 |
 | tgbl-review | 42 | 0.3010 | 0.3013 | 0.2504 | 3/13 |
 | tgbl-review | 1 | 0.3024 | 0.3024 | 0.2482 | 2/12 |
-| tgbl-coin | 5 | 0.7502 | 0.7502 | 0.7404 | 14/24 |
-| tgbl-coin | 42 | 0.7485 | 0.7500 | 0.7387 | 17/27 |
-| tgbl-coin | 1 | 0.7517 | 0.7517 | 0.7423 | 14/24 |
-| tgbl-comment | 5 | 0.7592 | 0.7592 | 0.7222 | 17/27 |
-| tgbl-comment | 42 | 0.7592 | 0.7598 | 0.7216 | 11/21 |
-| tgbl-comment | 1 | 0.7631 | 0.7631 | 0.7239 | 18/28 |
+| tgbl-coin | 5 | 0.7619 | 0.7630 | 0.7467 | 12/17 |
+| tgbl-coin | 42 | 0.7623 | 0.7630 | 0.7476 | 11/16 |
+| tgbl-coin | 1 | 0.7646 | 0.7646 | 0.7484 | 10/15 |
+| tgbl-comment | 5 | 0.7844 | 0.7849 | 0.7507 | 8/13 |
+| tgbl-comment | 42 | 0.7851 | 0.7851 | 0.7500 | 7/12 |
+| tgbl-comment | 1 | 0.7833 | 0.7833 | 0.7460 | 1/6 |
 | tgbl-flight | 5 | 0.8126 | 0.8126 | 0.8344 | 2/12 |
 | tgbl-flight | 42 | 0.8133 | 0.8133 | 0.8347 | 2/12 |
 | tgbl-flight | 1 | 0.8136 | 0.8136 | 0.8351 | 2/12 |
@@ -131,26 +157,22 @@ each, from `scripts/run_dwa30.sh`; their headers read `experiment=dyg_wpn30` and
 | Flights | 42 | 0.8053 | 0.8053 | 0.8183 | 3/13 |
 | Flights | 1 | 0.8039 | 0.8040 | 0.8180 | 4/14 |
 
-**54 of 54 cells -- the default arm is closed.** All 18 datasets ran all three seeds to
-`rc=0`, bar the one waived `rc=135` below.
-
-**tgbl-comment seed 5 exited `rc=135` and the cell is valid anyway.** All 27 epochs ran,
-patience fired at 10/10, the checkpoint was restored and the final block printed; the process
-then took SIGBUS (`128 + 7`) during interpreter teardown, where the 44.3M-edge Tempest ingest
-and the CUDA context both release. Slurm recorded the job COMPLETED 0:0 and MaxRSS was 31.8 GB
-against a 64 GB request, so this is not a memory failure. The run is therefore reported, and the
-`rc=0`-only archive rule is waived for this one log.
+**54 of 54 cells -- the default arm is closed.** All 18 datasets ran all three seeds to `rc=0`.
+The `rc=135` waiver that stood here applied to the wpn 10 tgbl-comment seed 5 log, which the
+wpn 30 re-run replaced; the replacement closed `rc=0` and no cell in this archive now needs it.
 
 Replication across all three seeds, as max-min of test MRR, ascending: ML-20M 0.0008,
 tgbl-flight 0.0010, Taobao 0.0013, Flights 0.0014, reddit 0.0014, tgbl-review 0.0014,
-WikiLink 0.0016, wikipedia 0.0021, Patent 0.0031, tgbl-coin 0.0032, Flickr 0.0034, lastfm 0.0039,
-tgbl-comment 0.0039, mooc 0.0051, Yelp 0.0057, **uci 0.0120**, YouTube 0.0128, GoogleLocal
-0.0158. **Fifteen of eighteen datasets replicate inside 0.0070 and the median spread is 0.0032.**
+WikiLink 0.0016, tgbl-comment 0.0018, wikipedia 0.0021, tgbl-coin 0.0027, Patent 0.0031,
+Flickr 0.0034, lastfm 0.0039, mooc 0.0051, Yelp 0.0057, **uci 0.0120**, YouTube 0.0128,
+GoogleLocal 0.0158. **Fifteen of eighteen datasets replicate inside 0.0070 and the median
+spread is 0.0024.**
 uci is the loosest DyGLib cell and the smallest dataset in the arm (110-905 s a run);
 GoogleLocal's 0.0158 is an artefact of the epoch cap, two of its three seeds having been stopped
 at 197-199 of 200 while still improving. tgbl-review selects at ep2-3, Patent at ep1 and ML-20M at
 ep2 in all three seeds. **wpn 30 did not cost replication**: ML-20M tightened 0.0025 -> 0.0008
-and is now the arm's tightest cell; five of the six DyGLib spreads
+and is now the arm's tightest cell, tgbl-comment 0.0039 -> 0.0018 and tgbl-coin 0.0032 ->
+0.0027; five of the six DyGLib spreads
 tightened (uci 0.0203 -> 0.0120, mooc 0.0069 -> 0.0051, reddit 0.0019 -> 0.0014, Flights
 0.0016 -> 0.0014, lastfm 0.0040 -> 0.0039) and wikipedia moved 0.0019 -> 0.0021.
 
@@ -233,12 +255,19 @@ recurrence term alone.
 | mooc | 5 | 0.4021 | 0.4050 | 0.4171 | 7/17 | 0.0496 | 0.4007 | +0.0014 |
 | mooc | 42 | 0.4064 | 0.4064 | 0.4191 | 11/21 | 0.0301 | 0.4050 | +0.0014 |
 | mooc | 1 | 0.4042 | 0.4080 | 0.4217 | 21/31 | 0.0092 | 0.4058 | **-0.0016** |
-| tgbl-coin | 5 | 0.7732 | 0.7732 | 0.7566 | 5/15 | 0.0821 | 0.7502 | +0.0230 |
-| tgbl-coin | 42 | 0.7723 | 0.7723 | 0.7556 | 6/16 | 0.1243 | 0.7485 | +0.0238 |
-| tgbl-coin | 1 | 0.7714 | 0.7714 | 0.7549 | 5/15 | 0.0337 | 0.7517 | +0.0197 |
+| tgbl-coin | 5 | 0.7732 | 0.7732 | 0.7566 | 5/15 | 0.0821 | 0.7502 ᵂ | +0.0230 |
+| tgbl-coin | 42 | 0.7723 | 0.7723 | 0.7556 | 6/16 | 0.1243 | 0.7485 ᵂ | +0.0238 |
+| tgbl-coin | 1 | 0.7714 | 0.7714 | 0.7549 | 5/15 | 0.0337 | 0.7517 ᵂ | +0.0197 |
 | tgbl-flight | 5 | 0.8664 | 0.8664 | 0.8762 | 1/11 | 0.1722 | 0.8126 | +0.0538 |
 | tgbl-flight | 42 | 0.8655 | 0.8655 | 0.8758 | 1/11 | 0.1764 | 0.8133 | +0.0522 |
 | tgbl-flight | 1 | 0.8659 | 0.8659 | 0.8758 | 1/11 | 0.1761 | 0.8136 | +0.0523 |
+
+ᵂ **The tgbl-coin default-arm column is the wpn 10 number, now one revision back in git
+history.** This arm's own tgbl-coin cells are wpn 10, so wpn 10 on both sides is the
+like-for-like comparison and those three deltas stand as recorded. The arm-vs-arm delta at
+wpn 30 is not yet measurable: the recurrence wpn 30 cells were still running on 2026-11-21.
+Against the default arm's new wpn 30 numbers this arm leads by +0.0113 / +0.0100 / +0.0068,
+which is **not** a like-for-like figure and must not be quoted as one.
 
 **24 of 24 cells -- the recurrence arm is closed.** Summed over all 24 the arm is **+0.7054**
 ahead of the default arm and the total is even across seeds: +0.2415 at seed 5, +0.2309 at
@@ -280,8 +309,8 @@ deltas run from -0.2 to +5.4 points. tgbl-coin runs the other way, rising to 0.6
 decaying to 0.08, so the gate is dataset-adaptive rather than a constant that could be folded
 into the scorer.
 
-**tgbl-coin replicates to 0.0018 across three seeds** -- 0.7732 / 0.7723 / 0.7714, tighter
-than the default arm's own 0.0032 on the same cell -- while `mix` spreads 0.0337 to 0.1243,
+**tgbl-coin replicates to 0.0018 across three seeds** -- 0.7732 / 0.7723 / 0.7714, tighter than
+the default arm's own 0.0027 on the same cell -- while `mix` spreads 0.0337 to 0.1243,
 an order of magnitude wider than any DyGLib cell. So the gain is stable even where the gate's
 settled value is not, which argues the recurrence channel matters less by its final weight than
 by having been available during the first few epochs.
