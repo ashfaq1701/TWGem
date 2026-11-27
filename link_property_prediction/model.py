@@ -1,4 +1,5 @@
 import math
+from dataclasses import dataclass
 from typing import NamedTuple, Tuple
 
 import torch
@@ -25,6 +26,44 @@ def weighted_midpoint(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     return (w.unsqueeze(-1) * x).sum(-2)                                     # [..., d]
 
 
+FEATURES = ("age", "hop", "mid", "radius")
+
+
+@dataclass(frozen=True)
+class Ablation:
+    """Ablation switches; every default is TWGem."""
+    walk_sides: str = "both"              # both | source | none: which sides pool their walks
+    pooling: str = "learned"              # learned | uniform
+    features: Tuple[str, ...] = FEATURES  # controller inputs, a subset of FEATURES
+    raw_geo_features: bool = False        # raw distances instead of log distances
+    detach: bool = True                   # controller features read from detached rows
+    score: str = "log-dist"               # log-dist | dist | dot
+    standardise: bool = True              # per-query standardisation of the scores
+
+    def __post_init__(self):
+        if self.walk_sides not in ("both", "source", "none"):
+            raise ValueError(f"walk_sides must be both, source or none, got {self.walk_sides}")
+        if self.pooling not in ("learned", "uniform"):
+            raise ValueError(f"pooling must be learned or uniform, got {self.pooling}")
+        if not self.features or not set(self.features) <= set(FEATURES):
+            raise ValueError(f"features must be a non-empty subset of {FEATURES}")
+        if self.score not in ("log-dist", "dist", "dot"):
+            raise ValueError(f"score must be log-dist, dist or dot, got {self.score}")
+
+    @classmethod
+    def from_args(cls, args: dict) -> "Ablation":
+        """Build from CLI args or a checkpoint's saved args; anything missing keeps the TWGem default."""
+        d = cls()
+        feats = args.get("controller_features")
+        return cls(walk_sides=args.get("walk_sides", d.walk_sides),
+                   pooling=args.get("pooling", d.pooling),
+                   features=tuple(feats.split(",")) if feats else d.features,
+                   raw_geo_features=args.get("raw_geo_features", d.raw_geo_features),
+                   detach=not args.get("no_detach", False),
+                   score=args.get("score", d.score),
+                   standardise=not args.get("no_standardise", False))
+
+
 class Bag(NamedTuple):
     pooled: torch.Tensor   # [Q, d]     weighted midpoint of the bag
     mid: torch.Tensor      # [Q, d]     unweighted midpoint of the bag
@@ -35,16 +74,18 @@ class Bag(NamedTuple):
 class BagWeights(nn.Module):
 
     def __init__(self, E: nn.Embedding, T_train: int, max_walk_len: int,
-                 hidden_dim: int = 32, n_layers: int = 2):
+                 hidden_dim: int = 32, n_layers: int = 2, ablation: Ablation = Ablation()):
         super().__init__()
         self.E = E
+        self.ablation = ablation
+        self.feature_idx = [FEATURES.index(f) for f in ablation.features]
         self.log_T_train = math.log1p(T_train)
         self.max_walk_len = int(max_walk_len)
         self.hidden = int(hidden_dim)
         self.n_layers = int(n_layers)
         if self.n_layers < 1:
             raise ValueError(f"n_layers must be >= 1, got {n_layers}")
-        self.n_feat = 4
+        self.n_feat = len(self.feature_idx)
         layers = [nn.Linear(self.n_feat, self.hidden), nn.LayerNorm(self.hidden), nn.GELU()]
         for _ in range(self.n_layers - 1):
             layers += [nn.Linear(self.hidden, self.hidden), nn.LayerNorm(self.hidden), nn.GELU()]
@@ -63,29 +104,36 @@ class BagWeights(nn.Module):
 
     def _token_features(self, tokens: WalkTokens, fixed: torch.Tensor,
                         valid_f: torch.Tensor, mid: torch.Tensor) -> torch.Tensor:
-        """Per-token features [Q, T, 4]: age, hop, log distance to the bag centre, log radius."""
+        """Per-token features [Q, T, F]: age, hop, log distance to the bag centre, log radius."""
         age = tokens.ages.flatten(1).clamp_min(0).to(fixed.dtype)            # [Q, T]
         pos = tokens.positions.flatten(1).to(fixed.dtype)                    # [Q, T]
         age = torch.log1p(age) / self.log_T_train                            # [Q, T]
         pos = pos / self.max_walk_len                                        # [Q, T]
 
-        d_mid = torch.log(dist(fixed, mid.unsqueeze(-2))) * valid_f          # [Q, T]
+        d_mid = dist(fixed, mid.unsqueeze(-2))                               # [Q, T]
         r_tok = dist0(fixed)                                                 # [Q, T]
-        d0 = torch.log(r_tok) * valid_f                                      # [Q, T]
+        if not self.ablation.raw_geo_features:
+            d_mid, r_tok = torch.log(d_mid), torch.log(r_tok)
+        d_mid = d_mid * valid_f                                              # [Q, T]
+        d0 = r_tok * valid_f                                                 # [Q, T]
 
-        return torch.stack([age, pos, d_mid, d0], dim=-1)                    # [Q, T, 4]
+        feats = torch.stack([age, pos, d_mid, d0], dim=-1)                   # [Q, T, 4]
+        return feats[..., self.feature_idx]                                  # [Q, T, F]
 
     def forward(self, tokens: WalkTokens) -> Bag:
         """The bag's pooled point, unweighted midpoint, points and pooling weights."""
         nodes, valid = self._bag_nodes(tokens)                               # [Q, T]
         points = self.E(nodes)                                               # [Q, T, d]
-        fixed = points.detach()                                              # [Q, T, d]  features only
+        fixed = points.detach() if self.ablation.detach else points          # [Q, T, d]
         valid_f = valid.to(fixed.dtype)                                      # [Q, T]
         mid = weighted_midpoint(fixed, valid_f / valid_f.sum(-1, keepdim=True))  # [Q, d]
 
-        feats = self._token_features(tokens, fixed, valid_f, mid)            # [Q, T, 4]
-        logits = self.net(feats).squeeze(-1)                                 # [Q, T]
-        weights = torch.softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
+        if self.ablation.pooling == "uniform":
+            weights = valid_f / valid_f.sum(-1, keepdim=True)                # [Q, T]
+        else:
+            feats = self._token_features(tokens, fixed, valid_f, mid)        # [Q, T, F]
+            logits = self.net(feats).squeeze(-1)                             # [Q, T]
+            weights = torch.softmax(logits.masked_fill(~valid, float("-inf")), dim=-1)  # [Q, T]
         pooled = weighted_midpoint(points, weights)                          # [Q, d]
         return Bag(pooled=pooled, mid=mid, points=points, weights=weights)
 
@@ -93,8 +141,10 @@ class BagWeights(nn.Module):
 class LinkPredHead(nn.Module):
 
     def __init__(self, num_nodes: int, T_train: int, max_walk_len: int, d_emb: int,
-                 hidden_dim: int = 32, n_layers_pooler: int = 2, seed: int = 42):
+                 hidden_dim: int = 32, n_layers_pooler: int = 2, seed: int = 42,
+                 ablation: Ablation = Ablation()):
         super().__init__()
+        self.ablation = ablation
         self.num_nodes = int(num_nodes)
         self.T_train = int(T_train)
         self.max_walk_len = int(max_walk_len)
@@ -108,7 +158,8 @@ class LinkPredHead(nn.Module):
             self.E.weight[self.num_nodes].zero_()                            # init overwrote it
 
         self.bag_weights = BagWeights(self.E, self.T_train, self.max_walk_len,
-                                      hidden_dim=hidden_dim, n_layers=n_layers_pooler)
+                                      hidden_dim=hidden_dim, n_layers=n_layers_pooler,
+                                      ablation=ablation)
 
     @property
     def node_embeddings(self) -> torch.Tensor:
@@ -125,10 +176,22 @@ class LinkPredHead(nn.Module):
         r_mean = dist0(self.node_embeddings.detach()).mean()                 # []
         return r_mean.clamp_min(torch.finfo(r_mean.dtype).tiny)
 
+    def _point(self, tokens: WalkTokens, use_walks: bool) -> torch.Tensor:
+        """The pooled point of each bag [Q, d], or the node's own row when walks are ablated."""
+        return self.bag_weights(tokens).pooled if use_walks else self.E(tokens.seeds)
+
     def forward(self, src_tokens: WalkTokens, cand_tokens: WalkTokens) -> torch.Tensor:
         """Logits [b, c]: -log distance between pooled points, standardised per query row."""
-        pooled_u = self.bag_weights(src_tokens).pooled                       # [b, d]
-        pooled_v = self.bag_weights(cand_tokens).pooled                      # [b*c, d]
+        ab = self.ablation
+        pooled_u = self._point(src_tokens, ab.walk_sides != "none")          # [b, d]
+        pooled_v = self._point(cand_tokens, ab.walk_sides == "both")         # [b*c, d]
         pooled_v = pooled_v.view(pooled_u.shape[0], -1, pooled_u.shape[-1])  # [b, c, d]
-        s = -torch.log(dist(pooled_u.unsqueeze(1), pooled_v))                # [b, c]
-        return F.layer_norm(s, s.shape[-1:])                                 # [b, c]
+        pooled_u = pooled_u.unsqueeze(1)                                     # [b, 1, d]
+        match ab.score:
+            case "log-dist":
+                s = -torch.log(dist(pooled_u, pooled_v))                     # [b, c]
+            case "dist":
+                s = -dist(pooled_u, pooled_v)                                # [b, c]
+            case "dot":
+                s = (pooled_u * pooled_v).sum(-1)                            # [b, c]
+        return F.layer_norm(s, s.shape[-1:]) if ab.standardise else s        # [b, c]

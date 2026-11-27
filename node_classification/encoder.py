@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from link_property_prediction.data import SplitData, create_batches
-from link_property_prediction.model import Bag, LinkPredHead, dist, dist0
+from link_property_prediction.model import Ablation, Bag, LinkPredHead, dist, dist0
 from link_property_prediction.walk_tokens import WalkTokens, build_query_walk_tokens
 from link_property_prediction.walks import WalkGenerator
 
@@ -35,7 +35,8 @@ class FrozenEncoder:
         model = LinkPredHead(num_nodes=num_nodes, T_train=ckpt["T_train"],
                              max_walk_len=args["max_walk_len"], d_emb=d_emb,
                              hidden_dim=args["hidden_dim"],
-                             n_layers_pooler=args["n_layers_pooler"], seed=args["seed"])
+                             n_layers_pooler=args["n_layers_pooler"], seed=args["seed"],
+                             ablation=Ablation.from_args(args))
         model.load_state_dict(state)
         walk_args = {k: args[k] for k in (
             "num_walks_per_node", "max_walk_len", "walk_bias", "start_bias", "t2nv_p", "t2nv_q")}

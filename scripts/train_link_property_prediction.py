@@ -15,7 +15,7 @@ import torch
 
 from link_property_prediction.data import Loaded, concat_splits, create_batches
 from link_property_prediction.evaluator import SUITES, make_suite
-from link_property_prediction.model import dist0
+from link_property_prediction.model import FEATURES, Ablation, dist0
 from link_property_prediction.trainer import Trainer, TrainerConfig
 from link_property_prediction.utils import seed_all
 
@@ -88,6 +88,22 @@ def parse_args() -> argparse.Namespace:
                    help="Hidden Linear->GELU stages in the pooler MLP (>= 1). Each past the "
                         "first inserts a Linear(hidden, hidden) -> GELU before the output "
                         "layer. 1 reproduces the single-hidden-layer shape used before.")
+
+    # Ablations (defaults are TWGem)
+    p.add_argument("--walk-sides", default="both", choices=["both", "source", "none"],
+                   help="Sides that pool their walks; the others use the node's own row.")
+    p.add_argument("--pooling", default="learned", choices=["learned", "uniform"],
+                   help="Controller weights, or a plain mean over the bag.")
+    p.add_argument("--controller-features", default=",".join(FEATURES), type=str,
+                   help=f"Comma-separated controller inputs, a subset of {','.join(FEATURES)}.")
+    p.add_argument("--raw-geo-features", action="store_true",
+                   help="Feed the controller distances rather than log distances.")
+    p.add_argument("--no-detach", action="store_true",
+                   help="Read the controller's geometric features from undetached rows.")
+    p.add_argument("--score", default="log-dist", choices=["log-dist", "dist", "dot"],
+                   help="Raw score: -log distance, -distance, or dot product.")
+    p.add_argument("--no-standardise", action="store_true",
+                   help="Skip the per-query standardisation of the scores.")
 
     # Post-training outputs
     p.add_argument("--export-best-embedding-table", action="store_true",
@@ -172,6 +188,7 @@ def main() -> Dict[str, Any]:
         seed=args.seed,
         use_gpu=args.use_gpu,
         use_gpu_tempest=args.use_gpu_tempest,
+        ablation=Ablation.from_args(vars(args)),
     )
 
     print("\n=== Config ===")
