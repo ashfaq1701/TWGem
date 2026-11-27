@@ -1,0 +1,84 @@
+# NON-ARCHIVAL -- ablation job 24, ablation_negdist_coin. One flag off the archived default run.
+# arm flag: --score dist
+# conf line: tgbl-coin: --lr 1e-4 --num-walks-per-node 30   (verbatim; the arm flag follows it so it wins on a clash)
+# patience 5 passed explicitly: the archived tgbl-coin cell ran it and the conf does not carry it.
+# defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Baseline: experiment_logs/geometries/euclidean/default/tgbl-coin/seed_42.log
+#   Compared at the best-validation epoch: val with val, test with test.
+# RECORD BOTH test@val-checkpoint AND max test.
+# experiment=ablation cell=ablation_negdist_coin dataset=tgbl-coin suite=tgb seed=42 job_no=24
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-abl commit=ea4f3a5 tree=clean
+# host=artemis-rtx-01.local job=11781711 task=24 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-24 01:36:11
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb --dataset tgbl-coin --lr 1e-4 --num-walks-per-node 30 --early-stop-patience 5 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --score dist --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: tgbl-coin
+device:  cuda
+seed:    42
+loaded (tgb) in 5.1s
+  num_nodes:     638,486
+  T_train:       13,284,796
+  neg_pool:      574,791 train nodes (training negatives)
+  train edges:   15,966,659
+  val edges:     3,421,416
+  test edges:    3,421,411
+  [tgb] val negatives: TGB's pre-generated set (--k-eval=100 ignored)
+  [tgb] test negatives: TGB's pre-generated set (--k-eval=100 ignored)
+
+=== Config ===
+  num_nodes: 638486
+  T_train: 13284796
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=574,791)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.0001
+  num_epochs: 200
+  early_stop_patience: 5
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  ablation: Ablation(walk_sides='both', pooling='learned', features=('age', 'hop', 'mid', 'radius'), raw_geo_features=False, detach=True, score='dist', standardise=True)
+
+=== Parameter counts ===
+  model.E:           81,726,336
+  head params:            1,377
+  TOTAL trainable:   81,727,713
+
+=== Training ===
+  Ingested full graph into Tempest: 22,809,486 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.7714  lr=1e-04  r_mean=1.027  r_max=2.032  val 0.7309  test 0.7480 (new best)  train_time 1722.8s  val_time 466.2s  test_time 473.8s
+epoch 2/200  link=0.6781  lr=1e-04  r_mean=1.055  r_max=2.245  val 0.7246  patience 1/5  train_time 1585.3s  val_time 482.7s
+epoch 3/200  link=0.6292  lr=1e-04  r_mean=1.081  r_max=2.498  val 0.7275  patience 2/5  train_time 1588.8s  val_time 486.6s
+epoch 4/200  link=0.5947  lr=1e-04  r_mean=1.105  r_max=2.818  val 0.7273  patience 3/5  train_time 1587.5s  val_time 469.3s
+epoch 5/200  link=0.5679  lr=1e-04  r_mean=1.128  r_max=3.142  val 0.7303  patience 4/5  train_time 1567.9s  val_time 477.8s
+epoch 6/200  link=0.5459  lr=1e-04  r_mean=1.150  r_max=3.414  val 0.7340  test 0.7514 (new best)  train_time 1573.8s  val_time 473.3s  test_time 477.3s
+epoch 7/200  link=0.5277  lr=1e-04  r_mean=1.171  r_max=3.621  val 0.7359  test 0.7530 (new best)  train_time 1564.0s  val_time 446.8s  test_time 452.7s
+epoch 8/200  link=0.5121  lr=1e-04  r_mean=1.192  r_max=3.849  val 0.7368  test 0.7538 (new best)  train_time 1561.6s  val_time 443.2s  test_time 447.4s
+epoch 9/200  link=0.4992  lr=1e-04  r_mean=1.212  r_max=4.177  val 0.7367  patience 1/5  train_time 1559.3s  val_time 442.2s
+epoch 10/200  link=0.4883  lr=1e-04  r_mean=1.232  r_max=4.532  val 0.7369  test 0.7534 (new best)  train_time 1564.3s  val_time 444.2s  test_time 449.7s
+epoch 11/200  link=0.4786  lr=1e-04  r_mean=1.251  r_max=5.008  val 0.7380  test 0.7548 (new best)  train_time 1558.9s  val_time 440.3s  test_time 445.8s
+epoch 12/200  link=0.4698  lr=1e-04  r_mean=1.270  r_max=5.434  val 0.7386  test 0.7549 (new best)  train_time 1554.3s  val_time 442.2s  test_time 444.7s
+epoch 13/200  link=0.4617  lr=1e-04  r_mean=1.287  r_max=5.809  val 0.7371  patience 1/5  train_time 1553.1s  val_time 466.5s
+epoch 14/200  link=0.4548  lr=1e-04  r_mean=1.305  r_max=6.294  val 0.7344  patience 2/5  train_time 1555.0s  val_time 455.6s
+epoch 15/200  link=0.4483  lr=1e-04  r_mean=1.321  r_max=6.832  val 0.7349  patience 3/5  train_time 1557.8s  val_time 447.6s
+epoch 16/200  link=0.4424  lr=1e-04  r_mean=1.337  r_max=7.279  val 0.7315  patience 4/5  train_time 1559.7s  val_time 468.6s
+epoch 17/200  link=0.4370  lr=1e-04  r_mean=1.352  r_max=7.631  val 0.7308  patience 5/5  train_time 1554.7s  val_time 454.2s
+  restored best weights from epoch 12 (val 0.7386, test 0.7549)
+
+=== Final results ===
+  dataset:           tgbl-coin
+  seed:              42
+  best_epoch:        12
+  epochs_run:        17
+  best_val_mrr:      0.7386
+  best_test_mrr:     0.7549
+=== rc=0 finished=2026-11-24 12:07:02 ===

@@ -1,0 +1,90 @@
+# NON-ARCHIVAL -- ablation job 28, ablation_noagehop_flickr. One flag off the archived default run.
+# arm flag: --controller-features mid,radius
+# conf line: Flickr: -   (verbatim; the arm flag follows it so it wins on a clash)
+# defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Baseline: experiment_logs/geometries/euclidean/default/flickr/seed_42.log
+#   Compared at the best-validation epoch: val with val, test with test.
+# RECORD BOTH test@val-checkpoint AND max test.
+# experiment=ablation cell=ablation_noagehop_flickr dataset=Flickr suite=tgb-seq seed=42 job_no=28
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-abl commit=ea4f3a5 tree=clean
+# host=artemis-rtx-02.local job=11803224 task=28 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-24 11:31:53
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset Flickr   --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --controller-features mid,radius --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Flickr
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 11.0s
+  num_nodes:     233,837
+  T_train:       12,524,400
+  neg_pool:      233,836 train nodes (training negatives)
+  train edges:   5,738,138
+  val edges:     875,742
+  test edges:    609,679
+  [tgb-seq] val negatives: 100 uniform per positive over 233,836 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 233837
+  T_train: 12524400
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=233,836)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  ablation: Ablation(walk_sides='both', pooling='learned', features=('mid', 'radius'), raw_geo_features=False, detach=True, score='log-dist', standardise=True)
+
+=== Parameter counts ===
+  model.E:           29,931,264
+  head params:            1,313
+  TOTAL trainable:   29,932,577
+
+=== Training ===
+  Ingested full graph into Tempest: 7,223,559 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.1112  lr=1e-03  r_mean=1.364  r_max=2.973  val 0.5280  test 0.4869 (new best)  train_time 116.7s  val_time 72.9s  test_time 51.5s
+epoch 2/200  link=0.7507  lr=1e-03  r_mean=1.461  r_max=2.374  val 0.5468  test 0.4980 (new best)  train_time 116.4s  val_time 73.2s  test_time 51.4s
+epoch 3/200  link=0.6358  lr=1e-03  r_mean=1.528  r_max=2.554  val 0.5648  test 0.5132 (new best)  train_time 116.4s  val_time 72.9s  test_time 50.6s
+epoch 4/200  link=0.5889  lr=1e-03  r_mean=1.579  r_max=2.554  val 0.5715  test 0.5168 (new best)  train_time 115.7s  val_time 73.4s  test_time 51.0s
+epoch 5/200  link=0.5624  lr=1e-03  r_mean=1.627  r_max=2.439  val 0.5758  test 0.5182 (new best)  train_time 116.3s  val_time 73.5s  test_time 50.9s
+epoch 6/200  link=0.5451  lr=1e-03  r_mean=1.672  r_max=2.510  val 0.5772  test 0.5190 (new best)  train_time 115.6s  val_time 71.7s  test_time 50.9s
+epoch 7/200  link=0.5330  lr=1e-03  r_mean=1.716  r_max=2.554  val 0.5755  patience 1/10  train_time 116.3s  val_time 71.6s
+epoch 8/200  link=0.5232  lr=1e-03  r_mean=1.760  r_max=2.641  val 0.5790  test 0.5193 (new best)  train_time 116.0s  val_time 71.8s  test_time 50.1s
+epoch 9/200  link=0.5153  lr=1e-03  r_mean=1.804  r_max=2.744  val 0.5784  patience 1/10  train_time 116.5s  val_time 72.4s
+epoch 10/200  link=0.5088  lr=1e-03  r_mean=1.847  r_max=2.848  val 0.5786  patience 2/10  train_time 116.2s  val_time 73.0s
+epoch 11/200  link=0.5031  lr=1e-03  r_mean=1.889  r_max=3.014  val 0.5812  test 0.5188 (new best)  train_time 115.9s  val_time 71.6s  test_time 49.9s
+epoch 12/200  link=0.4982  lr=1e-03  r_mean=1.931  r_max=3.060  val 0.5796  patience 1/10  train_time 115.9s  val_time 71.3s
+epoch 13/200  link=0.4940  lr=1e-03  r_mean=1.973  r_max=3.001  val 0.5799  patience 2/10  train_time 116.0s  val_time 71.3s
+epoch 14/200  link=0.4902  lr=1e-03  r_mean=2.015  r_max=2.991  val 0.5827  test 0.5186 (new best)  train_time 115.6s  val_time 72.1s  test_time 50.6s
+epoch 15/200  link=0.4867  lr=1e-03  r_mean=2.057  r_max=3.374  val 0.5811  patience 1/10  train_time 115.7s  val_time 72.6s
+epoch 16/200  link=0.4839  lr=1e-03  r_mean=2.098  r_max=3.522  val 0.5808  patience 2/10  train_time 115.8s  val_time 72.7s
+epoch 17/200  link=0.4813  lr=1e-03  r_mean=2.138  r_max=3.268  val 0.5804  patience 3/10  train_time 115.3s  val_time 72.1s
+epoch 18/200  link=0.4788  lr=1e-03  r_mean=2.178  r_max=3.352  val 0.5824  patience 4/10  train_time 116.0s  val_time 72.8s
+epoch 19/200  link=0.4768  lr=1e-03  r_mean=2.218  r_max=3.405  val 0.5786  patience 5/10  train_time 115.1s  val_time 72.5s
+epoch 20/200  link=0.4744  lr=1e-03  r_mean=2.258  r_max=3.702  val 0.5813  patience 6/10  train_time 116.2s  val_time 72.9s
+epoch 21/200  link=0.4727  lr=1e-03  r_mean=2.297  r_max=3.554  val 0.5800  patience 7/10  train_time 115.4s  val_time 72.7s
+epoch 22/200  link=0.4712  lr=1e-03  r_mean=2.336  r_max=3.473  val 0.5818  patience 8/10  train_time 116.0s  val_time 73.0s
+epoch 23/200  link=0.4694  lr=1e-03  r_mean=2.374  r_max=3.494  val 0.5818  patience 9/10  train_time 115.1s  val_time 72.1s
+epoch 24/200  link=0.4681  lr=1e-03  r_mean=2.413  r_max=3.527  val 0.5804  patience 10/10  train_time 114.9s  val_time 73.1s
+  restored best weights from epoch 14 (val 0.5827, test 0.5186)
+
+=== Final results ===
+  dataset:           Flickr
+  seed:              42
+  best_epoch:        14
+  epochs_run:        24
+  best_val_mrr:      0.5827
+  best_test_mrr:     0.5186
+=== rc=0 finished=2026-11-24 12:55:19 ===

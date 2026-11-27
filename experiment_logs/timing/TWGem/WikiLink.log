@@ -1,0 +1,64 @@
+# RUNTIME MEASUREMENT -- 3 epochs, early stopping off. MRR is not the point here.
+# Reported: train seconds per epoch (mean of epochs 2 and 3), test inference seconds, peak memory.
+# method=TWGem dataset=WikiLink seed=42
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-sen commit=4c6b257 modified_tracked_files=0
+# host=artemis-rtx-03.local job=11838608 task=1
+# gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition driver=610.57.04
+# cpus=2 started=2026-11-25 11:51:44
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset WikiLink --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --num-epochs 3 --early-stop-patience 0 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: WikiLink
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 4.9s
+  num_nodes:     1,361,973
+  T_train:       175,302,000
+  neg_pool:      1,361,972 train nodes (training negatives)
+  train edges:   27,635,253
+  val edges:     3,455,476
+  test edges:    3,073,045
+  [tgb-seq] val negatives: 100 uniform per positive over 1,361,972 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 1361973
+  T_train: 175302000
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=1,361,972)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 3
+  early_stop_patience: 0
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:          174,332,672
+  head params:            1,377
+  TOTAL trainable:  174,334,049
+
+=== Training ===
+  Ingested full graph into Tempest: 34,163,774 edges (once; per-query cutoff enforces causality)
+epoch 1/3  link=1.1672  lr=1e-03  r_mean=1.525  r_max=5.042  val 0.5753  test 0.5595 (new best)  train_time 592.8s  val_time 279.0s  test_time 251.5s
+epoch 2/3  link=0.7109  lr=1e-03  r_mean=1.727  r_max=8.027  val 0.7096  test 0.6943 (new best)  train_time 604.7s  val_time 282.9s  test_time 252.3s
+epoch 3/3  link=0.5245  lr=1e-03  r_mean=1.824  r_max=6.870  val 0.7514  test 0.7367 (new best)  train_time 603.8s  val_time 280.0s  test_time 251.9s
+  restored best weights from epoch 3 (val 0.7514, test 0.7367)
+  peak_mem 9.52GB
+
+=== Final results ===
+  dataset:           WikiLink
+  seed:              42
+  best_epoch:        3
+  epochs_run:        3
+  best_val_mrr:      0.7514
+  best_test_mrr:     0.7367
+# finished=2026-11-25 12:48:46 rc=0

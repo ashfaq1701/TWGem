@@ -1,0 +1,76 @@
+# ARCHIVED -- TWGem master arm. lastfm, wpn 30, seed 1. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: lastfm: --is-bipartite --eval-batch-size 200
+# experiment=dyg_wpn30 cell=seed_1 dataset=lastfm suite=dyglib seed=1 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-a40-01.local job=11763780 gpu=NVIDIA A40
+# started=2026-11-19 02:09:06
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset lastfm --is-bipartite --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: lastfm
+device:  cuda
+seed:    1
+loaded (dyglib) in 2.2s
+  num_nodes:     1,981
+  T_train:       103,764,800
+  neg_pool:      973 train destinations (training negatives)
+  train edges:   905,172
+  val edges:     193,965
+  test edges:    193,966
+  [dyglib] val negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+
+=== Config ===
+  num_nodes: 1981
+  T_train: 103764800
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=973)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:              253,696
+  head params:            1,377
+  TOTAL trainable:      255,073
+
+=== Training ===
+  Ingested full graph into Tempest: 1,293,103 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.1616  lr=1e-03  r_mean=1.052  r_max=1.808  val 0.4680  test 0.4821 (new best)  train_time 129.9s  val_time 129.6s  test_time 130.0s
+epoch 2/200  link=0.9756  lr=1e-03  r_mean=1.109  r_max=2.125  val 0.4721  test 0.4801 (new best)  train_time 128.7s  val_time 131.9s  test_time 138.7s
+epoch 3/200  link=0.9328  lr=1e-03  r_mean=1.155  r_max=1.934  val 0.4741  test 0.4795 (new best)  train_time 131.8s  val_time 137.6s  test_time 138.4s
+epoch 4/200  link=0.9120  lr=1e-03  r_mean=1.197  r_max=1.986  val 0.4759  test 0.4781 (new best)  train_time 129.7s  val_time 138.5s  test_time 126.6s
+epoch 5/200  link=0.9005  lr=1e-03  r_mean=1.236  r_max=1.976  val 0.4745  patience 1/10  train_time 120.2s  val_time 129.2s
+epoch 6/200  link=0.8931  lr=1e-03  r_mean=1.271  r_max=1.970  val 0.4726  patience 2/10  train_time 120.2s  val_time 126.4s
+epoch 7/200  link=0.8885  lr=1e-03  r_mean=1.306  r_max=2.162  val 0.4720  patience 3/10  train_time 120.1s  val_time 126.2s
+epoch 8/200  link=0.8840  lr=1e-03  r_mean=1.340  r_max=2.056  val 0.4703  patience 4/10  train_time 119.9s  val_time 126.9s
+epoch 9/200  link=0.8799  lr=1e-03  r_mean=1.372  r_max=2.155  val 0.4676  patience 5/10  train_time 120.2s  val_time 126.2s
+epoch 10/200  link=0.8770  lr=1e-03  r_mean=1.404  r_max=2.215  val 0.4687  patience 6/10  train_time 119.8s  val_time 126.5s
+epoch 11/200  link=0.8750  lr=1e-03  r_mean=1.434  r_max=2.246  val 0.4649  patience 7/10  train_time 119.9s  val_time 126.3s
+epoch 12/200  link=0.8731  lr=1e-03  r_mean=1.464  r_max=2.304  val 0.4629  patience 8/10  train_time 120.0s  val_time 127.1s
+epoch 13/200  link=0.8719  lr=1e-03  r_mean=1.493  r_max=2.398  val 0.4648  patience 9/10  train_time 120.3s  val_time 127.0s
+epoch 14/200  link=0.8697  lr=1e-03  r_mean=1.522  r_max=2.483  val 0.4611  patience 10/10  train_time 120.7s  val_time 128.1s
+  restored best weights from epoch 4 (val 0.4759, test 0.4781)
+
+=== Final results ===
+  dataset:           lastfm
+  seed:              1
+  best_epoch:        4
+  epochs_run:        14
+  best_val_mrr:      0.4759
+  best_test_mrr:     0.4781
+=== rc=0 finished=2026-11-19 03:17:04 ===

@@ -1,0 +1,75 @@
+# ARCHIVED -- TWGem master arm. lastfm, wpn 30, seed 42. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: lastfm: --is-bipartite --eval-batch-size 200
+# experiment=dyg_wpn30 cell=seed_42 dataset=lastfm suite=dyglib seed=42 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-a40-13.local job=11763779 gpu=NVIDIA A40
+# started=2026-11-19 01:12:46
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset lastfm --is-bipartite --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: lastfm
+device:  cuda
+seed:    42
+loaded (dyglib) in 1.5s
+  num_nodes:     1,981
+  T_train:       103,764,800
+  neg_pool:      973 train destinations (training negatives)
+  train edges:   905,172
+  val edges:     193,965
+  test edges:    193,966
+  [dyglib] val negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+
+=== Config ===
+  num_nodes: 1981
+  T_train: 103764800
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=973)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:              253,696
+  head params:            1,377
+  TOTAL trainable:      255,073
+
+=== Training ===
+  Ingested full graph into Tempest: 1,293,103 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.1634  lr=1e-03  r_mean=1.051  r_max=1.559  val 0.4663  test 0.4834 (new best)  train_time 123.0s  val_time 125.1s  test_time 126.2s
+epoch 2/200  link=0.9731  lr=1e-03  r_mean=1.109  r_max=1.890  val 0.4725  test 0.4844 (new best)  train_time 121.2s  val_time 129.4s  test_time 129.4s
+epoch 3/200  link=0.9321  lr=1e-03  r_mean=1.155  r_max=1.908  val 0.4728  test 0.4805 (new best)  train_time 120.2s  val_time 130.1s  test_time 119.4s
+epoch 4/200  link=0.9122  lr=1e-03  r_mean=1.197  r_max=1.864  val 0.4719  patience 1/10  train_time 112.9s  val_time 119.4s
+epoch 5/200  link=0.9003  lr=1e-03  r_mean=1.236  r_max=1.884  val 0.4727  patience 2/10  train_time 112.9s  val_time 119.2s
+epoch 6/200  link=0.8937  lr=1e-03  r_mean=1.273  r_max=1.916  val 0.4707  patience 3/10  train_time 112.9s  val_time 119.3s
+epoch 7/200  link=0.8882  lr=1e-03  r_mean=1.307  r_max=1.914  val 0.4696  patience 4/10  train_time 112.9s  val_time 118.8s
+epoch 8/200  link=0.8837  lr=1e-03  r_mean=1.340  r_max=1.998  val 0.4671  patience 5/10  train_time 113.0s  val_time 121.8s
+epoch 9/200  link=0.8796  lr=1e-03  r_mean=1.372  r_max=2.096  val 0.4663  patience 6/10  train_time 113.0s  val_time 119.4s
+epoch 10/200  link=0.8779  lr=1e-03  r_mean=1.404  r_max=2.160  val 0.4652  patience 7/10  train_time 112.9s  val_time 119.3s
+epoch 11/200  link=0.8762  lr=1e-03  r_mean=1.434  r_max=2.221  val 0.4625  patience 8/10  train_time 112.9s  val_time 119.2s
+epoch 12/200  link=0.8735  lr=1e-03  r_mean=1.464  r_max=2.279  val 0.4592  patience 9/10  train_time 112.9s  val_time 118.9s
+epoch 13/200  link=0.8727  lr=1e-03  r_mean=1.493  r_max=2.330  val 0.4622  patience 10/10  train_time 113.1s  val_time 119.5s
+  restored best weights from epoch 3 (val 0.4728, test 0.4805)
+
+=== Final results ===
+  dataset:           lastfm
+  seed:              42
+  best_epoch:        3
+  epochs_run:        13
+  best_val_mrr:      0.4728
+  best_test_mrr:     0.4805
+=== rc=0 finished=2026-11-19 02:10:29 ===

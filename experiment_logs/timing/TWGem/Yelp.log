@@ -1,0 +1,64 @@
+# RUNTIME MEASUREMENT -- 3 epochs, early stopping off. MRR is not the point here.
+# Reported: train seconds per epoch (mean of epochs 2 and 3), test inference seconds, peak memory.
+# method=TWGem dataset=Yelp seed=42
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-sen commit=4c6b257 modified_tracked_files=0
+# host=artemis-rtx-03.local job=11838608 task=1
+# gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition driver=610.57.04
+# cpus=2 started=2026-11-25 11:22:02
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset Yelp --is-bipartite --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --num-epochs 3 --early-stop-patience 0 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Yelp
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 19.4s
+  num_nodes:     1,743,770
+  T_train:       413,744,546
+  neg_pool:      405,081 train destinations (training negatives)
+  train edges:   17,025,551
+  val edges:     1,702,388
+  test edges:    1,032,354
+  [tgb-seq] val negatives: 100 uniform per positive over 405,081 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 1743770
+  T_train: 413744546
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=405,081)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 3
+  early_stop_patience: 0
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:          223,202,688
+  head params:            1,377
+  TOTAL trainable:  223,204,065
+
+=== Training ===
+  Ingested full graph into Tempest: 19,760,293 edges (once; per-query cutoff enforces causality)
+epoch 1/3  link=0.8318  lr=1e-03  r_mean=1.201  r_max=3.946  val 0.6548  test 0.6163 (new best)  train_time 366.1s  val_time 136.6s  test_time 82.6s
+epoch 2/3  link=0.5186  lr=1e-03  r_mean=1.256  r_max=3.403  val 0.6924  test 0.6644 (new best)  train_time 366.0s  val_time 137.0s  test_time 82.7s
+epoch 3/3  link=0.4481  lr=1e-03  r_mean=1.289  r_max=3.278  val 0.7054  test 0.6794 (new best)  train_time 362.9s  val_time 136.5s  test_time 84.1s
+  restored best weights from epoch 3 (val 0.7054, test 0.6794)
+  peak_mem 10.16GB
+
+=== Final results ===
+  dataset:           Yelp
+  seed:              42
+  best_epoch:        3
+  epochs_run:        3
+  best_val_mrr:      0.7054
+  best_test_mrr:     0.6794
+# finished=2026-11-25 11:51:44 rc=0

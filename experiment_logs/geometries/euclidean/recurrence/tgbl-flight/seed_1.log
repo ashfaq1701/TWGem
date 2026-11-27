@@ -1,0 +1,74 @@
+# TWGem-R: recurrence-mix. arm=rcm pin=016b821 branch=feature/recurrence-mix
+#   logits = (1-m)*layer_norm(-log d) + m*layer_norm(log1p(pair count before t)), m=sigmoid(mix_logit), init 0.5.
+#   --k-train 10 is the default at this pin (master merged in at 016b821); passed explicitly anyway.
+#   Baseline is logs/paper_euclidean/seed_1/tgbl-flight.log at master 78bbf8f, same seed, same conf line.
+# conf line: tgbl-flight: --lr 1e-4
+# experiment=rcm_tgb cell=seed_1  dataset=tgbl-flight suite=tgb arm=rcm seed=1 k_train=10
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-rcm commit=016b821 tree=clean tempest=1.0.7
+# host=artemis-rtx-01.local job=11696379 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-16 13:00:10
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb --dataset tgbl-flight --lr 1e-4 --k-train 10 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: tgbl-flight
+device:  cuda
+seed:    1
+loaded (tgb) in 24.4s
+  num_nodes:     18,143
+  T_train:       91,756,800
+  neg_pool:      17,353 train nodes (training negatives)
+  train edges:   47,043,612
+  val edges:     10,099,015
+  test edges:    10,026,943
+  [tgb] val negatives: TGB's pre-generated set (--k-eval=100 ignored)
+  [tgb] test negatives: TGB's pre-generated set (--k-eval=100 ignored)
+
+=== Config ===
+  num_nodes: 18143
+  T_train: 91756800
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=17,353)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.0001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+  use_recurrence_count: True
+
+=== Parameter counts ===
+  model.E:            2,322,432
+  head params:            1,378
+  TOTAL trainable:    2,323,810
+
+=== Training ===
+  Ingested full graph into Tempest: 67,169,570 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.4113  lr=1e-04  train 13437.0s  r_mean=1.128  r_max=1.600  mix=0.6440  val 0.8758  test 0.8659 (new best)  eval 13205.4s
+epoch 2/200  link=0.3846  lr=1e-04  train 13440.4s  r_mean=1.283  r_max=1.996  mix=0.3133  val 0.8572  patience 1/10  eval 6173.3s
+epoch 3/200  link=0.3775  lr=1e-04  train 13432.1s  r_mean=1.434  r_max=2.259  mix=0.2539  val 0.8511  patience 2/10  eval 6159.0s
+epoch 4/200  link=0.3756  lr=1e-04  train 13474.3s  r_mean=1.591  r_max=2.479  mix=0.2267  val 0.8475  patience 3/10  eval 6165.4s
+epoch 5/200  link=0.3745  lr=1e-04  train 13438.7s  r_mean=1.751  r_max=2.719  mix=0.2094  val 0.8439  patience 4/10  eval 6141.6s
+epoch 6/200  link=0.3739  lr=1e-04  train 13400.2s  r_mean=1.916  r_max=2.980  mix=0.1998  val 0.8414  patience 5/10  eval 6165.6s
+epoch 7/200  link=0.3735  lr=1e-04  train 13441.2s  r_mean=2.082  r_max=3.217  mix=0.1910  val 0.8391  patience 6/10  eval 6093.6s
+epoch 8/200  link=0.3731  lr=1e-04  train 13206.6s  r_mean=2.250  r_max=3.371  mix=0.1849  val 0.8371  patience 7/10  eval 6077.4s
+epoch 9/200  link=0.3729  lr=1e-04  train 13208.2s  r_mean=2.420  r_max=3.634  mix=0.1811  val 0.8352  patience 8/10  eval 6075.3s
+epoch 10/200  link=0.3728  lr=1e-04  train 13208.6s  r_mean=2.593  r_max=3.886  mix=0.1781  val 0.8336  patience 9/10  eval 6118.6s
+epoch 11/200  link=0.3726  lr=1e-04  train 13440.7s  r_mean=2.768  r_max=4.124  mix=0.1761  val 0.8323  patience 10/10  eval 6117.8s
+  restored best weights from epoch 1 (val 0.8758, test 0.8659)
+
+=== Final results ===
+  dataset:           tgbl-flight
+  seed:              1
+  best_epoch:        1
+  epochs_run:        11
+  best_val_mrr:      0.8758
+  best_test_mrr:     0.8659
+=== rc=0 finished=2026-11-19 02:35:38 ===

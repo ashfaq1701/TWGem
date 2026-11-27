@@ -1,0 +1,75 @@
+# ARCHIVED -- TWGem master arm. Flights, wpn 30, seed 5. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: Flights: --eval-batch-size 200
+# experiment=dyg_wpn30 cell=seed_5 dataset=Flights suite=dyglib seed=5 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-rtx-02.local job=11763778 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-19 02:39:21
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Flights
+device:  cuda
+seed:    5
+loaded (dyglib) in 2.3s
+  num_nodes:     13,170
+  T_train:       90
+  neg_pool:      12,569 train nodes (training negatives)
+  train edges:   1,359,922
+  val edges:     279,399
+  test edges:    287,824
+  [dyglib] val negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+
+=== Config ===
+  num_nodes: 13170
+  T_train: 90
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=12,569)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 5
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:            1,685,888
+  head params:            1,377
+  TOTAL trainable:    1,687,265
+
+=== Training ===
+  Ingested full graph into Tempest: 1,927,145 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.7100  lr=1e-03  r_mean=1.097  r_max=1.821  val 0.7672  test 0.7629 (new best)  train_time 200.9s  val_time 160.9s  test_time 174.5s
+epoch 2/200  link=0.5161  lr=1e-03  r_mean=1.236  r_max=2.154  val 0.8118  test 0.8004 (new best)  train_time 181.9s  val_time 166.9s  test_time 163.1s
+epoch 3/200  link=0.4521  lr=1e-03  r_mean=1.307  r_max=2.178  val 0.8187  test 0.8052 (new best)  train_time 187.9s  val_time 155.2s  test_time 171.7s
+epoch 4/200  link=0.4352  lr=1e-03  r_mean=1.363  r_max=2.416  val 0.8179  patience 1/10  train_time 185.9s  val_time 155.1s
+epoch 5/200  link=0.4274  lr=1e-03  r_mean=1.416  r_max=2.513  val 0.8146  patience 2/10  train_time 184.4s  val_time 155.4s
+epoch 6/200  link=0.4223  lr=1e-03  r_mean=1.465  r_max=2.845  val 0.8105  patience 3/10  train_time 188.3s  val_time 171.2s
+epoch 7/200  link=0.4186  lr=1e-03  r_mean=1.512  r_max=2.928  val 0.8033  patience 4/10  train_time 192.7s  val_time 171.0s
+epoch 8/200  link=0.4165  lr=1e-03  r_mean=1.558  r_max=3.026  val 0.7985  patience 5/10  train_time 192.7s  val_time 160.5s
+epoch 9/200  link=0.4143  lr=1e-03  r_mean=1.603  r_max=3.025  val 0.7908  patience 6/10  train_time 191.2s  val_time 169.8s
+epoch 10/200  link=0.4125  lr=1e-03  r_mean=1.647  r_max=3.154  val 0.7841  patience 7/10  train_time 191.4s  val_time 151.7s
+epoch 11/200  link=0.4106  lr=1e-03  r_mean=1.689  r_max=3.179  val 0.7799  patience 8/10  train_time 190.8s  val_time 165.0s
+epoch 12/200  link=0.4093  lr=1e-03  r_mean=1.731  r_max=3.284  val 0.7724  patience 9/10  train_time 188.3s  val_time 163.3s
+epoch 13/200  link=0.4081  lr=1e-03  r_mean=1.772  r_max=3.139  val 0.7669  patience 10/10  train_time 187.0s  val_time 164.4s
+  restored best weights from epoch 3 (val 0.8187, test 0.8052)
+
+=== Final results ===
+  dataset:           Flights
+  seed:              5
+  best_epoch:        3
+  epochs_run:        13
+  best_val_mrr:      0.8187
+  best_test_mrr:     0.8052
+=== rc=0 finished=2026-11-19 04:04:25 ===

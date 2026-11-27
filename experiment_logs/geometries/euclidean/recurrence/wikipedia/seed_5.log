@@ -1,0 +1,87 @@
+# ARCHIVED -- TWGem-R. wikipedia, wpn 30, seed 5. pin=7884d4e branch=feature/twgem-r-do-not-remove
+#   logits = (1-m)*layer_norm(-log d) + m*layer_norm(log1p(pair count before t)), m=sigmoid(mix_logit), init 0.5.
+# Every knob is the argparse default except --num-walks-per-node 30, --use-recurrence-count and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: wikipedia: --is-bipartite --eval-batch-size 200
+# experiment=rcm_dyg_wpn30 cell=seed_5 dataset=wikipedia suite=dyglib seed=5 wpn=30 arm=rcm
+# Baselines: experiment_logs/geometries/euclidean/default/wikipedia/seed_5.log (same wpn, no recurrence) and
+#   the wpn 10 predecessor of this cell, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-rw5 commit=7884d4e tree=clean
+# host=artemis-a40-00.local job=11763781 gpu=NVIDIA A40
+# started=2026-11-18 18:20:35
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset wikipedia --is-bipartite --eval-batch-size 200 --num-walks-per-node 30 --use-recurrence-count --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: wikipedia
+device:  cuda
+seed:    5
+loaded (dyglib) in 4.2s
+  num_nodes:     9,228
+  T_train:       1,862,652
+  neg_pool:      952 train destinations (training negatives)
+  train edges:   110,232
+  val edges:     23,621
+  test edges:    23,621
+  [dyglib] val negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+
+=== Config ===
+  num_nodes: 9228
+  T_train: 1862652
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=952)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 5
+  use_gpu: True
+  use_gpu_tempest: True
+  use_recurrence_count: True
+
+=== Parameter counts ===
+  model.E:            1,181,312
+  head params:            1,378
+  TOTAL trainable:    1,182,690
+
+=== Training ===
+  Ingested full graph into Tempest: 157,474 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.5527  lr=1e-03  r_mean=1.004  r_max=1.352  mix=0.5218  val 0.9000  test 0.8847 (new best)  train_time 62.0s  val_time 100.6s  test_time 98.7s
+epoch 2/200  link=0.4988  lr=1e-03  r_mean=1.009  r_max=1.421  mix=0.4989  val 0.9024  test 0.8873 (new best)  train_time 61.0s  val_time 105.8s  test_time 100.2s
+epoch 3/200  link=0.4602  lr=1e-03  r_mean=1.015  r_max=1.449  mix=0.4611  val 0.9041  test 0.8901 (new best)  train_time 56.9s  val_time 96.8s  test_time 100.1s
+epoch 4/200  link=0.4316  lr=1e-03  r_mean=1.021  r_max=1.461  mix=0.4236  val 0.9059  test 0.8911 (new best)  train_time 59.6s  val_time 104.4s  test_time 107.4s
+epoch 5/200  link=0.4086  lr=1e-03  r_mean=1.027  r_max=1.483  mix=0.3895  val 0.9059  patience 1/10  train_time 61.3s  val_time 100.1s
+epoch 6/200  link=0.3922  lr=1e-03  r_mean=1.032  r_max=1.492  mix=0.3588  val 0.9060  test 0.8914 (new best)  train_time 59.4s  val_time 99.1s  test_time 97.7s
+epoch 7/200  link=0.3795  lr=1e-03  r_mean=1.036  r_max=1.509  mix=0.3313  val 0.9061  test 0.8917 (new best)  train_time 61.8s  val_time 104.3s  test_time 98.7s
+epoch 8/200  link=0.3695  lr=1e-03  r_mean=1.039  r_max=1.529  mix=0.3067  val 0.9066  test 0.8923 (new best)  train_time 57.9s  val_time 98.8s  test_time 101.8s
+epoch 9/200  link=0.3613  lr=1e-03  r_mean=1.043  r_max=1.541  mix=0.2845  val 0.9064  patience 1/10  train_time 60.9s  val_time 103.0s
+epoch 10/200  link=0.3541  lr=1e-03  r_mean=1.046  r_max=1.571  mix=0.2645  val 0.9060  patience 2/10  train_time 60.9s  val_time 103.7s
+epoch 11/200  link=0.3474  lr=1e-03  r_mean=1.049  r_max=1.549  mix=0.2463  val 0.9062  patience 3/10  train_time 60.8s  val_time 102.8s
+epoch 12/200  link=0.3428  lr=1e-03  r_mean=1.051  r_max=1.554  mix=0.2298  val 0.9068  test 0.8910 (new best)  train_time 60.1s  val_time 99.8s  test_time 108.6s
+epoch 13/200  link=0.3380  lr=1e-03  r_mean=1.054  r_max=1.566  mix=0.2148  val 0.9064  patience 1/10  train_time 64.0s  val_time 98.5s
+epoch 14/200  link=0.3339  lr=1e-03  r_mean=1.056  r_max=1.569  mix=0.2011  val 0.9058  patience 2/10  train_time 58.5s  val_time 97.7s
+epoch 15/200  link=0.3299  lr=1e-03  r_mean=1.058  r_max=1.583  mix=0.1885  val 0.9057  patience 3/10  train_time 58.4s  val_time 102.2s
+epoch 16/200  link=0.3272  lr=1e-03  r_mean=1.061  r_max=1.586  mix=0.1770  val 0.9042  patience 4/10  train_time 61.5s  val_time 99.4s
+epoch 17/200  link=0.3247  lr=1e-03  r_mean=1.063  r_max=1.587  mix=0.1664  val 0.9037  patience 5/10  train_time 60.2s  val_time 99.7s
+epoch 18/200  link=0.3220  lr=1e-03  r_mean=1.065  r_max=1.607  mix=0.1567  val 0.9016  patience 6/10  train_time 59.6s  val_time 99.4s
+epoch 19/200  link=0.3194  lr=1e-03  r_mean=1.067  r_max=1.607  mix=0.1476  val 0.9015  patience 7/10  train_time 59.6s  val_time 99.4s
+epoch 20/200  link=0.3172  lr=1e-03  r_mean=1.069  r_max=1.607  mix=0.1393  val 0.9009  patience 8/10  train_time 59.9s  val_time 99.6s
+epoch 21/200  link=0.3153  lr=1e-03  r_mean=1.071  r_max=1.616  mix=0.1315  val 0.8989  patience 9/10  train_time 59.8s  val_time 99.5s
+epoch 22/200  link=0.3132  lr=1e-03  r_mean=1.073  r_max=1.634  mix=0.1242  val 0.8984  patience 10/10  train_time 60.0s  val_time 99.5s
+  restored best weights from epoch 12 (val 0.9068, test 0.8910)
+
+=== Final results ===
+  dataset:           wikipedia
+  seed:              5
+  best_epoch:        12
+  epochs_run:        22
+  best_val_mrr:      0.9068
+  best_test_mrr:     0.8910
+=== rc=0 finished=2026-11-18 19:33:33 ===

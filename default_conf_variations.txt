@@ -1,0 +1,27 @@
+TGB-Seq (--data-suite tgb-seq):
+
+GoogleLocal:   --is-bipartite --num-epochs 300
+YouTube:       -
+Flickr:        -
+Patent:        -
+ML-20M:        --is-bipartite --num-walks-per-node 30
+Taobao:        --is-bipartite --k-train 5
+Yelp:          --is-bipartite
+WikiLink:      -
+
+TGB (--data-suite tgb):
+
+tgbl-wiki:     --is-bipartite --eval-batch-size 200 --lr 1e-4
+tgbl-review:   --lr 1e-4
+tgbl-coin:     --lr 1e-4 --num-walks-per-node 30
+tgbl-comment:  --lr 1e-4 --num-walks-per-node 30
+tgbl-flight:   --lr 1e-4
+
+DyGLib (--data-suite dyglib):
+
+wikipedia:     --is-bipartite --eval-batch-size 200 --num-walks-per-node 30
+reddit:        --is-bipartite --eval-batch-size 200 --num-walks-per-node 30
+mooc:          --is-bipartite --eval-batch-size 200 --num-walks-per-node 30
+lastfm:        --is-bipartite --eval-batch-size 200 --num-walks-per-node 30
+uci:           --eval-batch-size 200 --num-walks-per-node 30
+Flights:       --eval-batch-size 200 --num-walks-per-node 30

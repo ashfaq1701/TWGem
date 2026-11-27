@@ -1,0 +1,81 @@
+# PAPER RUN -- Euclidean geometry, ML-20M re-run at wpn 30. arm=pe pin=953af61 seed=42
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: ML-20M: --is-bipartite   (wpn 30 came from the driver flag at run time;
+#   default_conf_variations.txt now carries it, so the command reproduces from the conf alone)
+# defaults: d_emb 128, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# This log REPLACED the wpn 10 one, which is one revision back in git history.
+#   git diff 78bbf8f 953af61 -- link_property_prediction scripts is trainer.py timing only,
+#   so model and data path match the wpn 10 cell and wpn is the single variable.
+# Per-epoch times are not comparable with the wpn 10 cell's: the card can differ.
+# experiment=seq_wpn30 cell=seed_42 dataset=ML-20M suite=tgb-seq seed=42 wpn=30
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-tim commit=953af61 tree=clean
+# host=artemis-rtx-01.local job=11778272 task=1 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-20 14:23:25
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset ML-20M --is-bipartite --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: ML-20M
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 5.7s
+  num_nodes:     110,432
+  T_train:       407,424,825
+  neg_pool:      9,646 train destinations (training negatives)
+  train edges:   14,000,091
+  val edges:     364,943
+  test edges:    129,291
+  [tgb-seq] val negatives: 100 uniform per positive over 9,646 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 110432
+  T_train: 407424825
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=9,646)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:           14,135,424
+  head params:            1,377
+  TOTAL trainable:   14,136,801
+
+=== Training ===
+  Ingested full graph into Tempest: 14,494,325 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.8602  lr=1e-03  r_mean=1.127  r_max=6.069  val 0.3696  test 0.2992 (new best)  train_time 828.9s  val_time 94.6s  test_time 33.4s
+epoch 2/200  link=0.8330  lr=1e-03  r_mean=1.194  r_max=8.128  val 0.3731  test 0.3015 (new best)  train_time 889.2s  val_time 95.4s  test_time 33.7s
+epoch 3/200  link=0.8181  lr=1e-03  r_mean=1.261  r_max=6.445  val 0.3720  patience 1/10  train_time 893.8s  val_time 95.7s
+epoch 4/200  link=0.8085  lr=1e-03  r_mean=1.337  r_max=5.763  val 0.3690  patience 2/10  train_time 894.5s  val_time 95.7s
+epoch 5/200  link=0.8019  lr=1e-03  r_mean=1.417  r_max=6.461  val 0.3661  patience 3/10  train_time 893.8s  val_time 95.3s
+epoch 6/200  link=0.7959  lr=1e-03  r_mean=1.505  r_max=6.922  val 0.3651  patience 4/10  train_time 893.4s  val_time 95.3s
+epoch 7/200  link=0.7912  lr=1e-03  r_mean=1.598  r_max=7.835  val 0.3627  patience 5/10  train_time 894.3s  val_time 95.7s
+epoch 8/200  link=0.7866  lr=1e-03  r_mean=1.693  r_max=8.464  val 0.3608  patience 6/10  train_time 893.0s  val_time 94.7s
+epoch 9/200  link=0.7836  lr=1e-03  r_mean=1.790  r_max=8.821  val 0.3593  patience 7/10  train_time 892.4s  val_time 95.1s
+epoch 10/200  link=0.7807  lr=1e-03  r_mean=1.889  r_max=9.050  val 0.3554  patience 8/10  train_time 892.6s  val_time 95.5s
+epoch 11/200  link=0.7767  lr=1e-03  r_mean=1.986  r_max=9.631  val 0.3531  patience 9/10  train_time 893.0s  val_time 95.4s
+epoch 12/200  link=0.7733  lr=1e-03  r_mean=2.082  r_max=9.925  val 0.3505  patience 10/10  train_time 892.3s  val_time 95.1s
+  restored best weights from epoch 2 (val 0.3731, test 0.3015)
+  peak_mem 22.63GB
+
+=== Final results ===
+  dataset:           ML-20M
+  seed:              42
+  best_epoch:        2
+  epochs_run:        12
+  best_val_mrr:      0.3731
+  best_test_mrr:     0.3015
+=== rc=0 finished=2026-11-20 17:41:21 ===

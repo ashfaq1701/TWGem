@@ -1,0 +1,75 @@
+# ARCHIVED -- TWGem master arm. lastfm, wpn 30, seed 5. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: lastfm: --is-bipartite --eval-batch-size 200
+# experiment=dyg_wpn30 cell=seed_5 dataset=lastfm suite=dyglib seed=5 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-rtx-02.local job=11763778 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-19 01:22:37
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset lastfm --is-bipartite --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: lastfm
+device:  cuda
+seed:    5
+loaded (dyglib) in 2.2s
+  num_nodes:     1,981
+  T_train:       103,764,800
+  neg_pool:      973 train destinations (training negatives)
+  train edges:   905,172
+  val edges:     193,965
+  test edges:    193,966
+  [dyglib] val negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 1,000 full-dataset candidates
+
+=== Config ===
+  num_nodes: 1981
+  T_train: 103764800
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=973)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 5
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:              253,696
+  head params:            1,377
+  TOTAL trainable:      255,073
+
+=== Training ===
+  Ingested full graph into Tempest: 1,293,103 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.1683  lr=1e-03  r_mean=1.054  r_max=1.564  val 0.4624  test 0.4734 (new best)  train_time 148.2s  val_time 113.7s  test_time 117.5s
+epoch 2/200  link=0.9747  lr=1e-03  r_mean=1.109  r_max=1.601  val 0.4712  test 0.4760 (new best)  train_time 144.0s  val_time 119.0s  test_time 116.3s
+epoch 3/200  link=0.9293  lr=1e-03  r_mean=1.156  r_max=2.090  val 0.4740  test 0.4766 (new best)  train_time 145.8s  val_time 115.4s  test_time 117.9s
+epoch 4/200  link=0.9100  lr=1e-03  r_mean=1.197  r_max=2.390  val 0.4731  patience 1/10  train_time 141.4s  val_time 112.9s
+epoch 5/200  link=0.8992  lr=1e-03  r_mean=1.236  r_max=2.200  val 0.4735  patience 2/10  train_time 137.4s  val_time 118.7s
+epoch 6/200  link=0.8920  lr=1e-03  r_mean=1.272  r_max=2.012  val 0.4729  patience 3/10  train_time 139.5s  val_time 115.9s
+epoch 7/200  link=0.8870  lr=1e-03  r_mean=1.306  r_max=1.932  val 0.4687  patience 4/10  train_time 136.4s  val_time 116.8s
+epoch 8/200  link=0.8822  lr=1e-03  r_mean=1.339  r_max=1.947  val 0.4688  patience 5/10  train_time 144.0s  val_time 118.0s
+epoch 9/200  link=0.8797  lr=1e-03  r_mean=1.371  r_max=2.026  val 0.4662  patience 6/10  train_time 140.2s  val_time 113.7s
+epoch 10/200  link=0.8777  lr=1e-03  r_mean=1.403  r_max=2.068  val 0.4627  patience 7/10  train_time 140.1s  val_time 112.3s
+epoch 11/200  link=0.8756  lr=1e-03  r_mean=1.433  r_max=2.122  val 0.4627  patience 8/10  train_time 133.7s  val_time 116.6s
+epoch 12/200  link=0.8724  lr=1e-03  r_mean=1.463  r_max=2.205  val 0.4628  patience 9/10  train_time 139.3s  val_time 123.5s
+epoch 13/200  link=0.8716  lr=1e-03  r_mean=1.493  r_max=2.253  val 0.4595  patience 10/10  train_time 138.5s  val_time 116.1s
+  restored best weights from epoch 3 (val 0.4740, test 0.4766)
+
+=== Final results ===
+  dataset:           lastfm
+  seed:              5
+  best_epoch:        3
+  epochs_run:        13
+  best_val_mrr:      0.4740
+  best_test_mrr:     0.4766
+=== rc=0 finished=2026-11-19 02:24:32 ===

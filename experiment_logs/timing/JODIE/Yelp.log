@@ -1,0 +1,183 @@
+# RUNTIME MEASUREMENT -- 3 epochs, early stopping off. MRR is not the point here.
+# Reported: train seconds per epoch (mean of epochs 2 and 3), test inference seconds, peak memory.
+# method=JODIE dataset=Yelp seed=42
+# code=/mnt/nfs2/inf/ms2420/CRAFT_fork commit=fb4e837 modified_tracked_files=0
+# host=artemis-rtx-01.local job=11837569 task=2
+# gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition driver=610.57.04
+# cpus=2 started=2026-11-25 09:56:44
+# cmd: /mnt/nfs2/inf/ms2420/CRAFT_fork/venv/bin/python -u train_link_prediction.py --dataset_name Yelp --model_name JODIE --dataset_path /mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/ --gpu 0 --seed 42 --num_runs 1 --num_epochs 3 --patience 100
+
+log in:  /mnt/nfs2/inf/ms2420/CRAFT_fork/logs/Yelp/JODIE/None_JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_sample_neighbor_strategyrecent_numlayers2/1795600617.927501.log
+INFO:root:Using negative samples given by TGB-Seq
+Using zero edge features
+Using zero node features
+dataset_name Yelp
+INFO:root:The dataset has 19760293 interactions, involving 1743769 different nodes
+INFO:root:The training dataset has 17025551 interactions, involving 1743769 different nodes
+INFO:root:The validation dataset has 1702388 interactions, involving 644000 different nodes
+INFO:root:The test dataset has 1032354 interactions, involving 481404 different nodes
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='Yelp', batch_size=200, multi_negs_batch_size=20, model_name='JODIE', gpu=0, output_dim=172, embedding_size=172, num_neighbors=20, save_model_path='./saved_models/', dataset_path='/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, edge_bank_memory_mode='unlimited_memory', time_window_mode='fixed_proportion', patch_size=1, channel_embedding_dim=50, max_input_sequence_length=64, learning_rate=0.0001, dropout=0.1, scale=12, num_epochs=3, optimizer='Adam', weight_decay=0.0, patience=100, val_ratio=0.15, test_ratio=0.15, num_runs=1, seed=42, test_interval_epochs=10, is_bipartite=False, negative_sample_strategy='random', load_best_configs=False, use_edge_feat=False, load_pretrained=False, use_node_feat=False, use_bn=False, use_bias=False, use_act=False, act_type='ReLU', use_feat=False, time_enc=False, use_mixer=False, use_positional=False, use_neighbor=False, use_layernorm=False, num_layers=2, num_mixer_layers=2, merge='cat', version=None, hidden_dropout=0.5, hidden_act='gelu', loss='BCE', inner_size=256, attn_dropout_prob=0.5, layer_norm_eps=1e-12, initializer_range=0.02, shuffle=False, use_pos=False, step=1, use_mean=False, output_cat_time_intervals=False, output_cat_repeat_times=False, input_cat_time_intervals=False, num_output_layer=1, collision_check=False, emb_dropout_prob=0.1, use_mrr_val=False, skip_connection=False, device='cuda:0', save_model_name='JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_sample_neighbor_strategyrecent_numlayers2', user_size=np.int64(1338688), item_size=np.int64(405081), node_size=np.int64(1743769), dst_min_idx=np.int64(1), src_min_idx=np.int64(405082))
+INFO:root:['train_link_prediction.py', '--dataset_name', 'Yelp', '--model_name', 'JODIE', '--dataset_path', '/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', '--gpu', '0', '--seed', '42', '--num_runs', '1', '--num_epochs', '3', '--patience', '100']
+INFO:root:model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1743770, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1743770, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+INFO:root:model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+INFO:root:Epoch: 1, train_time 1963.29s
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.23194669
+INFO:root:train average_precision, 0.96606942
+INFO:root:train roc_auc, 0.96493974
+
+INFO:root:Epoch: 1, val_time 197.84s
+INFO:root:validate average_precision, 0.97133427
+INFO:root:validate roc_auc, 0.97477203
+INFO:root:validate val_loss, 3.03414508
+INFO:root:save model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+INFO:root:Epoch: 2, train_time 1893.71s
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.20684539
+INFO:root:train average_precision, 0.97301001
+INFO:root:train roc_auc, 0.97149721
+
+INFO:root:Epoch: 2, val_time 203.30s
+INFO:root:validate average_precision, 0.97546332
+INFO:root:validate roc_auc, 0.97871758
+INFO:root:validate val_loss, 3.09090340
+INFO:root:save model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+INFO:root:Epoch: 3, train_time 1862.30s
+INFO:root:Epoch: 3, learning rate: 0.0001, train loss: 0.20177820
+INFO:root:train average_precision, 0.97430693
+INFO:root:train roc_auc, 0.97258154
+
+INFO:root:Epoch: 3, val_time 194.02s
+INFO:root:validate average_precision, 0.97704485
+INFO:root:validate roc_auc, 0.97982223
+INFO:root:validate val_loss, 3.28886427
+INFO:root:save model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+INFO:root:load model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+INFO:root:get final performance on dataset Yelp...
+
+INFO:root:test_time_single_neg 178.88s
+INFO:root:load model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+INFO:root:test average_precision, 0.97417025
+INFO:root:test roc_auc, 0.97731601
+INFO:root:test val_loss, 2.91061670
+
+INFO:root:test_time_multi_negs 2784.25s
+INFO:root:peak_mem_gb 29.19
+INFO:root:test average_precision, 0.97417025
+INFO:root:test roc_auc, 0.97731601
+INFO:root:test val_loss, 2.91061670
+INFO:root:test mrr, 0.67360359
+INFO:root:Run 1 cost 9622.06 seconds.
+INFO:root:metrics over 1 runs:
+INFO:root:test average_precision, [np.float64(0.9741702534366801)]
+INFO:root:average test average_precision, 0.97417025 ± nan
+INFO:root:test roc_auc, [np.float64(0.9773160090006902)]
+INFO:root:average test roc_auc, 0.97731601 ± nan
+INFO:root:test val_loss, [np.float64(2.910616700694978)]
+INFO:root:average test val_loss, 2.91061670 ± nan
+INFO:root:test mrr, [np.float32(0.6736036)]
+INFO:root:average test mrr, 0.67360359 ± nan
+/mnt/nfs2/inf/ms2420/CRAFT_fork/logs/Yelp/JODIE/None_JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_sample_neighbor_strategyrecent_numlayers2/1795600617.927501.log
+# --- logger output of /mnt/nfs2/inf/ms2420/CRAFT_fork/logs/Yelp/JODIE/None_JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_sample_neighbor_strategyrecent_numlayers2/1795600617.927501.log
+2026-11-25 09:57:11,002 - root - INFO - Using negative samples given by TGB-Seq
+2026-11-25 09:57:56,807 - root - INFO - The dataset has 19760293 interactions, involving 1743769 different nodes
+2026-11-25 09:57:56,808 - root - INFO - The training dataset has 17025551 interactions, involving 1743769 different nodes
+2026-11-25 09:57:56,808 - root - INFO - The validation dataset has 1702388 interactions, involving 644000 different nodes
+2026-11-25 09:57:56,808 - root - INFO - The test dataset has 1032354 interactions, involving 481404 different nodes
+2026-11-25 10:01:16,817 - root - INFO - ********** Run 1 starts. **********
+2026-11-25 10:01:16,818 - root - INFO - configuration is Namespace(dataset_name='Yelp', batch_size=200, multi_negs_batch_size=20, model_name='JODIE', gpu=0, output_dim=172, embedding_size=172, num_neighbors=20, save_model_path='./saved_models/', dataset_path='/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, edge_bank_memory_mode='unlimited_memory', time_window_mode='fixed_proportion', patch_size=1, channel_embedding_dim=50, max_input_sequence_length=64, learning_rate=0.0001, dropout=0.1, scale=12, num_epochs=3, optimizer='Adam', weight_decay=0.0, patience=100, val_ratio=0.15, test_ratio=0.15, num_runs=1, seed=42, test_interval_epochs=10, is_bipartite=False, negative_sample_strategy='random', load_best_configs=False, use_edge_feat=False, load_pretrained=False, use_node_feat=False, use_bn=False, use_bias=False, use_act=False, act_type='ReLU', use_feat=False, time_enc=False, use_mixer=False, use_positional=False, use_neighbor=False, use_layernorm=False, num_layers=2, num_mixer_layers=2, merge='cat', version=None, hidden_dropout=0.5, hidden_act='gelu', loss='BCE', inner_size=256, attn_dropout_prob=0.5, layer_norm_eps=1e-12, initializer_range=0.02, shuffle=False, use_pos=False, step=1, use_mean=False, output_cat_time_intervals=False, output_cat_repeat_times=False, input_cat_time_intervals=False, num_output_layer=1, collision_check=False, emb_dropout_prob=0.1, use_mrr_val=False, skip_connection=False, device='cuda:0', save_model_name='JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_sample_neighbor_strategyrecent_numlayers2', user_size=np.int64(1338688), item_size=np.int64(405081), node_size=np.int64(1743769), dst_min_idx=np.int64(1), src_min_idx=np.int64(405082))
+2026-11-25 10:01:16,818 - root - INFO - ['train_link_prediction.py', '--dataset_name', 'Yelp', '--model_name', 'JODIE', '--dataset_path', '/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', '--gpu', '0', '--seed', '42', '--num_runs', '1', '--num_epochs', '3', '--patience', '100']
+2026-11-25 10:03:08,010 - root - INFO - model -> Sequential(
+  (0): MemoryModel(
+    (time_encoder): TimeEncoder(
+      (w): Linear(in_features=1, out_features=100, bias=True)
+    )
+    (message_aggregator): MessageAggregator()
+    (memory_bank): MemoryBank(num_nodes=1743770, memory_dim=172)
+    (memory_updater): RNNMemoryUpdater(
+      (memory_bank): MemoryBank(num_nodes=1743770, memory_dim=172)
+      (memory_updater): RNNCell(616, 172)
+    )
+    (embedding_module): TimeProjectionEmbedding(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (linear_layer): Linear(in_features=1, out_features=172, bias=True)
+    )
+  )
+  (1): MergeLayer(
+    (fc1): Linear(in_features=344, out_features=172, bias=True)
+    (fc2): Linear(in_features=172, out_features=1, bias=True)
+    (act): ReLU()
+  )
+)
+2026-11-25 10:03:08,011 - root - INFO - model name: JODIE, #parameters: 783748 B, 765.37890625 KB, 0.7474403381347656 MB.
+2026-11-25 10:35:52,344 - root - INFO - Epoch: 1, train_time 1963.29s
+2026-11-25 10:35:52,358 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.23194669
+2026-11-25 10:35:52,415 - root - INFO - train average_precision, 0.96606942
+2026-11-25 10:35:52,473 - root - INFO - train roc_auc, 0.96493974
+2026-11-25 10:39:10,326 - root - INFO - Epoch: 1, val_time 197.84s
+2026-11-25 10:39:10,328 - root - INFO - validate average_precision, 0.97133427
+2026-11-25 10:39:10,329 - root - INFO - validate roc_auc, 0.97477203
+2026-11-25 10:39:10,329 - root - INFO - validate val_loss, 3.03414508
+2026-11-25 10:39:10,388 - root - INFO - save model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+2026-11-25 11:11:50,180 - root - INFO - Epoch: 2, train_time 1893.71s
+2026-11-25 11:11:50,198 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.20684539
+2026-11-25 11:11:50,263 - root - INFO - train average_precision, 0.97301001
+2026-11-25 11:11:50,335 - root - INFO - train roc_auc, 0.97149721
+2026-11-25 11:15:13,639 - root - INFO - Epoch: 2, val_time 203.30s
+2026-11-25 11:15:13,641 - root - INFO - validate average_precision, 0.97546332
+2026-11-25 11:15:13,641 - root - INFO - validate roc_auc, 0.97871758
+2026-11-25 11:15:13,641 - root - INFO - validate val_loss, 3.09090340
+2026-11-25 11:15:13,696 - root - INFO - save model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+2026-11-25 11:47:15,308 - root - INFO - Epoch: 3, train_time 1862.30s
+2026-11-25 11:47:15,321 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.20177820
+2026-11-25 11:47:15,380 - root - INFO - train average_precision, 0.97430693
+2026-11-25 11:47:15,443 - root - INFO - train roc_auc, 0.97258154
+2026-11-25 11:50:29,475 - root - INFO - Epoch: 3, val_time 194.02s
+2026-11-25 11:50:29,476 - root - INFO - validate average_precision, 0.97704485
+2026-11-25 11:50:29,476 - root - INFO - validate roc_auc, 0.97982223
+2026-11-25 11:50:29,476 - root - INFO - validate val_loss, 3.28886427
+2026-11-25 11:50:29,534 - root - INFO - save model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+2026-11-25 11:51:30,458 - root - INFO - load model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+2026-11-25 11:52:12,818 - root - INFO - get final performance on dataset Yelp...
+2026-11-25 11:55:11,701 - root - INFO - test_time_single_neg 178.88s
+2026-11-25 11:55:11,704 - root - INFO - load model ./saved_models//Yelp/JODIE/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2/JODIE_seed42_batchsize200_num_neighbors20_dropout0.1_numlayers2.pkl
+2026-11-25 11:55:14,622 - root - INFO - test average_precision, 0.97417025
+2026-11-25 11:55:14,623 - root - INFO - test roc_auc, 0.97731601
+2026-11-25 11:55:14,623 - root - INFO - test val_loss, 2.91061670
+2026-11-25 12:41:38,874 - root - INFO - test_time_multi_negs 2784.25s
+2026-11-25 12:41:38,875 - root - INFO - peak_mem_gb 29.19
+2026-11-25 12:41:38,875 - root - INFO - test average_precision, 0.97417025
+2026-11-25 12:41:38,875 - root - INFO - test roc_auc, 0.97731601
+2026-11-25 12:41:38,875 - root - INFO - test val_loss, 2.91061670
+2026-11-25 12:41:38,875 - root - INFO - test mrr, 0.67360359
+2026-11-25 12:41:38,875 - root - INFO - Run 1 cost 9622.06 seconds.
+2026-11-25 12:41:38,882 - root - INFO - metrics over 1 runs:
+2026-11-25 12:41:38,883 - root - INFO - test average_precision, [np.float64(0.9741702534366801)]
+2026-11-25 12:41:38,883 - root - INFO - average test average_precision, 0.97417025 ± nan
+2026-11-25 12:41:38,883 - root - INFO - test roc_auc, [np.float64(0.9773160090006902)]
+2026-11-25 12:41:38,883 - root - INFO - average test roc_auc, 0.97731601 ± nan
+2026-11-25 12:41:38,883 - root - INFO - test val_loss, [np.float64(2.910616700694978)]
+2026-11-25 12:41:38,883 - root - INFO - average test val_loss, 2.91061670 ± nan
+2026-11-25 12:41:38,883 - root - INFO - test mrr, [np.float32(0.6736036)]
+2026-11-25 12:41:38,883 - root - INFO - average test mrr, 0.67360359 ± nan
+# finished=2026-11-25 12:41:51 rc=0

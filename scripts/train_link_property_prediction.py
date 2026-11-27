@@ -1,0 +1,246 @@
+"""Link-prediction training CLI."""
+
+import argparse
+import pathlib
+import sys
+import time
+from typing import Any, Dict
+
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+import numpy as np
+import torch
+
+from link_property_prediction.data import Loaded, concat_splits, create_batches
+from link_property_prediction.evaluator import SUITES, make_suite
+from link_property_prediction.model import dist0
+from link_property_prediction.trainer import Trainer, TrainerConfig
+from link_property_prediction.utils import seed_all
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Tempest walks-supervised temporal embedding training"
+    )
+
+    # Dataset
+    p.add_argument("--data-suite", default="tgb-seq", choices=list(SUITES),
+                   help="Benchmark suite to load from.")
+    p.add_argument("--dataset", required=True, type=str,
+                   help="Dataset name within the suite.")
+    p.add_argument("--data-root", default="datasets", type=str,
+                   help="Data root directory.")
+    p.add_argument("--is-bipartite", action="store_true",
+                   help="Bipartite graph: negatives are destinations only. Otherwise any "
+                        "node (sources and destinations) can be a negative.")
+
+    # Model
+    p.add_argument("--d-emb", default=128, type=int,
+                   help="Embedding dimension.")
+    p.add_argument("--num-walks-per-node", default=10, type=int,
+                   help="Walks per query node.")
+    p.add_argument("--max-walk-len", default=5, type=int,
+                   help="Max walk length.")
+    p.add_argument("--walk-bias", default="ExponentialWeight", type=str,
+                   help="Per-hop edge bias for the walks.")
+    p.add_argument("--start-bias", default="ExponentialWeight", type=str,
+                   help="Initial-edge bias for the walks.")
+    p.add_argument("--t2nv-p", default=4.0, type=float,
+                   help="node2vec return param p (TemporalNode2Vec bias only).")
+    p.add_argument("--t2nv-q", default=0.25, type=float,
+                   help="node2vec in-out param q (TemporalNode2Vec bias only).")
+
+    # Negatives
+    p.add_argument("--k-train", default=10, type=int,
+                   help="Per-query training negatives.")
+    p.add_argument("--k-eval", default=100, type=int,
+                   help="Eval negatives per positive (tgb-seq val only).")
+
+    # Optimisation / training
+    p.add_argument("--lr", default=1e-3, type=float,
+                   help="Learning rate of every parameter: the embedding table E (SparseAdam) "
+                        "and the NN pooler (Adam).")
+    p.add_argument("--batch-size", default=1000, type=int,
+                   help="Train batch size.")
+    p.add_argument("--eval-batch-size", default=1000, type=int,
+                   help="Val/test eval batch size.")
+    p.add_argument("--num-epochs", default=200, type=int,
+                   help="Max training epochs. High enough that --early-stop-patience ends the "
+                        "run; hitting this cap means the cell is a floor, not a result.")
+    p.add_argument("--early-stop-patience", default=10, type=int,
+                   help="Early-stop patience in epochs.")
+
+    # System
+    p.add_argument("--seed", default=42, type=int,
+                   help="Random seed.")
+    p.add_argument("--use-gpu", action="store_true",
+                   help="Place PyTorch tensors on CUDA.")
+    p.add_argument("--use-gpu-tempest", action="store_true",
+                   help="Run Tempest's walk sampler in GPU mode.")
+
+    # Pooler widths
+    p.add_argument("--hidden-dim", default=32, type=int,
+                   help="Hidden width of the pooler MLP. Pinned independently of the feature "
+                        "count so a feature change does not also move pooler capacity.")
+    p.add_argument("--n-layers-pooler", default=2, type=int,
+                   help="Hidden Linear->GELU stages in the pooler MLP (>= 1). Each past the "
+                        "first inserts a Linear(hidden, hidden) -> GELU before the output "
+                        "layer. 1 reproduces the single-hidden-layer shape used before.")
+
+    # Post-training outputs
+    p.add_argument("--export-best-embedding-table", action="store_true",
+                   help="After training, dump the best-val embedding table to disk.")
+    p.add_argument("--save-checkpoint", default="", type=str,
+                   help="After training, save the best-val model (E, pooler) and "
+                        "these args to this path -- the frozen encoder for node classification.")
+
+    return p.parse_args()
+
+
+def main() -> Dict[str, Any]:
+    args = parse_args()
+    seed_all(args.seed)
+
+    device = torch.device(
+        "cuda" if (args.use_gpu and torch.cuda.is_available()) else "cpu"
+    )
+
+    print("=== tempest-embedding training ===")
+    print(f"dataset: {args.dataset}")
+    print(f"device:  {device}")
+    print(f"seed:    {args.seed}")
+
+    # Load the dataset
+    t0 = time.time()
+    suite = make_suite(
+        args.data_suite,
+        name=args.dataset, root=args.data_root, is_bipartite=args.is_bipartite,
+        k_eval=args.k_eval, seed=args.seed,
+    )
+    loaded: Loaded = suite.load()
+    print(f"loaded ({args.data_suite}) in {time.time() - t0:.1f}s")
+
+    num_nodes = loaded.max_node_count
+
+    train_negative_pool = suite.train_negative_pool
+
+    print(f"  num_nodes:     {num_nodes:,}")
+    print(f"  T_train:       {loaded.T_train:,}")
+    print(f"  neg_pool:      {len(train_negative_pool):,} train {suite.candidate_kind} "
+          f"(training negatives)")
+    print(f"  train edges:   {len(loaded.train.sources):,}")
+    print(f"  val edges:     {len(loaded.val.sources):,}")
+    print(f"  test edges:    {len(loaded.test.sources):,}")
+
+    # Build batch factories
+    train_batches_factory = (
+        lambda: create_batches(loaded.train, args.batch_size)
+    )
+    val_batches_factory = (
+        lambda: create_batches(loaded.val, args.eval_batch_size)
+    )
+    test_batches_factory = (
+        lambda: create_batches(loaded.test, args.eval_batch_size)
+    )
+
+    # Build the evaluators
+    val_eval = suite.make_evaluator("val")
+    test_eval = suite.make_evaluator("test")
+
+    # Build TrainerConfig
+    config = TrainerConfig(
+        num_nodes=num_nodes,
+        T_train=loaded.T_train,
+        train_negative_sampler=suite.train_negative_sampler(args.k_train),
+
+        d_emb=args.d_emb,
+        hidden_dim=args.hidden_dim,
+        n_layers_pooler=args.n_layers_pooler,
+
+        num_walks_per_node=args.num_walks_per_node,
+        max_walk_len=args.max_walk_len,
+        walk_bias=args.walk_bias,
+        start_bias=args.start_bias,
+        t2nv_p=args.t2nv_p,
+        t2nv_q=args.t2nv_q,
+        lr=args.lr,
+        num_epochs=args.num_epochs,
+        early_stop_patience=args.early_stop_patience,
+
+        seed=args.seed,
+        use_gpu=args.use_gpu,
+        use_gpu_tempest=args.use_gpu_tempest,
+    )
+
+    print("\n=== Config ===")
+    for k, v in vars(config).items():
+        print(f"  {k}: {v}")
+
+    # Instantiate Trainer
+    trainer = Trainer(config=config, device=device)
+
+    print("\n=== Parameter counts ===")
+    n_total = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
+    n_E = trainer.model.E.weight.numel()           # counts the padding row too
+    print(f"  model.E:         {n_E:>12,}")
+    print(f"  head params:     {n_total - n_E:>12,}")
+    print(f"  TOTAL trainable: {n_total:>12,}")
+
+    # Train
+    print("\n=== Training ===")
+    result = trainer.train(
+        train_batches_factory=train_batches_factory,
+        full_graph=concat_splits(loaded.train, loaded.val, loaded.test),
+        val_evaluator=val_eval,
+        val_batches_factory=val_batches_factory,
+        test_evaluator=test_eval,
+        test_batches_factory=test_batches_factory,
+    )
+
+    # Results
+    print("\n=== Final results ===")
+    print(f"  dataset:           {args.dataset}")
+    print(f"  seed:              {args.seed}")
+    print(f"  best_epoch:        {result['best_epoch']}")
+    print(f"  epochs_run:        {result['epochs_run']}")
+    print(f"  best_val_mrr:      {result['best_val_mrr']:.4f}")
+    print(f"  best_test_mrr:     {result['best_test_mrr']:.4f}")
+
+    # Optionally save the best-validation embedding table.
+    if args.export_best_embedding_table:
+        emb_dir = pathlib.Path("logs/embeddings")
+        emb_dir.mkdir(parents=True, exist_ok=True)
+        emb_path = emb_dir / (
+            f"{args.dataset}_seed{args.seed}_demb{args.d_emb}"
+            f"_ep{result['best_epoch']}.npy"
+        )
+        np.save(
+            emb_path,
+            trainer.model.node_embeddings.detach().cpu().numpy(),
+        )
+        print(f"  embedding_table:   saved to {emb_path}")
+
+    # Optionally save the best-validation model with its arguments.
+    if args.save_checkpoint:
+        ckpt_path = pathlib.Path(args.save_checkpoint)
+        ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+        radius = dist0(trainer.model.node_embeddings.detach())
+        torch.save({
+            "state_dict": trainer.model.state_dict(),
+            "args": vars(args),
+            "T_train": loaded.T_train,
+            "best_epoch": result["best_epoch"],
+            "best_val_mrr": result["best_val_mrr"],
+            "r_mean": float(radius.mean()),
+            "r_max": float(radius.max()),
+        }, ckpt_path)
+        print(f"  checkpoint:        saved to {ckpt_path} "
+              f"(r_mean={float(radius.mean()):.3f}, r_max={float(radius.max()):.3f})")
+
+    return result
+
+
+if __name__ == "__main__":
+    main()

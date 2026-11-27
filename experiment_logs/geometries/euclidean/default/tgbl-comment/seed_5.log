@@ -1,0 +1,87 @@
+# PAPER RUN -- Euclidean geometry, tgbl-comment re-run at wpn 30. arm=pe pin=953af61 seed=5
+# Every knob is the argparse default except --num-walks-per-node 30,
+#   --early-stop-patience 5 and the per-dataset flags from default_conf_variations.txt,
+#   reproduced verbatim below.
+# conf line: tgbl-comment: --lr 1e-4   (wpn 30 came from the driver flag at run time;
+#   default_conf_variations.txt now carries it, so the trajectory reproduces from the
+#   conf alone. Patience 5 stays a run-time flag and is NOT in the conf.)
+# defaults: d_emb 128, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, hidden 32, n_layers_pooler 2.
+# This log REPLACED the wpn 10 one, which is one revision back in git history.
+#   git diff 78bbf8f 953af61 -- link_property_prediction scripts is trainer.py timing
+#   only, so model and data path match the wpn 10 cell.
+# TWO variables against that cell: wpn 30 against 10, and patience 5 against 10.
+#   Patience never changes the trajectory, only where the run stops, so the reported
+#   number is a FLOOR -- this cell stopped at ep13, the wpn 10 cell selected ep17 of 27.
+# Per-epoch times are not comparable with the wpn 10 cell's: the card can differ.
+# experiment=seq_wpn30_pat5 cell=seed_5 dataset=tgbl-comment suite=tgb seed=5 wpn=30 pat=5
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-tim commit=953af61 tree=clean
+# host=artemis-rtx-02.local job=11770968 task=0 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-20 07:36:44
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb --dataset tgbl-comment --lr 1e-4 --num-walks-per-node 30 --early-stop-patience 5 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: tgbl-comment
+device:  cuda
+seed:    5
+loaded (tgb) in 36.1s
+  num_nodes:     994,790
+  T_train:       148,504,096
+  neg_pool:      731,964 train nodes (training negatives)
+  train edges:   31,020,155
+  val edges:     6,647,176
+  test edges:    6,647,176
+  [tgb] val negatives: TGB's pre-generated set (--k-eval=100 ignored)
+  [tgb] test negatives: TGB's pre-generated set (--k-eval=100 ignored)
+
+=== Config ===
+  num_nodes: 994790
+  T_train: 148504096
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=731,964)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.0001
+  num_epochs: 200
+  early_stop_patience: 5
+  seed: 5
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:          127,333,248
+  head params:            1,377
+  TOTAL trainable:  127,334,625
+
+=== Training ===
+  Ingested full graph into Tempest: 44,314,507 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.4741  lr=1e-04  r_mean=1.018  r_max=1.452  val 0.7443  test 0.7807 (new best)  train_time 4615.4s  val_time 1162.0s  test_time 1179.1s
+epoch 2/200  link=0.4539  lr=1e-04  r_mean=1.031  r_max=1.617  val 0.7450  test 0.7812 (new best)  train_time 4616.4s  val_time 1167.1s  test_time 1190.2s
+epoch 3/200  link=0.4458  lr=1e-04  r_mean=1.041  r_max=1.653  val 0.7478  test 0.7833 (new best)  train_time 4661.7s  val_time 1231.1s  test_time 1223.3s
+epoch 4/200  link=0.4404  lr=1e-04  r_mean=1.049  r_max=1.981  val 0.7472  patience 1/5  train_time 4553.8s  val_time 1207.9s
+epoch 5/200  link=0.4360  lr=1e-04  r_mean=1.057  r_max=2.229  val 0.7496  test 0.7847 (new best)  train_time 4501.2s  val_time 1217.5s  test_time 1249.3s
+epoch 6/200  link=0.4320  lr=1e-04  r_mean=1.065  r_max=2.318  val 0.7501  test 0.7849 (new best)  train_time 4573.6s  val_time 1231.5s  test_time 1240.5s
+epoch 7/200  link=0.4288  lr=1e-04  r_mean=1.072  r_max=2.370  val 0.7491  patience 1/5  train_time 4683.6s  val_time 1208.3s
+epoch 8/200  link=0.4258  lr=1e-04  r_mean=1.079  r_max=2.314  val 0.7507  test 0.7844 (new best)  train_time 4637.4s  val_time 1205.3s  test_time 1047.8s
+epoch 9/200  link=0.4231  lr=1e-04  r_mean=1.086  r_max=2.228  val 0.7483  patience 1/5  train_time 4325.0s  val_time 1217.4s
+epoch 10/200  link=0.4209  lr=1e-04  r_mean=1.093  r_max=2.225  val 0.7496  patience 2/5  train_time 4548.0s  val_time 1226.1s
+epoch 11/200  link=0.4189  lr=1e-04  r_mean=1.099  r_max=2.270  val 0.7498  patience 3/5  train_time 4550.7s  val_time 1215.6s
+epoch 12/200  link=0.4170  lr=1e-04  r_mean=1.106  r_max=2.178  val 0.7497  patience 4/5  train_time 4569.0s  val_time 1192.6s
+epoch 13/200  link=0.4153  lr=1e-04  r_mean=1.112  r_max=2.195  val 0.7490  patience 5/5  train_time 4642.9s  val_time 1186.2s
+  restored best weights from epoch 8 (val 0.7507, test 0.7844)
+  peak_mem 6.25GB
+
+=== Final results ===
+  dataset:           tgbl-comment
+  seed:              5
+  best_epoch:        8
+  epochs_run:        13
+  best_val_mrr:      0.7507
+  best_test_mrr:     0.7844
+=== rc=0 finished=2026-11-21 06:31:10 ===

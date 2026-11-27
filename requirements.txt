@@ -1,0 +1,31 @@
+# Runtime dependencies.  Install:  pip install -r requirements.txt
+
+numpy>=1.24,<3
+
+# torch: the version AND the build are pinned. 2.7.1 is the first release
+# bundling nvidia-cuda-runtime-cu12>=12.6, which tempest-rw requires. The
+# +cu128 build is the only one that runs on both the A40s (sm_86) and the
+# RTX PRO 6000 Blackwell nodes (sm_120); cu126 has no sm_120 kernels and no
+# PTX to JIT from. A bare `torch==2.7.1` resolves to the CPU build on PyPI.
+torch==2.7.1+cu128
+
+# py-tgb imports as `tgb`. The PyPI package named `tgb` is unrelated -- do
+# not install it.
+py-tgb>=2.3.0
+
+# pandas 3 makes Copy-on-Write mandatory; TGB's preprocessing mutates
+# `df.iloc[:, k].values` in place and raises "output array is read-only".
+pandas>=2,<3
+
+tempest-rw>=1.0.6
+tgb-seq
+
+# node classification: ROC-AUC; DyGLib datasets download from Zenodo.
+scikit-learn>=1.2
+requests>=2.28
+
+# paper figures: plots/*.py.
+matplotlib>=3.8
+
+# Serves the +cu128 build of torch; PyPI stays primary for everything else.
+--extra-index-url https://download.pytorch.org/whl/cu128

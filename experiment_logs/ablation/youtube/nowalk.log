@@ -1,0 +1,194 @@
+# NON-ARCHIVAL -- ablation job 9, ablation_nowalk_yt. One flag off the archived default run.
+# arm flag: --walk-sides none
+# conf line: YouTube: -   (verbatim; the arm flag follows it so it wins on a clash)
+# defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Baseline: experiment_logs/geometries/euclidean/default/youtube/seed_42.log
+#   Compared at the best-validation epoch: val with val, test with test.
+# RECORD BOTH test@val-checkpoint AND max test.
+# experiment=ablation cell=ablation_nowalk_yt dataset=YouTube suite=tgb-seq seed=42 job_no=9
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-abl commit=ea4f3a5 tree=clean
+# host=artemis-a40-10.local job=11782113 task=9 gpu=NVIDIA A40
+# started=2026-11-22 17:11:21
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset YouTube   --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --walk-sides none --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: YouTube
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 1.7s
+  num_nodes:     402,423
+  T_train:       17,017,200
+  neg_pool:      402,422 train nodes (training negatives)
+  train edges:   2,730,407
+  val edges:     324,756
+  test edges:    232,865
+  [tgb-seq] val negatives: 100 uniform per positive over 402,422 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 402423
+  T_train: 17017200
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=402,422)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  ablation: Ablation(walk_sides='none', pooling='learned', features=('age', 'hop', 'mid', 'radius'), raw_geo_features=False, detach=True, score='log-dist', standardise=True)
+
+=== Parameter counts ===
+  model.E:           51,510,272
+  head params:            1,377
+  TOTAL trainable:   51,511,649
+
+=== Training ===
+  Ingested full graph into Tempest: 3,288,028 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=2.2299  lr=1e-03  r_mean=1.277  r_max=2.406  val 0.4584  test 0.3957 (new best)  train_time 35.3s  val_time 22.7s  test_time 16.1s
+epoch 2/200  link=1.5530  lr=1e-03  r_mean=1.312  r_max=2.600  val 0.5023  test 0.4229 (new best)  train_time 34.4s  val_time 22.7s  test_time 16.1s
+epoch 3/200  link=1.2103  lr=1e-03  r_mean=1.338  r_max=3.111  val 0.5323  test 0.4417 (new best)  train_time 33.9s  val_time 22.8s  test_time 16.2s
+epoch 4/200  link=0.9271  lr=1e-03  r_mean=1.362  r_max=3.291  val 0.5515  test 0.4555 (new best)  train_time 34.4s  val_time 22.6s  test_time 16.4s
+epoch 5/200  link=0.7612  lr=1e-03  r_mean=1.381  r_max=3.396  val 0.5638  test 0.4653 (new best)  train_time 35.1s  val_time 22.7s  test_time 16.3s
+epoch 6/200  link=0.6733  lr=1e-03  r_mean=1.395  r_max=3.464  val 0.5727  test 0.4717 (new best)  train_time 35.0s  val_time 22.6s  test_time 16.3s
+epoch 7/200  link=0.6230  lr=1e-03  r_mean=1.406  r_max=3.513  val 0.5795  test 0.4781 (new best)  train_time 34.4s  val_time 22.6s  test_time 16.4s
+epoch 8/200  link=0.5895  lr=1e-03  r_mean=1.415  r_max=3.552  val 0.5854  test 0.4822 (new best)  train_time 34.3s  val_time 22.6s  test_time 16.3s
+epoch 9/200  link=0.5651  lr=1e-03  r_mean=1.423  r_max=3.586  val 0.5901  test 0.4854 (new best)  train_time 34.7s  val_time 22.7s  test_time 16.2s
+epoch 10/200  link=0.5466  lr=1e-03  r_mean=1.429  r_max=3.608  val 0.5956  test 0.4892 (new best)  train_time 35.2s  val_time 22.6s  test_time 16.0s
+epoch 11/200  link=0.5323  lr=1e-03  r_mean=1.435  r_max=3.627  val 0.5991  test 0.4934 (new best)  train_time 34.4s  val_time 22.7s  test_time 16.2s
+epoch 12/200  link=0.5201  lr=1e-03  r_mean=1.440  r_max=3.636  val 0.6023  test 0.4951 (new best)  train_time 34.1s  val_time 22.3s  test_time 16.2s
+epoch 13/200  link=0.5102  lr=1e-03  r_mean=1.445  r_max=3.653  val 0.6065  test 0.4978 (new best)  train_time 34.2s  val_time 22.5s  test_time 16.1s
+epoch 14/200  link=0.5018  lr=1e-03  r_mean=1.450  r_max=3.664  val 0.6095  test 0.5009 (new best)  train_time 34.9s  val_time 22.4s  test_time 16.1s
+epoch 15/200  link=0.4944  lr=1e-03  r_mean=1.454  r_max=3.675  val 0.6126  test 0.5033 (new best)  train_time 34.8s  val_time 22.5s  test_time 16.0s
+epoch 16/200  link=0.4881  lr=1e-03  r_mean=1.459  r_max=3.689  val 0.6153  test 0.5052 (new best)  train_time 34.3s  val_time 22.5s  test_time 16.2s
+epoch 17/200  link=0.4821  lr=1e-03  r_mean=1.463  r_max=3.710  val 0.6178  test 0.5082 (new best)  train_time 34.0s  val_time 22.5s  test_time 16.1s
+epoch 18/200  link=0.4771  lr=1e-03  r_mean=1.466  r_max=3.723  val 0.6199  test 0.5081 (new best)  train_time 34.8s  val_time 22.4s  test_time 16.2s
+epoch 19/200  link=0.4724  lr=1e-03  r_mean=1.470  r_max=3.739  val 0.6220  test 0.5099 (new best)  train_time 35.0s  val_time 22.9s  test_time 16.0s
+epoch 20/200  link=0.4682  lr=1e-03  r_mean=1.474  r_max=3.757  val 0.6247  test 0.5114 (new best)  train_time 34.2s  val_time 22.4s  test_time 16.2s
+epoch 21/200  link=0.4647  lr=1e-03  r_mean=1.477  r_max=3.778  val 0.6254  test 0.5135 (new best)  train_time 34.2s  val_time 22.5s  test_time 16.2s
+epoch 22/200  link=0.4611  lr=1e-03  r_mean=1.481  r_max=3.796  val 0.6268  test 0.5139 (new best)  train_time 34.6s  val_time 22.4s  test_time 16.4s
+epoch 23/200  link=0.4579  lr=1e-03  r_mean=1.484  r_max=3.811  val 0.6299  test 0.5160 (new best)  train_time 34.7s  val_time 22.5s  test_time 16.1s
+epoch 24/200  link=0.4548  lr=1e-03  r_mean=1.487  r_max=3.830  val 0.6315  test 0.5179 (new best)  train_time 34.7s  val_time 22.4s  test_time 16.1s
+epoch 25/200  link=0.4519  lr=1e-03  r_mean=1.490  r_max=3.846  val 0.6332  test 0.5187 (new best)  train_time 34.2s  val_time 22.5s  test_time 16.1s
+epoch 26/200  link=0.4495  lr=1e-03  r_mean=1.493  r_max=3.869  val 0.6336  test 0.5192 (new best)  train_time 34.1s  val_time 22.5s  test_time 16.1s
+epoch 27/200  link=0.4473  lr=1e-03  r_mean=1.496  r_max=3.886  val 0.6351  test 0.5209 (new best)  train_time 34.4s  val_time 22.5s  test_time 16.2s
+epoch 28/200  link=0.4447  lr=1e-03  r_mean=1.500  r_max=3.904  val 0.6371  test 0.5225 (new best)  train_time 35.2s  val_time 22.5s  test_time 16.3s
+epoch 29/200  link=0.4426  lr=1e-03  r_mean=1.503  r_max=3.926  val 0.6387  test 0.5227 (new best)  train_time 34.7s  val_time 22.7s  test_time 16.0s
+epoch 30/200  link=0.4406  lr=1e-03  r_mean=1.505  r_max=3.948  val 0.6393  test 0.5259 (new best)  train_time 33.9s  val_time 22.3s  test_time 16.1s
+epoch 31/200  link=0.4387  lr=1e-03  r_mean=1.508  r_max=3.970  val 0.6402  test 0.5245 (new best)  train_time 33.9s  val_time 22.6s  test_time 16.1s
+epoch 32/200  link=0.4369  lr=1e-03  r_mean=1.511  r_max=3.990  val 0.6400  patience 1/10  train_time 34.9s  val_time 22.4s
+epoch 33/200  link=0.4352  lr=1e-03  r_mean=1.514  r_max=4.013  val 0.6412  test 0.5253 (new best)  train_time 35.0s  val_time 22.3s  test_time 16.2s
+epoch 34/200  link=0.4336  lr=1e-03  r_mean=1.517  r_max=4.036  val 0.6416  test 0.5278 (new best)  train_time 34.4s  val_time 22.5s  test_time 16.2s
+epoch 35/200  link=0.4318  lr=1e-03  r_mean=1.520  r_max=4.057  val 0.6432  test 0.5286 (new best)  train_time 34.5s  val_time 22.3s  test_time 16.2s
+epoch 36/200  link=0.4303  lr=1e-03  r_mean=1.523  r_max=4.080  val 0.6454  test 0.5279 (new best)  train_time 33.7s  val_time 22.6s  test_time 16.3s
+epoch 37/200  link=0.4292  lr=1e-03  r_mean=1.526  r_max=4.103  val 0.6456  test 0.5308 (new best)  train_time 34.2s  val_time 22.5s  test_time 16.3s
+epoch 38/200  link=0.4278  lr=1e-03  r_mean=1.528  r_max=4.126  val 0.6458  test 0.5305 (new best)  train_time 34.9s  val_time 22.5s  test_time 16.1s
+epoch 39/200  link=0.4265  lr=1e-03  r_mean=1.531  r_max=4.152  val 0.6473  test 0.5299 (new best)  train_time 34.8s  val_time 22.4s  test_time 16.1s
+epoch 40/200  link=0.4253  lr=1e-03  r_mean=1.534  r_max=4.176  val 0.6471  patience 1/10  train_time 34.4s  val_time 22.4s
+epoch 41/200  link=0.4240  lr=1e-03  r_mean=1.537  r_max=4.201  val 0.6484  test 0.5326 (new best)  train_time 34.5s  val_time 22.5s  test_time 16.2s
+epoch 42/200  link=0.4230  lr=1e-03  r_mean=1.540  r_max=4.222  val 0.6499  test 0.5322 (new best)  train_time 34.0s  val_time 22.4s  test_time 16.2s
+epoch 43/200  link=0.4218  lr=1e-03  r_mean=1.542  r_max=4.249  val 0.6501  test 0.5331 (new best)  train_time 34.9s  val_time 22.5s  test_time 16.2s
+epoch 44/200  link=0.4208  lr=1e-03  r_mean=1.545  r_max=4.277  val 0.6494  patience 1/10  train_time 35.3s  val_time 22.4s
+epoch 45/200  link=0.4196  lr=1e-03  r_mean=1.548  r_max=4.299  val 0.6511  test 0.5352 (new best)  train_time 35.5s  val_time 22.5s  test_time 16.2s
+epoch 46/200  link=0.4187  lr=1e-03  r_mean=1.551  r_max=4.326  val 0.6523  test 0.5345 (new best)  train_time 34.6s  val_time 22.6s  test_time 16.0s
+epoch 47/200  link=0.4179  lr=1e-03  r_mean=1.553  r_max=4.350  val 0.6538  test 0.5352 (new best)  train_time 34.5s  val_time 22.3s  test_time 16.3s
+epoch 48/200  link=0.4169  lr=1e-03  r_mean=1.556  r_max=4.376  val 0.6538  test 0.5336 (new best)  train_time 34.1s  val_time 22.7s  test_time 16.1s
+epoch 49/200  link=0.4159  lr=1e-03  r_mean=1.559  r_max=4.401  val 0.6528  patience 1/10  train_time 35.0s  val_time 22.4s
+epoch 50/200  link=0.4151  lr=1e-03  r_mean=1.562  r_max=4.425  val 0.6529  patience 2/10  train_time 34.2s  val_time 21.4s
+epoch 51/200  link=0.4143  lr=1e-03  r_mean=1.564  r_max=4.449  val 0.6550  test 0.5353 (new best)  train_time 34.5s  val_time 21.4s  test_time 15.5s
+epoch 52/200  link=0.4136  lr=1e-03  r_mean=1.567  r_max=4.471  val 0.6558  test 0.5366 (new best)  train_time 35.0s  val_time 21.4s  test_time 15.4s
+epoch 53/200  link=0.4128  lr=1e-03  r_mean=1.570  r_max=4.495  val 0.6559  test 0.5369 (new best)  train_time 34.8s  val_time 21.5s  test_time 15.3s
+epoch 54/200  link=0.4121  lr=1e-03  r_mean=1.573  r_max=4.516  val 0.6564  test 0.5384 (new best)  train_time 34.0s  val_time 21.4s  test_time 15.3s
+epoch 55/200  link=0.4113  lr=1e-03  r_mean=1.575  r_max=4.544  val 0.6556  patience 1/10  train_time 34.0s  val_time 21.2s
+epoch 56/200  link=0.4106  lr=1e-03  r_mean=1.578  r_max=4.565  val 0.6570  test 0.5388 (new best)  train_time 33.8s  val_time 21.3s  test_time 15.4s
+epoch 57/200  link=0.4098  lr=1e-03  r_mean=1.581  r_max=4.594  val 0.6566  patience 1/10  train_time 34.2s  val_time 21.3s
+epoch 58/200  link=0.4091  lr=1e-03  r_mean=1.584  r_max=4.616  val 0.6579  test 0.5407 (new best)  train_time 34.5s  val_time 21.3s  test_time 15.4s
+epoch 59/200  link=0.4087  lr=1e-03  r_mean=1.586  r_max=4.639  val 0.6593  test 0.5403 (new best)  train_time 34.3s  val_time 21.3s  test_time 15.4s
+epoch 60/200  link=0.4080  lr=1e-03  r_mean=1.589  r_max=4.663  val 0.6592  patience 1/10  train_time 35.0s  val_time 21.4s
+epoch 61/200  link=0.4073  lr=1e-03  r_mean=1.592  r_max=4.686  val 0.6578  patience 2/10  train_time 34.6s  val_time 21.5s
+epoch 62/200  link=0.4069  lr=1e-03  r_mean=1.595  r_max=4.710  val 0.6595  test 0.5396 (new best)  train_time 34.4s  val_time 21.4s  test_time 15.5s
+epoch 63/200  link=0.4062  lr=1e-03  r_mean=1.597  r_max=4.739  val 0.6584  patience 1/10  train_time 35.1s  val_time 21.4s
+epoch 64/200  link=0.4056  lr=1e-03  r_mean=1.600  r_max=4.763  val 0.6596  test 0.5421 (new best)  train_time 34.8s  val_time 21.3s  test_time 15.5s
+epoch 65/200  link=0.4051  lr=1e-03  r_mean=1.603  r_max=4.787  val 0.6598  test 0.5414 (new best)  train_time 34.9s  val_time 21.4s  test_time 15.3s
+epoch 66/200  link=0.4046  lr=1e-03  r_mean=1.605  r_max=4.809  val 0.6601  test 0.5421 (new best)  train_time 35.2s  val_time 21.4s  test_time 15.7s
+epoch 67/200  link=0.4041  lr=1e-03  r_mean=1.608  r_max=4.835  val 0.6602  test 0.5409 (new best)  train_time 33.9s  val_time 21.9s  test_time 15.6s
+epoch 68/200  link=0.4034  lr=1e-03  r_mean=1.611  r_max=4.852  val 0.6604  test 0.5402 (new best)  train_time 34.1s  val_time 21.6s  test_time 15.7s
+epoch 69/200  link=0.4031  lr=1e-03  r_mean=1.614  r_max=4.877  val 0.6606  test 0.5409 (new best)  train_time 34.3s  val_time 21.7s  test_time 15.7s
+epoch 70/200  link=0.4026  lr=1e-03  r_mean=1.616  r_max=4.899  val 0.6611  test 0.5411 (new best)  train_time 35.2s  val_time 21.7s  test_time 15.5s
+epoch 71/200  link=0.4022  lr=1e-03  r_mean=1.619  r_max=4.919  val 0.6613  test 0.5424 (new best)  train_time 34.4s  val_time 21.7s  test_time 15.5s
+epoch 72/200  link=0.4020  lr=1e-03  r_mean=1.622  r_max=4.942  val 0.6622  test 0.5429 (new best)  train_time 34.1s  val_time 21.7s  test_time 15.6s
+epoch 73/200  link=0.4014  lr=1e-03  r_mean=1.625  r_max=4.962  val 0.6631  test 0.5439 (new best)  train_time 34.1s  val_time 21.6s  test_time 15.6s
+epoch 74/200  link=0.4010  lr=1e-03  r_mean=1.628  r_max=4.986  val 0.6627  patience 1/10  train_time 34.8s  val_time 21.7s
+epoch 75/200  link=0.4002  lr=1e-03  r_mean=1.630  r_max=5.009  val 0.6631  patience 2/10  train_time 34.2s  val_time 21.7s
+epoch 76/200  link=0.4001  lr=1e-03  r_mean=1.633  r_max=5.033  val 0.6628  patience 3/10  train_time 34.1s  val_time 21.7s
+epoch 77/200  link=0.3997  lr=1e-03  r_mean=1.636  r_max=5.055  val 0.6619  patience 4/10  train_time 34.2s  val_time 21.6s
+epoch 78/200  link=0.3994  lr=1e-03  r_mean=1.639  r_max=5.077  val 0.6632  test 0.5438 (new best)  train_time 34.2s  val_time 21.6s  test_time 15.7s
+epoch 79/200  link=0.3988  lr=1e-03  r_mean=1.641  r_max=5.097  val 0.6649  test 0.5428 (new best)  train_time 34.3s  val_time 21.7s  test_time 15.6s
+epoch 80/200  link=0.3984  lr=1e-03  r_mean=1.644  r_max=5.118  val 0.6627  patience 1/10  train_time 34.8s  val_time 21.7s
+epoch 81/200  link=0.3980  lr=1e-03  r_mean=1.647  r_max=5.136  val 0.6638  patience 2/10  train_time 34.8s  val_time 21.7s
+epoch 82/200  link=0.3976  lr=1e-03  r_mean=1.650  r_max=5.157  val 0.6650  test 0.5458 (new best)  train_time 34.9s  val_time 21.7s  test_time 15.7s
+epoch 83/200  link=0.3975  lr=1e-03  r_mean=1.652  r_max=5.177  val 0.6644  patience 1/10  train_time 34.9s  val_time 21.8s
+epoch 84/200  link=0.3972  lr=1e-03  r_mean=1.655  r_max=5.202  val 0.6641  patience 2/10  train_time 35.2s  val_time 21.8s
+epoch 85/200  link=0.3968  lr=1e-03  r_mean=1.658  r_max=5.220  val 0.6627  patience 3/10  train_time 35.0s  val_time 21.7s
+epoch 86/200  link=0.3966  lr=1e-03  r_mean=1.661  r_max=5.239  val 0.6641  patience 4/10  train_time 35.0s  val_time 21.6s
+epoch 87/200  link=0.3961  lr=1e-03  r_mean=1.663  r_max=5.259  val 0.6656  test 0.5454 (new best)  train_time 34.9s  val_time 21.8s  test_time 15.7s
+epoch 88/200  link=0.3957  lr=1e-03  r_mean=1.666  r_max=5.278  val 0.6649  patience 1/10  train_time 35.0s  val_time 21.7s
+epoch 89/200  link=0.3957  lr=1e-03  r_mean=1.669  r_max=5.295  val 0.6647  patience 2/10  train_time 34.8s  val_time 24.1s
+epoch 90/200  link=0.3953  lr=1e-03  r_mean=1.671  r_max=5.316  val 0.6643  patience 3/10  train_time 34.6s  val_time 23.8s
+epoch 91/200  link=0.3950  lr=1e-03  r_mean=1.674  r_max=5.333  val 0.6629  patience 4/10  train_time 34.9s  val_time 24.0s
+epoch 92/200  link=0.3947  lr=1e-03  r_mean=1.677  r_max=5.352  val 0.6635  patience 5/10  train_time 34.7s  val_time 23.9s
+epoch 93/200  link=0.3945  lr=1e-03  r_mean=1.680  r_max=5.366  val 0.6644  patience 6/10  train_time 34.8s  val_time 23.9s
+epoch 94/200  link=0.3942  lr=1e-03  r_mean=1.682  r_max=5.390  val 0.6649  patience 7/10  train_time 35.2s  val_time 24.2s
+epoch 95/200  link=0.3939  lr=1e-03  r_mean=1.685  r_max=5.406  val 0.6654  patience 8/10  train_time 34.2s  val_time 23.9s
+epoch 96/200  link=0.3935  lr=1e-03  r_mean=1.688  r_max=5.425  val 0.6651  patience 9/10  train_time 34.4s  val_time 24.0s
+epoch 97/200  link=0.3934  lr=1e-03  r_mean=1.691  r_max=5.444  val 0.6666  test 0.5467 (new best)  train_time 34.4s  val_time 24.4s  test_time 17.6s
+epoch 98/200  link=0.3930  lr=1e-03  r_mean=1.693  r_max=5.458  val 0.6646  patience 1/10  train_time 34.7s  val_time 24.8s
+epoch 99/200  link=0.3929  lr=1e-03  r_mean=1.696  r_max=5.476  val 0.6661  patience 2/10  train_time 34.8s  val_time 25.2s
+epoch 100/200  link=0.3928  lr=1e-03  r_mean=1.699  r_max=5.494  val 0.6662  patience 3/10  train_time 34.7s  val_time 25.2s
+epoch 101/200  link=0.3925  lr=1e-03  r_mean=1.702  r_max=5.511  val 0.6671  test 0.5475 (new best)  train_time 34.4s  val_time 24.9s  test_time 17.1s
+epoch 102/200  link=0.3923  lr=1e-03  r_mean=1.704  r_max=5.527  val 0.6671  patience 1/10  train_time 34.1s  val_time 24.4s
+epoch 103/200  link=0.3920  lr=1e-03  r_mean=1.707  r_max=5.545  val 0.6663  patience 2/10  train_time 34.1s  val_time 24.0s
+epoch 104/200  link=0.3919  lr=1e-03  r_mean=1.710  r_max=5.560  val 0.6654  patience 3/10  train_time 34.0s  val_time 24.2s
+epoch 105/200  link=0.3917  lr=1e-03  r_mean=1.712  r_max=5.582  val 0.6664  patience 4/10  train_time 34.3s  val_time 24.2s
+epoch 106/200  link=0.3913  lr=1e-03  r_mean=1.715  r_max=5.596  val 0.6647  patience 5/10  train_time 34.4s  val_time 24.1s
+epoch 107/200  link=0.3912  lr=1e-03  r_mean=1.718  r_max=5.613  val 0.6648  patience 6/10  train_time 34.4s  val_time 24.5s
+epoch 108/200  link=0.3909  lr=1e-03  r_mean=1.721  r_max=5.628  val 0.6658  patience 7/10  train_time 34.5s  val_time 24.4s
+epoch 109/200  link=0.3907  lr=1e-03  r_mean=1.723  r_max=5.644  val 0.6671  patience 8/10  train_time 34.0s  val_time 24.3s
+epoch 110/200  link=0.3905  lr=1e-03  r_mean=1.726  r_max=5.659  val 0.6666  patience 9/10  train_time 34.6s  val_time 24.6s
+epoch 111/200  link=0.3904  lr=1e-03  r_mean=1.729  r_max=5.673  val 0.6672  test 0.5473 (new best)  train_time 34.6s  val_time 24.1s  test_time 17.6s
+epoch 112/200  link=0.3902  lr=1e-03  r_mean=1.731  r_max=5.686  val 0.6659  patience 1/10  train_time 33.8s  val_time 24.5s
+epoch 113/200  link=0.3898  lr=1e-03  r_mean=1.734  r_max=5.704  val 0.6632  patience 2/10  train_time 34.2s  val_time 24.7s
+epoch 114/200  link=0.3899  lr=1e-03  r_mean=1.737  r_max=5.720  val 0.6647  patience 3/10  train_time 33.9s  val_time 25.0s
+epoch 115/200  link=0.3896  lr=1e-03  r_mean=1.739  r_max=5.735  val 0.6659  patience 4/10  train_time 35.1s  val_time 24.0s
+epoch 116/200  link=0.3894  lr=1e-03  r_mean=1.742  r_max=5.744  val 0.6671  patience 5/10  train_time 35.4s  val_time 24.2s
+epoch 117/200  link=0.3893  lr=1e-03  r_mean=1.745  r_max=5.760  val 0.6671  patience 6/10  train_time 35.2s  val_time 24.1s
+epoch 118/200  link=0.3892  lr=1e-03  r_mean=1.747  r_max=5.775  val 0.6683  test 0.5472 (new best)  train_time 35.2s  val_time 24.2s  test_time 17.4s
+epoch 119/200  link=0.3888  lr=1e-03  r_mean=1.750  r_max=5.789  val 0.6670  patience 1/10  train_time 34.4s  val_time 23.8s
+epoch 120/200  link=0.3887  lr=1e-03  r_mean=1.753  r_max=5.801  val 0.6665  patience 2/10  train_time 34.7s  val_time 24.1s
+epoch 121/200  link=0.3884  lr=1e-03  r_mean=1.755  r_max=5.813  val 0.6671  patience 3/10  train_time 33.9s  val_time 24.0s
+epoch 122/200  link=0.3886  lr=1e-03  r_mean=1.758  r_max=5.828  val 0.6665  patience 4/10  train_time 34.7s  val_time 24.0s
+epoch 123/200  link=0.3883  lr=1e-03  r_mean=1.761  r_max=5.844  val 0.6667  patience 5/10  train_time 34.6s  val_time 24.1s
+epoch 124/200  link=0.3882  lr=1e-03  r_mean=1.763  r_max=5.861  val 0.6659  patience 6/10  train_time 34.6s  val_time 24.0s
+epoch 125/200  link=0.3881  lr=1e-03  r_mean=1.766  r_max=5.877  val 0.6668  patience 7/10  train_time 34.7s  val_time 24.1s
+epoch 126/200  link=0.3881  lr=1e-03  r_mean=1.769  r_max=5.885  val 0.6668  patience 8/10  train_time 34.9s  val_time 24.3s
+epoch 127/200  link=0.3879  lr=1e-03  r_mean=1.771  r_max=5.898  val 0.6676  patience 9/10  train_time 34.7s  val_time 23.9s
+epoch 128/200  link=0.3877  lr=1e-03  r_mean=1.774  r_max=5.912  val 0.6676  patience 10/10  train_time 35.1s  val_time 24.0s
+  restored best weights from epoch 118 (val 0.6683, test 0.5472)
+
+=== Final results ===
+  dataset:           YouTube
+  seed:              42
+  best_epoch:        118
+  epochs_run:        128
+  best_val_mrr:      0.6683
+  best_test_mrr:     0.5472
+=== rc=0 finished=2026-11-22 19:32:52 ===

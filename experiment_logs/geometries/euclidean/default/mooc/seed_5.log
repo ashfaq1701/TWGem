@@ -1,0 +1,83 @@
+# ARCHIVED -- TWGem master arm. mooc, wpn 30, seed 5. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: mooc: --is-bipartite --eval-batch-size 200
+# experiment=dyg_wpn30 cell=seed_5 dataset=mooc suite=dyglib seed=5 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-rtx-02.local job=11763778 gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition
+# started=2026-11-19 00:45:40
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset mooc --is-bipartite --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 5 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: mooc
+device:  cuda
+seed:    5
+loaded (dyglib) in 1.4s
+  num_nodes:     7,145
+  T_train:       1,917,226
+  neg_pool:      87 train destinations (training negatives)
+  train edges:   288,224
+  val edges:     61,762
+  test edges:    61,763
+  [dyglib] val negatives: 100 uniform collision-free per positive over 97 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 97 full-dataset candidates
+
+=== Config ===
+  num_nodes: 7145
+  T_train: 1917226
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=87)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 5
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:              914,688
+  head params:            1,377
+  TOTAL trainable:      916,065
+
+=== Training ===
+  Ingested full graph into Tempest: 411,749 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.0824  lr=1e-03  r_mean=0.988  r_max=1.488  val 0.3722  test 0.3697 (new best)  train_time 50.7s  val_time 39.9s  test_time 41.0s
+epoch 2/200  link=0.9393  lr=1e-03  r_mean=0.983  r_max=1.758  val 0.3900  test 0.3816 (new best)  train_time 47.7s  val_time 42.3s  test_time 42.0s
+epoch 3/200  link=0.9069  lr=1e-03  r_mean=0.982  r_max=1.805  val 0.3981  test 0.3906 (new best)  train_time 48.2s  val_time 44.5s  test_time 43.0s
+epoch 4/200  link=0.8906  lr=1e-03  r_mean=0.984  r_max=1.808  val 0.4000  test 0.3911 (new best)  train_time 47.4s  val_time 40.7s  test_time 39.1s
+epoch 5/200  link=0.8849  lr=1e-03  r_mean=0.989  r_max=1.834  val 0.4049  test 0.3936 (new best)  train_time 47.8s  val_time 41.2s  test_time 39.9s
+epoch 6/200  link=0.8740  lr=1e-03  r_mean=0.997  r_max=1.784  val 0.4068  test 0.3964 (new best)  train_time 47.4s  val_time 41.4s  test_time 40.1s
+epoch 7/200  link=0.8691  lr=1e-03  r_mean=1.006  r_max=1.787  val 0.4103  test 0.3972 (new best)  train_time 46.9s  val_time 39.5s  test_time 41.6s
+epoch 8/200  link=0.8621  lr=1e-03  r_mean=1.017  r_max=1.768  val 0.4094  patience 1/10  train_time 49.8s  val_time 39.5s
+epoch 9/200  link=0.8603  lr=1e-03  r_mean=1.028  r_max=1.788  val 0.4129  test 0.4001 (new best)  train_time 49.4s  val_time 40.1s  test_time 40.6s
+epoch 10/200  link=0.8529  lr=1e-03  r_mean=1.039  r_max=1.835  val 0.4122  patience 1/10  train_time 46.6s  val_time 37.8s
+epoch 11/200  link=0.8497  lr=1e-03  r_mean=1.051  r_max=1.870  val 0.4137  test 0.4007 (new best)  train_time 47.6s  val_time 37.6s  test_time 39.0s
+epoch 12/200  link=0.8463  lr=1e-03  r_mean=1.062  r_max=1.885  val 0.4120  patience 1/10  train_time 45.8s  val_time 38.0s
+epoch 13/200  link=0.8455  lr=1e-03  r_mean=1.074  r_max=1.936  val 0.4132  patience 2/10  train_time 45.6s  val_time 39.6s
+epoch 14/200  link=0.8430  lr=1e-03  r_mean=1.086  r_max=1.956  val 0.4137  patience 3/10  train_time 45.5s  val_time 39.4s
+epoch 15/200  link=0.8405  lr=1e-03  r_mean=1.099  r_max=1.984  val 0.4124  patience 4/10  train_time 46.3s  val_time 38.9s
+epoch 16/200  link=0.8396  lr=1e-03  r_mean=1.111  r_max=2.015  val 0.4112  patience 5/10  train_time 46.6s  val_time 41.0s
+epoch 17/200  link=0.8386  lr=1e-03  r_mean=1.122  r_max=2.053  val 0.4115  patience 6/10  train_time 46.3s  val_time 43.2s
+epoch 18/200  link=0.8364  lr=1e-03  r_mean=1.135  r_max=2.060  val 0.4059  patience 7/10  train_time 47.8s  val_time 38.8s
+epoch 19/200  link=0.8372  lr=1e-03  r_mean=1.146  r_max=2.079  val 0.4093  patience 8/10  train_time 47.0s  val_time 40.8s
+epoch 20/200  link=0.8361  lr=1e-03  r_mean=1.159  r_max=2.164  val 0.4052  patience 9/10  train_time 46.3s  val_time 40.2s
+epoch 21/200  link=0.8347  lr=1e-03  r_mean=1.171  r_max=2.266  val 0.4061  patience 10/10  train_time 45.9s  val_time 40.0s
+  restored best weights from epoch 11 (val 0.4137, test 0.4007)
+
+=== Final results ===
+  dataset:           mooc
+  seed:              5
+  best_epoch:        11
+  epochs_run:        21
+  best_val_mrr:      0.4137
+  best_test_mrr:     0.4007
+=== rc=0 finished=2026-11-19 01:22:36 ===

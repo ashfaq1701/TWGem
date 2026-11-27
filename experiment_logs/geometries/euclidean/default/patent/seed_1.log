@@ -1,0 +1,79 @@
+# PAPER RUN -- Euclidean geometry. arm=pe pin=78bbf8f seed=1
+#   dist(x,y) = ((x-y)**2).sum(-1).clamp_min(1e-12).sqrt(); scorer F.layer_norm(s, s.shape[-1:]).
+#   No temperature, no gain, no separate pooler lr. One --lr drives SparseAdam on E and Adam on the pooler.
+#   E carries a padding sentinel row (a02307d), so no real node drifts on SparseAdam momentum.
+# EVERY knob is the argparse default except the per-dataset flags documented in
+#   default_conf_variations.txt, which are reproduced verbatim on the command line below.
+#   defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#             eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Seeds in this sweep: 5, 42, 1. One seed per job; DyGLib runs its six datasets in one job.
+# RECORD BOTH test@val-checkpoint AND max test. DO NOT CALL YOUTUBE BEFORE ep50.
+# conf line: Patent: -
+# experiment=paper_euclidean cell=seed_1  dataset=Patent suite=tgb-seq arm=pe seed=1
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-pe commit=78bbf8f tree=clean
+# host=artemis-a40-11.local job=11696631 gpu=NVIDIA A40
+# started=2026-11-15 07:47:44
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset Patent  --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Patent
+device:  cuda
+seed:    1
+loaded (tgb-seq) in 15.5s
+  num_nodes:     2,241,785
+  T_train:       688,867,200
+  neg_pool:      1,840,152 train nodes (training negatives)
+  train edges:   9,096,058
+  val edges:     1,039,438
+  test edges:    683,323
+  [tgb-seq] val negatives: 100 uniform per positive over 2,207,094 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 2241785
+  T_train: 688867200
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=1,840,152)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:          286,948,608
+  head params:            1,377
+  TOTAL trainable:  286,949,985
+
+=== Training ===
+  Ingested full graph into Tempest: 10,818,819 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=2.1489  lr=1e-03  train 382.3s  r_mean=1.266  r_max=2.356  val 0.0755  test 0.0387 (new best)  eval 342.5s
+epoch 2/200  link=1.3387  lr=1e-03  train 381.6s  r_mean=1.295  r_max=2.210  val 0.0643  patience 1/10  eval 205.6s
+epoch 3/200  link=0.9336  lr=1e-03  train 377.4s  r_mean=1.311  r_max=2.111  val 0.0419  patience 2/10  eval 206.3s
+epoch 4/200  link=0.7078  lr=1e-03  train 378.8s  r_mean=1.321  r_max=1.919  val 0.0322  patience 3/10  eval 207.3s
+epoch 5/200  link=0.5983  lr=1e-03  train 370.5s  r_mean=1.328  r_max=1.823  val 0.0288  patience 4/10  eval 208.5s
+epoch 6/200  link=0.5393  lr=1e-03  train 385.6s  r_mean=1.333  r_max=1.774  val 0.0277  patience 5/10  eval 207.7s
+epoch 7/200  link=0.5017  lr=1e-03  train 367.3s  r_mean=1.337  r_max=1.768  val 0.0261  patience 6/10  eval 210.2s
+epoch 8/200  link=0.4750  lr=1e-03  train 379.3s  r_mean=1.340  r_max=1.759  val 0.0244  patience 7/10  eval 208.0s
+epoch 9/200  link=0.4544  lr=1e-03  train 377.0s  r_mean=1.344  r_max=1.740  val 0.0237  patience 8/10  eval 208.0s
+epoch 10/200  link=0.4381  lr=1e-03  train 365.4s  r_mean=1.347  r_max=1.734  val 0.0238  patience 9/10  eval 210.7s
+epoch 11/200  link=0.4246  lr=1e-03  train 372.0s  r_mean=1.349  r_max=1.728  val 0.0229  patience 10/10  eval 208.0s
+  restored best weights from epoch 1 (val 0.0755, test 0.0387)
+
+=== Final results ===
+  dataset:           Patent
+  seed:              1
+  best_epoch:        1
+  epochs_run:        11
+  best_val_mrr:      0.0755
+  best_test_mrr:     0.0387
+=== rc=0 finished=2026-11-15 09:37:53 ===

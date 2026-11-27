@@ -1,0 +1,64 @@
+# RUNTIME MEASUREMENT -- 3 epochs, early stopping off. MRR is not the point here.
+# Reported: train seconds per epoch (mean of epochs 2 and 3), test inference seconds, peak memory.
+# method=TWGem dataset=Flights seed=42
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-sen commit=4c6b257 modified_tracked_files=0
+# host=artemis-rtx-03.local job=11838608 task=1
+# gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition driver=610.57.04
+# cpus=2 started=2026-11-25 11:09:11
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --num-epochs 3 --early-stop-patience 0 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Flights
+device:  cuda
+seed:    42
+loaded (dyglib) in 5.9s
+  num_nodes:     13,170
+  T_train:       90
+  neg_pool:      12,569 train nodes (training negatives)
+  train edges:   1,359,922
+  val edges:     279,399
+  test edges:    287,824
+  [dyglib] val negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+
+=== Config ===
+  num_nodes: 13170
+  T_train: 90
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=12,569)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 3
+  early_stop_patience: 0
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:            1,685,888
+  head params:            1,377
+  TOTAL trainable:    1,687,265
+
+=== Training ===
+  Ingested full graph into Tempest: 1,927,145 edges (once; per-query cutoff enforces causality)
+epoch 1/3  link=0.7124  lr=1e-03  r_mean=1.091  r_max=1.698  val 0.7640  test 0.7586 (new best)  train_time 92.2s  val_time 74.3s  test_time 81.8s
+epoch 2/3  link=0.5160  lr=1e-03  r_mean=1.237  r_max=2.098  val 0.8114  test 0.8000 (new best)  train_time 91.7s  val_time 77.0s  test_time 76.1s
+epoch 3/3  link=0.4516  lr=1e-03  r_mean=1.310  r_max=2.241  val 0.8183  test 0.8053 (new best)  train_time 83.4s  val_time 74.7s  test_time 83.0s
+  restored best weights from epoch 3 (val 0.8183, test 0.8053)
+  peak_mem 5.32GB
+
+=== Final results ===
+  dataset:           Flights
+  seed:              42
+  best_epoch:        3
+  epochs_run:        3
+  best_val_mrr:      0.8183
+  best_test_mrr:     0.8053
+# finished=2026-11-25 11:22:02 rc=0

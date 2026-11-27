@@ -1,0 +1,80 @@
+# dataset=reddit task=node_classification seed=1 classifier=two hidden layers, dropout 0.2 (master; 5 features incl. spread); k_train=5 checkpoint=/home/ms2420/CLionProjects/TWGem/logs/node_classification_k5/reddit/link_pred_seed_1.pt (restored best weights from epoch 16 (val 0.8763, test 0.8641))
+# branch=master commit=a70b1bd dirty_tracked_files=0 gpu=NVIDIA RTX 2000 Ada Generation Laptop GPU
+# start=2026-11-17T14:05:13+00:00
+# cmd: /home/ms2420/CLionProjects/TWGem/.venv/bin/python -u scripts/train_node_classification.py --dataset reddit --data-root /home/ms2420/CLionProjects/TWGem/datasets --checkpoint /home/ms2420/CLionProjects/TWGem/logs/node_classification_k5/reddit/link_pred_seed_1.pt --seed 1 --use-gpu --use-gpu-tempest
+  train interactions  470,713  positives   190
+  val   interactions  100,867  positives    82
+  test  interactions  100,867  positives    94
+  checkpoint: /home/ms2420/CLionProjects/TWGem/logs/node_classification_k5/reddit/link_pred_seed_1.pt  (walks per node 20)
+  classifier params: 683  (encoder frozen)
+epoch 1/100  bce=0.0279  train 1.7s  val_auc 0.6243 (new best)
+epoch 2/100  bce=0.0036  train 1.6s  val_auc 0.6641 (new best)
+epoch 3/100  bce=0.0034  train 1.5s  val_auc 0.6998 (new best)
+epoch 4/100  bce=0.0033  train 1.6s  val_auc 0.7151 (new best)
+epoch 5/100  bce=0.0034  train 1.6s  val_auc 0.7228 (new best)
+epoch 6/100  bce=0.0033  train 1.5s  val_auc 0.7209  patience 1/20
+epoch 7/100  bce=0.0033  train 1.6s  val_auc 0.7316 (new best)
+epoch 8/100  bce=0.0033  train 1.6s  val_auc 0.7262  patience 1/20
+epoch 9/100  bce=0.0032  train 1.5s  val_auc 0.7309  patience 2/20
+epoch 10/100  bce=0.0032  train 1.5s  val_auc 0.7339 (new best)
+epoch 11/100  bce=0.0032  train 1.5s  val_auc 0.7378 (new best)
+epoch 12/100  bce=0.0032  train 1.5s  val_auc 0.7382 (new best)
+epoch 13/100  bce=0.0032  train 1.5s  val_auc 0.7434 (new best)
+epoch 14/100  bce=0.0032  train 1.5s  val_auc 0.7423  patience 1/20
+epoch 15/100  bce=0.0032  train 1.5s  val_auc 0.7447 (new best)
+epoch 16/100  bce=0.0032  train 1.6s  val_auc 0.7507 (new best)
+epoch 17/100  bce=0.0032  train 1.5s  val_auc 0.7470  patience 1/20
+epoch 18/100  bce=0.0032  train 1.6s  val_auc 0.7386  patience 2/20
+epoch 19/100  bce=0.0031  train 1.6s  val_auc 0.7465  patience 3/20
+epoch 20/100  bce=0.0031  train 1.5s  val_auc 0.7450  patience 4/20
+epoch 21/100  bce=0.0031  train 1.5s  val_auc 0.7523 (new best)
+epoch 22/100  bce=0.0032  train 1.5s  val_auc 0.7295  patience 1/20
+epoch 23/100  bce=0.0031  train 1.5s  val_auc 0.7489  patience 2/20
+epoch 24/100  bce=0.0032  train 1.6s  val_auc 0.7536 (new best)
+epoch 25/100  bce=0.0032  train 1.5s  val_auc 0.7479  patience 1/20
+epoch 26/100  bce=0.0031  train 1.6s  val_auc 0.7543 (new best)
+epoch 27/100  bce=0.0031  train 1.6s  val_auc 0.7540  patience 1/20
+epoch 28/100  bce=0.0031  train 1.5s  val_auc 0.7453  patience 2/20
+epoch 29/100  bce=0.0031  train 1.5s  val_auc 0.7540  patience 3/20
+epoch 30/100  bce=0.0031  train 1.6s  val_auc 0.7567 (new best)
+epoch 31/100  bce=0.0031  train 1.6s  val_auc 0.7518  patience 1/20
+epoch 32/100  bce=0.0031  train 1.6s  val_auc 0.7561  patience 2/20
+epoch 33/100  bce=0.0031  train 1.6s  val_auc 0.7583 (new best)
+epoch 34/100  bce=0.0031  train 1.6s  val_auc 0.7395  patience 1/20
+epoch 35/100  bce=0.0031  train 1.5s  val_auc 0.7450  patience 2/20
+epoch 36/100  bce=0.0031  train 1.6s  val_auc 0.7503  patience 3/20
+epoch 37/100  bce=0.0031  train 1.5s  val_auc 0.7493  patience 4/20
+epoch 38/100  bce=0.0031  train 1.5s  val_auc 0.7434  patience 5/20
+epoch 39/100  bce=0.0031  train 1.5s  val_auc 0.7403  patience 6/20
+epoch 40/100  bce=0.0031  train 1.5s  val_auc 0.7515  patience 7/20
+epoch 41/100  bce=0.0031  train 1.5s  val_auc 0.7440  patience 8/20
+epoch 42/100  bce=0.0032  train 1.4s  val_auc 0.7547  patience 9/20
+epoch 43/100  bce=0.0031  train 1.5s  val_auc 0.7588 (new best)
+epoch 44/100  bce=0.0031  train 1.5s  val_auc 0.7547  patience 1/20
+epoch 45/100  bce=0.0031  train 1.5s  val_auc 0.7498  patience 2/20
+epoch 46/100  bce=0.0031  train 1.5s  val_auc 0.7552  patience 3/20
+epoch 47/100  bce=0.0031  train 1.5s  val_auc 0.7479  patience 4/20
+epoch 48/100  bce=0.0031  train 1.6s  val_auc 0.7519  patience 5/20
+epoch 49/100  bce=0.0031  train 1.6s  val_auc 0.7406  patience 6/20
+epoch 50/100  bce=0.0031  train 1.6s  val_auc 0.7553  patience 7/20
+epoch 51/100  bce=0.0031  train 1.6s  val_auc 0.7574  patience 8/20
+epoch 52/100  bce=0.0031  train 1.6s  val_auc 0.7528  patience 9/20
+epoch 53/100  bce=0.0031  train 1.6s  val_auc 0.7475  patience 10/20
+epoch 54/100  bce=0.0031  train 1.6s  val_auc 0.7441  patience 11/20
+epoch 55/100  bce=0.0031  train 1.5s  val_auc 0.7388  patience 12/20
+epoch 56/100  bce=0.0031  train 1.6s  val_auc 0.7312  patience 13/20
+epoch 57/100  bce=0.0031  train 1.5s  val_auc 0.7492  patience 14/20
+epoch 58/100  bce=0.0031  train 1.5s  val_auc 0.7544  patience 15/20
+epoch 59/100  bce=0.0031  train 1.5s  val_auc 0.7552  patience 16/20
+epoch 60/100  bce=0.0031  train 1.6s  val_auc 0.7516  patience 17/20
+epoch 61/100  bce=0.0031  train 1.6s  val_auc 0.7504  patience 18/20
+epoch 62/100  bce=0.0031  train 1.6s  val_auc 0.7562  patience 19/20
+epoch 63/100  bce=0.0031  train 1.6s  val_auc 0.7565  patience 20/20
+
+=== Final results ===
+  dataset:        reddit
+  seed:           1
+  best_epoch:     43
+  best_val_auc:   0.7588
+  test_auc:       0.7303
+# exit=0 end=2026-11-17T14:07:22+00:00

@@ -1,0 +1,89 @@
+# NON-ARCHIVAL -- ablation job 16, ablation_negdist_yt. One flag off the archived default run.
+# arm flag: --score dist
+# conf line: YouTube: -   (verbatim; the arm flag follows it so it wins on a clash)
+# defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Baseline: experiment_logs/geometries/euclidean/default/youtube/seed_42.log
+#   Compared at the best-validation epoch: val with val, test with test.
+# RECORD BOTH test@val-checkpoint AND max test.
+# experiment=ablation cell=ablation_negdist_yt dataset=YouTube suite=tgb-seq seed=42 job_no=16
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-abl commit=ea4f3a5 tree=clean
+# host=artemis-a40-00.local job=11783083 task=16 gpu=NVIDIA A40
+# started=2026-11-23 09:40:31
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset YouTube   --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --score dist --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: YouTube
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 1.7s
+  num_nodes:     402,423
+  T_train:       17,017,200
+  neg_pool:      402,422 train nodes (training negatives)
+  train edges:   2,730,407
+  val edges:     324,756
+  test edges:    232,865
+  [tgb-seq] val negatives: 100 uniform per positive over 402,422 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 402423
+  T_train: 17017200
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=402,422)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  ablation: Ablation(walk_sides='both', pooling='learned', features=('age', 'hop', 'mid', 'radius'), raw_geo_features=False, detach=True, score='dist', standardise=True)
+
+=== Parameter counts ===
+  model.E:           51,510,272
+  head params:            1,377
+  TOTAL trainable:   51,511,649
+
+=== Training ===
+  Ingested full graph into Tempest: 3,288,028 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.8291  lr=1e-03  r_mean=1.216  r_max=2.435  val 0.4515  test 0.4009 (new best)  train_time 127.1s  val_time 67.2s  test_time 48.4s
+epoch 2/200  link=1.3922  lr=1e-03  r_mean=1.317  r_max=2.508  val 0.4564  test 0.3980 (new best)  train_time 126.6s  val_time 67.5s  test_time 48.1s
+epoch 3/200  link=1.1698  lr=1e-03  r_mean=1.392  r_max=2.574  val 0.4937  test 0.4387 (new best)  train_time 126.6s  val_time 67.4s  test_time 48.6s
+epoch 4/200  link=1.0343  lr=1e-03  r_mean=1.453  r_max=2.486  val 0.5177  test 0.4624 (new best)  train_time 126.6s  val_time 67.7s  test_time 48.3s
+epoch 5/200  link=0.9474  lr=1e-03  r_mean=1.503  r_max=2.713  val 0.5284  test 0.4709 (new best)  train_time 126.6s  val_time 67.3s  test_time 48.4s
+epoch 6/200  link=0.8842  lr=1e-03  r_mean=1.546  r_max=2.849  val 0.5288  test 0.4707 (new best)  train_time 126.9s  val_time 67.1s  test_time 48.2s
+epoch 7/200  link=0.8396  lr=1e-03  r_mean=1.585  r_max=3.203  val 0.5540  test 0.4978 (new best)  train_time 127.8s  val_time 67.8s  test_time 48.7s
+epoch 8/200  link=0.7979  lr=1e-03  r_mean=1.619  r_max=3.737  val 0.5467  patience 1/10  train_time 127.8s  val_time 67.6s
+epoch 9/200  link=0.7631  lr=1e-03  r_mean=1.649  r_max=4.586  val 0.5603  test 0.4994 (new best)  train_time 127.7s  val_time 67.8s  test_time 48.7s
+epoch 10/200  link=0.7324  lr=1e-03  r_mean=1.677  r_max=5.356  val 0.5653  test 0.5085 (new best)  train_time 127.6s  val_time 67.8s  test_time 48.7s
+epoch 11/200  link=0.7053  lr=1e-03  r_mean=1.702  r_max=5.950  val 0.5852  test 0.5269 (new best)  train_time 127.6s  val_time 68.0s  test_time 48.8s
+epoch 12/200  link=0.7332  lr=1e-03  r_mean=1.757  r_max=6.544  val 0.6860  test 0.6183 (new best)  train_time 127.1s  val_time 67.6s  test_time 48.5s
+epoch 13/200  link=0.6298  lr=1e-03  r_mean=1.778  r_max=6.692  val 0.6945  test 0.6183 (new best)  train_time 127.5s  val_time 67.6s  test_time 48.6s
+epoch 14/200  link=0.5787  lr=1e-03  r_mean=1.796  r_max=6.780  val 0.6901  patience 1/10  train_time 127.4s  val_time 67.5s
+epoch 15/200  link=0.5490  lr=1e-03  r_mean=1.812  r_max=6.935  val 0.6854  patience 2/10  train_time 127.4s  val_time 67.5s
+epoch 16/200  link=0.5298  lr=1e-03  r_mean=1.827  r_max=7.149  val 0.6814  patience 3/10  train_time 127.5s  val_time 67.7s
+epoch 17/200  link=0.5154  lr=1e-03  r_mean=1.842  r_max=7.424  val 0.6803  patience 4/10  train_time 127.5s  val_time 67.5s
+epoch 18/200  link=0.5040  lr=1e-03  r_mean=1.857  r_max=7.679  val 0.6797  patience 5/10  train_time 127.4s  val_time 67.7s
+epoch 19/200  link=0.4949  lr=1e-03  r_mean=1.871  r_max=7.902  val 0.6796  patience 6/10  train_time 128.0s  val_time 67.6s
+epoch 20/200  link=0.4872  lr=1e-03  r_mean=1.886  r_max=8.114  val 0.6800  patience 7/10  train_time 127.7s  val_time 67.7s
+epoch 21/200  link=0.4809  lr=1e-03  r_mean=1.900  r_max=8.377  val 0.6797  patience 8/10  train_time 127.9s  val_time 67.7s
+epoch 22/200  link=0.4753  lr=1e-03  r_mean=1.914  r_max=8.546  val 0.6804  patience 9/10  train_time 127.8s  val_time 67.7s
+epoch 23/200  link=0.4701  lr=1e-03  r_mean=1.928  r_max=8.808  val 0.6794  patience 10/10  train_time 127.8s  val_time 67.6s
+  restored best weights from epoch 13 (val 0.6945, test 0.6183)
+
+=== Final results ===
+  dataset:           YouTube
+  seed:              42
+  best_epoch:        13
+  epochs_run:        23
+  best_val_mrr:      0.6945
+  best_test_mrr:     0.6183
+=== rc=0 finished=2026-11-23 11:05:08 ===

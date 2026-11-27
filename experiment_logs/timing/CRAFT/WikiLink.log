@@ -1,0 +1,229 @@
+# RUNTIME MEASUREMENT -- 3 epochs, early stopping off. MRR is not the point here.
+# Reported: train seconds per epoch (mean of epochs 2 and 3), test inference seconds, peak memory.
+# method=CRAFT dataset=WikiLink seed=42
+# code=/mnt/nfs2/inf/ms2420/CRAFT_fork commit=fb4e837 modified_tracked_files=0
+# host=artemis-rtx-03.local job=11838608 task=1
+# gpu=NVIDIA RTX PRO 6000 Blackwell Server Edition driver=610.57.04
+# cpus=2 started=2026-11-25 09:39:05
+# cmd: /mnt/nfs2/inf/ms2420/CRAFT_fork/venv/bin/python -u train_link_prediction.py --dataset_name WikiLink --model_name CRAFT --dataset_path /mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/ --batch_size 400 --num_neighbors 60 --embedding_size 128 --num_layers 1 --hidden_dropout 0.2 --attn_dropout_prob 0.2 --emb_dropout_prob 0.2 --loss BPR --use_pos --output_cat_time_intervals --num_output_layer 2 --shuffle --gpu 0 --seed 42 --num_runs 1 --num_epochs 3 --patience 100
+
+log in:  /mnt/nfs2/inf/ms2420/CRAFT_fork/logs/WikiLink/CRAFT/None_CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_sample_neighbor_strategyrecent_numlayers1/1795599554.1005611.log
+INFO:root:Using negative samples given by TGB-Seq
+Using zero edge features
+Using zero node features
+dataset_name WikiLink
+INFO:root:The dataset has 34163774 interactions, involving 1361972 different nodes
+INFO:root:The training dataset has 27635253 interactions, involving 1361972 different nodes
+INFO:root:The validation dataset has 3455476 interactions, involving 827719 different nodes
+INFO:root:The test dataset has 3073045 interactions, involving 758947 different nodes
+INFO:root:********** Run 1 starts. **********
+INFO:root:configuration is Namespace(dataset_name='WikiLink', batch_size=400, multi_negs_batch_size=20, model_name='CRAFT', gpu=0, output_dim=172, embedding_size=128, num_neighbors=60, save_model_path='./saved_models/', dataset_path='/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, edge_bank_memory_mode='unlimited_memory', time_window_mode='fixed_proportion', patch_size=1, channel_embedding_dim=50, max_input_sequence_length=64, learning_rate=0.0001, dropout=0.1, scale=12, num_epochs=3, optimizer='Adam', weight_decay=0.0, patience=100, val_ratio=0.15, test_ratio=0.15, num_runs=1, seed=42, test_interval_epochs=10, is_bipartite=False, negative_sample_strategy='random', load_best_configs=False, use_edge_feat=False, load_pretrained=False, use_node_feat=False, use_bn=False, use_bias=False, use_act=False, act_type='ReLU', use_feat=False, time_enc=False, use_mixer=False, use_positional=False, use_neighbor=False, use_layernorm=False, num_layers=1, num_mixer_layers=2, merge='cat', version=None, hidden_dropout=0.2, hidden_act='gelu', loss='BPR', inner_size=256, attn_dropout_prob=0.2, layer_norm_eps=1e-12, initializer_range=0.02, shuffle=True, use_pos=True, step=1, use_mean=False, output_cat_time_intervals=True, output_cat_repeat_times=False, input_cat_time_intervals=False, num_output_layer=2, collision_check=False, emb_dropout_prob=0.2, use_mrr_val=False, skip_connection=False, device='cuda:0', save_model_name='CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_sample_neighbor_strategyrecent_numlayers1', user_size=np.int64(1361972), item_size=np.int64(1361972), node_size=np.int64(1361972), dst_min_idx=1, src_min_idx=1)
+INFO:root:['train_link_prediction.py', '--dataset_name', 'WikiLink', '--model_name', 'CRAFT', '--dataset_path', '/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', '--batch_size', '400', '--num_neighbors', '60', '--embedding_size', '128', '--num_layers', '1', '--hidden_dropout', '0.2', '--attn_dropout_prob', '0.2', '--emb_dropout_prob', '0.2', '--loss', 'BPR', '--use_pos', '--output_cat_time_intervals', '--num_output_layer', '2', '--shuffle', '--gpu', '0', '--seed', '42', '--num_runs', '1', '--num_epochs', '3', '--patience', '100']
+INFO:root:model -> CRAFT(
+  (node_embedding): Embedding(1361973, 128, padding_idx=0)
+  (position_embedding): Embedding(60, 128)
+  (cross_attention): CrossAttention(
+    (layer): ModuleList(
+      (0): CrossAttentionLayer(
+        (multi_head_attention): MultiHeadCrossAttentionbyHand(
+          (query): Linear(in_features=128, out_features=128, bias=True)
+          (key): Linear(in_features=128, out_features=128, bias=True)
+          (value): Linear(in_features=128, out_features=128, bias=True)
+          (softmax): Softmax(dim=-1)
+          (attn_dropout): Dropout(p=0.2, inplace=False)
+          (dense): Linear(in_features=128, out_features=128, bias=True)
+          (LayerNorm): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+          (out_dropout): Dropout(p=0.2, inplace=False)
+        )
+        (feed_forward): FeedForward4CrossAttn(
+          (dense_1): Linear(in_features=128, out_features=512, bias=True)
+          (LayerNorm): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+          (dense_2): Linear(in_features=512, out_features=128, bias=True)
+          (dropout): Dropout(p=0.2, inplace=False)
+        )
+      )
+    )
+  )
+  (time_projection): MLP(
+    (lins): ModuleList(
+      (0): Linear(in_features=1, out_features=128, bias=True)
+    )
+  )
+  (output_layer): MLP(
+    (lins): ModuleList(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): Linear(in_features=256, out_features=1, bias=True)
+    )
+    (dropout): Dropout(p=0.2, inplace=False)
+    (act): PReLU(num_parameters=1)
+  )
+  (LayerNorm): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+  (LayerNorm_time_intervals): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+  (LayerNorm_repeat_times): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+  (dropout): Dropout(p=0.2, inplace=False)
+  (emb_dropout): Dropout(p=0.2, inplace=False)
+  (loss_fct): BPRLoss()
+)
+INFO:root:model name: CRAFT, #parameters: 698422280 B, 682053.0078125 KB, 666.0673904418945 MB.
+INFO:root:Epoch: 1, train_time 1070.83s
+INFO:root:Epoch: 1, learning rate: 0.0001, train loss: 0.23137624
+INFO:root:train average_precision, 0.91487034
+INFO:root:train roc_auc, 0.89799271
+
+INFO:root:Epoch: 1, val_time 71.12s
+INFO:root:validate average_precision, 0.92246427
+INFO:root:validate roc_auc, 0.90756415
+INFO:root:validate val_loss, 0.21649868
+INFO:root:save model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+INFO:root:Epoch: 2, train_time 1071.23s
+INFO:root:Epoch: 2, learning rate: 0.0001, train loss: 0.14556823
+INFO:root:train average_precision, 0.95068137
+INFO:root:train roc_auc, 0.94424868
+
+INFO:root:Epoch: 2, val_time 70.45s
+INFO:root:validate average_precision, 0.94486868
+INFO:root:validate roc_auc, 0.93580613
+INFO:root:validate val_loss, 0.16134305
+INFO:root:save model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+INFO:root:Epoch: 3, train_time 1066.82s
+INFO:root:Epoch: 3, learning rate: 0.0001, train loss: 0.11263431
+INFO:root:train average_precision, 0.96271452
+INFO:root:train roc_auc, 0.95931716
+
+INFO:root:Epoch: 3, val_time 71.13s
+INFO:root:validate average_precision, 0.95444335
+INFO:root:validate roc_auc, 0.94740310
+INFO:root:validate val_loss, 0.13957670
+INFO:root:save model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+INFO:root:load model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+INFO:root:get final performance on dataset WikiLink...
+
+INFO:root:test_time_single_neg 63.00s
+INFO:root:load model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+INFO:root:test average_precision, 0.95142988
+INFO:root:test roc_auc, 0.94380582
+INFO:root:test val_loss, 0.14716155
+
+INFO:root:test_time_multi_negs 1724.52s
+INFO:root:peak_mem_gb 3.30
+INFO:root:test average_precision, 0.95142988
+INFO:root:test roc_auc, 0.94380582
+INFO:root:test val_loss, 0.14716155
+INFO:root:test mrr, 0.64350981
+INFO:root:Run 1 cost 5235.51 seconds.
+INFO:root:metrics over 1 runs:
+INFO:root:test average_precision, [np.float64(0.9514298828753609)]
+INFO:root:average test average_precision, 0.95142988 ± nan
+INFO:root:test roc_auc, [np.float64(0.9438058182061843)]
+INFO:root:average test roc_auc, 0.94380582 ± nan
+INFO:root:test val_loss, [np.float64(0.1471615524248082)]
+INFO:root:average test val_loss, 0.14716155 ± nan
+INFO:root:test mrr, [np.float32(0.6435098)]
+INFO:root:average test mrr, 0.64350981 ± nan
+/mnt/nfs2/inf/ms2420/CRAFT_fork/logs/WikiLink/CRAFT/None_CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_sample_neighbor_strategyrecent_numlayers1/1795599554.1005611.log
+# --- logger output of /mnt/nfs2/inf/ms2420/CRAFT_fork/logs/WikiLink/CRAFT/None_CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_sample_neighbor_strategyrecent_numlayers1/1795599554.1005611.log
+2026-11-25 09:39:46,195 - root - INFO - Using negative samples given by TGB-Seq
+2026-11-25 09:40:13,224 - root - INFO - The dataset has 34163774 interactions, involving 1361972 different nodes
+2026-11-25 09:40:13,225 - root - INFO - The training dataset has 27635253 interactions, involving 1361972 different nodes
+2026-11-25 09:40:13,225 - root - INFO - The validation dataset has 3455476 interactions, involving 827719 different nodes
+2026-11-25 09:40:13,225 - root - INFO - The test dataset has 3073045 interactions, involving 758947 different nodes
+2026-11-25 09:41:51,419 - root - INFO - ********** Run 1 starts. **********
+2026-11-25 09:41:51,420 - root - INFO - configuration is Namespace(dataset_name='WikiLink', batch_size=400, multi_negs_batch_size=20, model_name='CRAFT', gpu=0, output_dim=172, embedding_size=128, num_neighbors=60, save_model_path='./saved_models/', dataset_path='/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', sample_neighbor_strategy='recent', time_scaling_factor=1e-06, num_walk_heads=8, num_heads=2, walk_length=1, time_gap=2000, time_feat_dim=100, position_feat_dim=172, edge_bank_memory_mode='unlimited_memory', time_window_mode='fixed_proportion', patch_size=1, channel_embedding_dim=50, max_input_sequence_length=64, learning_rate=0.0001, dropout=0.1, scale=12, num_epochs=3, optimizer='Adam', weight_decay=0.0, patience=100, val_ratio=0.15, test_ratio=0.15, num_runs=1, seed=42, test_interval_epochs=10, is_bipartite=False, negative_sample_strategy='random', load_best_configs=False, use_edge_feat=False, load_pretrained=False, use_node_feat=False, use_bn=False, use_bias=False, use_act=False, act_type='ReLU', use_feat=False, time_enc=False, use_mixer=False, use_positional=False, use_neighbor=False, use_layernorm=False, num_layers=1, num_mixer_layers=2, merge='cat', version=None, hidden_dropout=0.2, hidden_act='gelu', loss='BPR', inner_size=256, attn_dropout_prob=0.2, layer_norm_eps=1e-12, initializer_range=0.02, shuffle=True, use_pos=True, step=1, use_mean=False, output_cat_time_intervals=True, output_cat_repeat_times=False, input_cat_time_intervals=False, num_output_layer=2, collision_check=False, emb_dropout_prob=0.2, use_mrr_val=False, skip_connection=False, device='cuda:0', save_model_name='CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_sample_neighbor_strategyrecent_numlayers1', user_size=np.int64(1361972), item_size=np.int64(1361972), node_size=np.int64(1361972), dst_min_idx=1, src_min_idx=1)
+2026-11-25 09:41:51,420 - root - INFO - ['train_link_prediction.py', '--dataset_name', 'WikiLink', '--model_name', 'CRAFT', '--dataset_path', '/mnt/nfs2/inf/ms2420/CRAFT_fork/data_timing/', '--batch_size', '400', '--num_neighbors', '60', '--embedding_size', '128', '--num_layers', '1', '--hidden_dropout', '0.2', '--attn_dropout_prob', '0.2', '--emb_dropout_prob', '0.2', '--loss', 'BPR', '--use_pos', '--output_cat_time_intervals', '--num_output_layer', '2', '--shuffle', '--gpu', '0', '--seed', '42', '--num_runs', '1', '--num_epochs', '3', '--patience', '100']
+2026-11-25 09:41:52,650 - root - INFO - model -> CRAFT(
+  (node_embedding): Embedding(1361973, 128, padding_idx=0)
+  (position_embedding): Embedding(60, 128)
+  (cross_attention): CrossAttention(
+    (layer): ModuleList(
+      (0): CrossAttentionLayer(
+        (multi_head_attention): MultiHeadCrossAttentionbyHand(
+          (query): Linear(in_features=128, out_features=128, bias=True)
+          (key): Linear(in_features=128, out_features=128, bias=True)
+          (value): Linear(in_features=128, out_features=128, bias=True)
+          (softmax): Softmax(dim=-1)
+          (attn_dropout): Dropout(p=0.2, inplace=False)
+          (dense): Linear(in_features=128, out_features=128, bias=True)
+          (LayerNorm): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+          (out_dropout): Dropout(p=0.2, inplace=False)
+        )
+        (feed_forward): FeedForward4CrossAttn(
+          (dense_1): Linear(in_features=128, out_features=512, bias=True)
+          (LayerNorm): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+          (dense_2): Linear(in_features=512, out_features=128, bias=True)
+          (dropout): Dropout(p=0.2, inplace=False)
+        )
+      )
+    )
+  )
+  (time_projection): MLP(
+    (lins): ModuleList(
+      (0): Linear(in_features=1, out_features=128, bias=True)
+    )
+  )
+  (output_layer): MLP(
+    (lins): ModuleList(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): Linear(in_features=256, out_features=1, bias=True)
+    )
+    (dropout): Dropout(p=0.2, inplace=False)
+    (act): PReLU(num_parameters=1)
+  )
+  (LayerNorm): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+  (LayerNorm_time_intervals): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+  (LayerNorm_repeat_times): LayerNorm((128,), eps=1e-12, elementwise_affine=True)
+  (dropout): Dropout(p=0.2, inplace=False)
+  (emb_dropout): Dropout(p=0.2, inplace=False)
+  (loss_fct): BPRLoss()
+)
+2026-11-25 09:41:52,650 - root - INFO - model name: CRAFT, #parameters: 698422280 B, 682053.0078125 KB, 666.0673904418945 MB.
+2026-11-25 09:59:43,641 - root - INFO - Epoch: 1, train_time 1070.83s
+2026-11-25 09:59:43,644 - root - INFO - Epoch: 1, learning rate: 0.0001, train loss: 0.23137624
+2026-11-25 09:59:43,650 - root - INFO - train average_precision, 0.91487034
+2026-11-25 09:59:43,655 - root - INFO - train roc_auc, 0.89799271
+2026-11-25 10:00:54,779 - root - INFO - Epoch: 1, val_time 71.12s
+2026-11-25 10:00:54,779 - root - INFO - validate average_precision, 0.92246427
+2026-11-25 10:00:54,779 - root - INFO - validate roc_auc, 0.90756415
+2026-11-25 10:00:54,779 - root - INFO - validate val_loss, 0.21649868
+2026-11-25 10:00:54,788 - root - INFO - save model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+2026-11-25 10:18:51,693 - root - INFO - Epoch: 2, train_time 1071.23s
+2026-11-25 10:18:51,695 - root - INFO - Epoch: 2, learning rate: 0.0001, train loss: 0.14556823
+2026-11-25 10:18:51,702 - root - INFO - train average_precision, 0.95068137
+2026-11-25 10:18:51,707 - root - INFO - train roc_auc, 0.94424868
+2026-11-25 10:20:02,154 - root - INFO - Epoch: 2, val_time 70.45s
+2026-11-25 10:20:02,154 - root - INFO - validate average_precision, 0.94486868
+2026-11-25 10:20:02,154 - root - INFO - validate roc_auc, 0.93580613
+2026-11-25 10:20:02,154 - root - INFO - validate val_loss, 0.16134305
+2026-11-25 10:20:02,164 - root - INFO - save model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+2026-11-25 10:37:57,024 - root - INFO - Epoch: 3, train_time 1066.82s
+2026-11-25 10:37:57,029 - root - INFO - Epoch: 3, learning rate: 0.0001, train loss: 0.11263431
+2026-11-25 10:37:57,037 - root - INFO - train average_precision, 0.96271452
+2026-11-25 10:37:57,041 - root - INFO - train roc_auc, 0.95931716
+2026-11-25 10:39:08,174 - root - INFO - Epoch: 3, val_time 71.13s
+2026-11-25 10:39:08,175 - root - INFO - validate average_precision, 0.95444335
+2026-11-25 10:39:08,175 - root - INFO - validate roc_auc, 0.94740310
+2026-11-25 10:39:08,175 - root - INFO - validate val_loss, 0.13957670
+2026-11-25 10:39:08,187 - root - INFO - save model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+2026-11-25 10:39:13,870 - root - INFO - load model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+2026-11-25 10:39:19,205 - root - INFO - get final performance on dataset WikiLink...
+2026-11-25 10:40:22,203 - root - INFO - test_time_single_neg 63.00s
+2026-11-25 10:40:22,208 - root - INFO - load model ./saved_models//WikiLink/CRAFT/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1/CRAFT_seed42_batchsize400_num_neighbors60_dropout0.1_numlayers1.pkl
+2026-11-25 10:40:22,413 - root - INFO - test average_precision, 0.95142988
+2026-11-25 10:40:22,413 - root - INFO - test roc_auc, 0.94380582
+2026-11-25 10:40:22,413 - root - INFO - test val_loss, 0.14716155
+2026-11-25 11:09:06,929 - root - INFO - test_time_multi_negs 1724.52s
+2026-11-25 11:09:06,931 - root - INFO - peak_mem_gb 3.30
+2026-11-25 11:09:06,931 - root - INFO - test average_precision, 0.95142988
+2026-11-25 11:09:06,931 - root - INFO - test roc_auc, 0.94380582
+2026-11-25 11:09:06,931 - root - INFO - test val_loss, 0.14716155
+2026-11-25 11:09:06,931 - root - INFO - test mrr, 0.64350981
+2026-11-25 11:09:06,931 - root - INFO - Run 1 cost 5235.51 seconds.
+2026-11-25 11:09:06,937 - root - INFO - metrics over 1 runs:
+2026-11-25 11:09:06,937 - root - INFO - test average_precision, [np.float64(0.9514298828753609)]
+2026-11-25 11:09:06,938 - root - INFO - average test average_precision, 0.95142988 ± nan
+2026-11-25 11:09:06,938 - root - INFO - test roc_auc, [np.float64(0.9438058182061843)]
+2026-11-25 11:09:06,938 - root - INFO - average test roc_auc, 0.94380582 ± nan
+2026-11-25 11:09:06,938 - root - INFO - test val_loss, [np.float64(0.1471615524248082)]
+2026-11-25 11:09:06,938 - root - INFO - average test val_loss, 0.14716155 ± nan
+2026-11-25 11:09:06,938 - root - INFO - test mrr, [np.float32(0.6435098)]
+2026-11-25 11:09:06,938 - root - INFO - average test mrr, 0.64350981 ± nan
+# finished=2026-11-25 11:09:11 rc=0

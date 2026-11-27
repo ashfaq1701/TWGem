@@ -1,0 +1,77 @@
+# NON-ARCHIVAL -- ablation job 11, ablation_uniform_yt. One flag off the archived default run.
+# arm flag: --pooling uniform
+# conf line: YouTube: -   (verbatim; the arm flag follows it so it wins on a clash)
+# defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#           eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Baseline: experiment_logs/geometries/euclidean/default/youtube/seed_42.log
+#   Compared at the best-validation epoch: val with val, test with test.
+# RECORD BOTH test@val-checkpoint AND max test.
+# experiment=ablation cell=ablation_uniform_yt dataset=YouTube suite=tgb-seq seed=42 job_no=11
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-abl commit=ea4f3a5 tree=clean
+# host=artemis-a40-16.local job=11782874 task=11 gpu=NVIDIA A40
+# started=2026-11-23 04:40:42
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb-seq --dataset YouTube   --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 42 --pooling uniform --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: YouTube
+device:  cuda
+seed:    42
+loaded (tgb-seq) in 4.7s
+  num_nodes:     402,423
+  T_train:       17,017,200
+  neg_pool:      402,422 train nodes (training negatives)
+  train edges:   2,730,407
+  val edges:     324,756
+  test edges:    232,865
+  [tgb-seq] val negatives: 100 uniform per positive over 402,422 full-dataset candidates
+  [tgb-seq] test negatives: shipped test_ns (100 per positive)
+
+=== Config ===
+  num_nodes: 402423
+  T_train: 17017200
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=402,422)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 42
+  use_gpu: True
+  use_gpu_tempest: True
+  ablation: Ablation(walk_sides='both', pooling='uniform', features=('age', 'hop', 'mid', 'radius'), raw_geo_features=False, detach=True, score='log-dist', standardise=True)
+
+=== Parameter counts ===
+  model.E:           51,510,272
+  head params:            1,377
+  TOTAL trainable:   51,511,649
+
+=== Training ===
+  Ingested full graph into Tempest: 3,288,028 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=2.0907  lr=1e-03  r_mean=1.189  r_max=3.313  val 0.4101  test 0.3490 (new best)  train_time 55.3s  val_time 33.4s  test_time 24.1s
+epoch 2/200  link=1.6191  lr=1e-03  r_mean=1.270  r_max=3.810  val 0.3986  patience 1/10  train_time 54.9s  val_time 33.5s
+epoch 3/200  link=1.3789  lr=1e-03  r_mean=1.327  r_max=4.278  val 0.3884  patience 2/10  train_time 54.9s  val_time 33.5s
+epoch 4/200  link=1.2410  lr=1e-03  r_mean=1.379  r_max=4.333  val 0.3869  patience 3/10  train_time 54.8s  val_time 33.7s
+epoch 5/200  link=1.1518  lr=1e-03  r_mean=1.425  r_max=4.457  val 0.3892  patience 4/10  train_time 54.8s  val_time 33.5s
+epoch 6/200  link=1.0880  lr=1e-03  r_mean=1.467  r_max=4.402  val 0.3923  patience 5/10  train_time 54.8s  val_time 33.7s
+epoch 7/200  link=1.0398  lr=1e-03  r_mean=1.504  r_max=4.535  val 0.3954  patience 6/10  train_time 54.8s  val_time 33.5s
+epoch 8/200  link=1.0012  lr=1e-03  r_mean=1.537  r_max=4.504  val 0.3991  patience 7/10  train_time 54.8s  val_time 33.6s
+epoch 9/200  link=0.9704  lr=1e-03  r_mean=1.567  r_max=4.582  val 0.4017  patience 8/10  train_time 54.8s  val_time 33.7s
+epoch 10/200  link=0.9451  lr=1e-03  r_mean=1.595  r_max=4.931  val 0.4048  patience 9/10  train_time 54.7s  val_time 33.7s
+epoch 11/200  link=0.9247  lr=1e-03  r_mean=1.621  r_max=5.187  val 0.4071  patience 10/10  train_time 54.9s  val_time 33.6s
+  restored best weights from epoch 1 (val 0.4101, test 0.3490)
+
+=== Final results ===
+  dataset:           YouTube
+  seed:              42
+  best_epoch:        1
+  epochs_run:        11
+  best_val_mrr:      0.4101
+  best_test_mrr:     0.3490
+=== rc=0 finished=2026-11-23 04:57:43 ===

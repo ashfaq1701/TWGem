@@ -1,0 +1,76 @@
+# ARCHIVED -- TWGem master arm. Flights, wpn 30, seed 1. pin=5711eee
+# Every knob is the argparse default except --num-walks-per-node 30 and the
+#   per-dataset flags from default_conf_variations.txt, reproduced verbatim below.
+# conf line: Flights: --eval-batch-size 200
+# experiment=dyg_wpn30 cell=seed_1 dataset=Flights suite=dyglib seed=1 wpn=30
+# wpn 10 predecessor of this cell: this same path, one revision back in git history.
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-mw5 commit=5711eee tree=clean
+# host=artemis-a40-01.local job=11763780 gpu=NVIDIA A40
+# started=2026-11-19 03:32:10
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite dyglib --dataset Flights --eval-batch-size 200 --num-walks-per-node 30 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: Flights
+device:  cuda
+seed:    1
+loaded (dyglib) in 3.3s
+  num_nodes:     13,170
+  T_train:       90
+  neg_pool:      12,569 train nodes (training negatives)
+  train edges:   1,359,922
+  val edges:     279,399
+  test edges:    287,824
+  [dyglib] val negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+  [dyglib] test negatives: 100 uniform collision-free per positive over 13,169 full-dataset candidates
+
+=== Config ===
+  num_nodes: 13170
+  T_train: 90
+  train_negative_sampler: CollisionFreeNegativeSampler(k=10, pool=12,569)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 30
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:            1,685,888
+  head params:            1,377
+  TOTAL trainable:    1,687,265
+
+=== Training ===
+  Ingested full graph into Tempest: 1,927,145 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=0.7121  lr=1e-03  r_mean=1.095  r_max=1.931  val 0.7658  test 0.7607 (new best)  train_time 183.6s  val_time 192.3s  test_time 192.6s
+epoch 2/200  link=0.5138  lr=1e-03  r_mean=1.237  r_max=2.094  val 0.8116  test 0.7999 (new best)  train_time 178.4s  val_time 186.9s  test_time 206.5s
+epoch 3/200  link=0.4507  lr=1e-03  r_mean=1.306  r_max=2.043  val 0.8178  test 0.8040 (new best)  train_time 168.7s  val_time 194.9s  test_time 194.3s
+epoch 4/200  link=0.4346  lr=1e-03  r_mean=1.365  r_max=2.294  val 0.8180  test 0.8039 (new best)  train_time 168.5s  val_time 186.2s  test_time 199.3s
+epoch 5/200  link=0.4273  lr=1e-03  r_mean=1.418  r_max=2.292  val 0.8146  patience 1/10  train_time 177.1s  val_time 191.9s
+epoch 6/200  link=0.4228  lr=1e-03  r_mean=1.466  r_max=2.420  val 0.8114  patience 2/10  train_time 177.6s  val_time 191.1s
+epoch 7/200  link=0.4190  lr=1e-03  r_mean=1.515  r_max=2.509  val 0.8065  patience 3/10  train_time 176.1s  val_time 192.6s
+epoch 8/200  link=0.4162  lr=1e-03  r_mean=1.561  r_max=2.673  val 0.8004  patience 4/10  train_time 177.7s  val_time 193.1s
+epoch 9/200  link=0.4144  lr=1e-03  r_mean=1.605  r_max=2.601  val 0.7943  patience 5/10  train_time 177.4s  val_time 193.9s
+epoch 10/200  link=0.4123  lr=1e-03  r_mean=1.649  r_max=2.679  val 0.7882  patience 6/10  train_time 178.9s  val_time 211.2s
+epoch 11/200  link=0.4105  lr=1e-03  r_mean=1.692  r_max=2.858  val 0.7819  patience 7/10  train_time 181.4s  val_time 202.6s
+epoch 12/200  link=0.4092  lr=1e-03  r_mean=1.733  r_max=2.911  val 0.7755  patience 8/10  train_time 182.7s  val_time 190.3s
+epoch 13/200  link=0.4083  lr=1e-03  r_mean=1.774  r_max=3.029  val 0.7692  patience 9/10  train_time 166.1s  val_time 176.6s
+epoch 14/200  link=0.4069  lr=1e-03  r_mean=1.814  r_max=2.942  val 0.7622  patience 10/10  train_time 165.6s  val_time 181.8s
+  restored best weights from epoch 4 (val 0.8180, test 0.8039)
+
+=== Final results ===
+  dataset:           Flights
+  seed:              1
+  best_epoch:        4
+  epochs_run:        14
+  best_val_mrr:      0.8180
+  best_test_mrr:     0.8039
+=== rc=0 finished=2026-11-19 05:11:44 ===

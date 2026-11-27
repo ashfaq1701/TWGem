@@ -1,0 +1,80 @@
+# PAPER RUN -- Euclidean geometry. arm=pe pin=78bbf8f seed=1
+#   dist(x,y) = ((x-y)**2).sum(-1).clamp_min(1e-12).sqrt(); scorer F.layer_norm(s, s.shape[-1:]).
+#   No temperature, no gain, no separate pooler lr. One --lr drives SparseAdam on E and Adam on the pooler.
+#   E carries a padding sentinel row (a02307d), so no real node drifts on SparseAdam momentum.
+# EVERY knob is the argparse default except the per-dataset flags documented in
+#   default_conf_variations.txt, which are reproduced verbatim on the command line below.
+#   defaults: d_emb 128, wpn 10, mwl 5, k_train 10, k_eval 100, lr 1e-3, batch 1000,
+#             eval_batch 1000, epochs 200, patience 10, hidden 32, n_layers_pooler 2.
+# Seeds in this sweep: 5, 42, 1. One seed per job; DyGLib runs its six datasets in one job.
+# RECORD BOTH test@val-checkpoint AND max test. DO NOT CALL YOUTUBE BEFORE ep50.
+# conf line: tgbl-review: --lr 1e-4
+# experiment=paper_euclidean cell=seed_1  dataset=tgbl-review suite=tgb arm=pe seed=1
+# code=/mnt/nfs2/inf/ms2420/tempest-wt-pe commit=78bbf8f tree=clean
+# host=artemis-a40-11.local job=11696629 gpu=NVIDIA A40
+# started=2026-11-15 05:03:14
+# cmd: /mnt/nfs2/inf/ms2420/TWGem/venv/bin/python -u scripts/train_link_property_prediction.py --data-suite tgb --dataset tgbl-review --lr 1e-4 --data-root /mnt/nfs2/inf/ms2420/TWGem/datasets --seed 1 --use-gpu --use-gpu-tempest
+
+=== tempest-embedding training ===
+dataset: tgbl-review
+device:  cuda
+seed:    1
+loaded (tgb) in 4.1s
+  num_nodes:     352,637
+  T_train:       535,593,600
+  neg_pool:      345,101 train nodes (training negatives)
+  train edges:   3,413,837
+  val edges:     730,784
+  test edges:    728,919
+  [tgb] val negatives: TGB's pre-generated set (--k-eval=100 ignored)
+  [tgb] test negatives: TGB's pre-generated set (--k-eval=100 ignored)
+
+=== Config ===
+  num_nodes: 352637
+  T_train: 535593600
+  train_negative_sampler: UniformNegativeSampler(k=10, pool=345,101)
+  d_emb: 128
+  hidden_dim: 32
+  n_layers_pooler: 2
+  num_walks_per_node: 10
+  max_walk_len: 5
+  walk_bias: ExponentialWeight
+  start_bias: ExponentialWeight
+  t2nv_p: 4.0
+  t2nv_q: 0.25
+  lr: 0.0001
+  num_epochs: 200
+  early_stop_patience: 10
+  seed: 1
+  use_gpu: True
+  use_gpu_tempest: True
+
+=== Parameter counts ===
+  model.E:           45,137,664
+  head params:            1,377
+  TOTAL trainable:   45,139,041
+
+=== Training ===
+  Ingested full graph into Tempest: 4,873,540 edges (once; per-query cutoff enforces causality)
+epoch 1/200  link=1.5458  lr=1e-04  train 169.9s  r_mean=1.010  r_max=1.290  val 0.2455  test 0.3000 (new best)  eval 361.3s
+epoch 2/200  link=1.4374  lr=1e-04  train 172.6s  r_mean=1.016  r_max=1.266  val 0.2482  test 0.3024 (new best)  eval 365.4s
+epoch 3/200  link=1.3839  lr=1e-04  train 173.7s  r_mean=1.021  r_max=1.268  val 0.2472  patience 1/10  eval 184.9s
+epoch 4/200  link=1.3423  lr=1e-04  train 171.7s  r_mean=1.026  r_max=1.273  val 0.2469  patience 2/10  eval 184.1s
+epoch 5/200  link=1.3073  lr=1e-04  train 180.1s  r_mean=1.030  r_max=1.269  val 0.2463  patience 3/10  eval 184.9s
+epoch 6/200  link=1.2778  lr=1e-04  train 172.0s  r_mean=1.034  r_max=1.259  val 0.2462  patience 4/10  eval 184.0s
+epoch 7/200  link=1.2514  lr=1e-04  train 176.1s  r_mean=1.038  r_max=1.248  val 0.2464  patience 5/10  eval 180.7s
+epoch 8/200  link=1.2266  lr=1e-04  train 175.3s  r_mean=1.042  r_max=1.252  val 0.2465  patience 6/10  eval 180.2s
+epoch 9/200  link=1.2031  lr=1e-04  train 174.2s  r_mean=1.045  r_max=1.254  val 0.2476  patience 7/10  eval 180.5s
+epoch 10/200  link=1.1810  lr=1e-04  train 172.3s  r_mean=1.049  r_max=1.242  val 0.2442  patience 8/10  eval 180.4s
+epoch 11/200  link=1.1591  lr=1e-04  train 174.7s  r_mean=1.052  r_max=1.242  val 0.2440  patience 9/10  eval 180.8s
+epoch 12/200  link=1.1379  lr=1e-04  train 174.7s  r_mean=1.055  r_max=1.242  val 0.2443  patience 10/10  eval 181.9s
+  restored best weights from epoch 2 (val 0.2482, test 0.3024)
+
+=== Final results ===
+  dataset:           tgbl-review
+  seed:              1
+  best_epoch:        2
+  epochs_run:        12
+  best_val_mrr:      0.2482
+  best_test_mrr:     0.3024
+=== rc=0 finished=2026-11-15 06:21:15 ===
