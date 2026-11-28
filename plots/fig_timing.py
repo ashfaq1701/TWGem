@@ -15,7 +15,7 @@ METHODS = {"TWGem": "#1F4E9C", "CRAFT": "#9CA3AF", "JODIE": "#D1D5DB"}
 WIDTH = 0.26
 
 
-def plot(quantity: str, title: str) -> None:
+def plot(quantity: str) -> None:
     times = {m: [logs.read_timing(logs.timing_log(m, d))[quantity] / 60 for d in DATASETS]
              for m in METHODS}
 
@@ -31,7 +31,6 @@ def plot(quantity: str, title: str) -> None:
     ax.set_xticks(range(len(DATASETS)), DATASETS)
     ax.tick_params(axis="x", length=0)
     ax.set_ylabel("Minutes")
-    ax.set_title(title)
 
     fig.savefig(OUT / f"timing_{quantity}.pdf")
 
@@ -39,5 +38,5 @@ def plot(quantity: str, title: str) -> None:
 if __name__ == "__main__":
     style.setup_style()
     OUT.mkdir(exist_ok=True)
-    plot("train", "Training, per epoch")
-    plot("test", "Inference, test set")
+    plot("train")
+    plot("test")
